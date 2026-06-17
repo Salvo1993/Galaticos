@@ -298,37 +298,41 @@ export default function Home() {
       }
     }
 
-    // Algorithm
+    // 1. Pre-assegnazione bilanciata per cluster
+    const assignments = new Map<string, 'teamA' | 'teamB'>();
+    
+    for (const cluster of clusters) {
+        const members = [...cluster.members].sort(() => Math.random() - 0.5);
+        const mid = Math.floor(members.length / 2);
+        
+        // Randomly assign the larger group to either A or B
+        const [groupA, groupB] = Math.random() > 0.5 
+            ? [members.slice(0, mid), members.slice(mid)]
+            : [members.slice(mid), members.slice(0, mid)];
+
+        groupA.forEach(p => assignments.set(p, 'teamA'));
+        groupB.forEach(p => assignments.set(p, 'teamB'));
+    }
+
+    // 2. Assegnazione finale
     const shuffled = [...selectedPlayers].sort(() => Math.random() - 0.5);
     const teamA: string[] = [];
     const teamB: string[] = [];
-    const getPlayerCluster = (name: string) => clusters.find(c => c.members.includes(name));
 
     try {
-      const clusterPlayers = shuffled.filter(p => getPlayerCluster(p));
-      const normalPlayers = shuffled.filter(p => !getPlayerCluster(p));
-
-      for (const player of clusterPlayers) {
-        const cluster = getPlayerCluster(player)!;
-        const inA = cluster.members.filter(m => teamA.includes(m)).length;
-        const inB = cluster.members.filter(m => teamB.includes(m)).length;
-
-        if (inA > 0) {
-          if (teamB.length < 5) teamB.push(player);
-          else throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
-        } else if (inB > 0) {
-          if (teamA.length < 5) teamA.push(player);
-          else throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
+      for (const player of shuffled) {
+        const assignedTeam = assignments.get(player);
+        
+        if (assignedTeam) {
+            if (assignedTeam === 'teamA' && teamA.length < 5) teamA.push(player);
+            else if (assignedTeam === 'teamB' && teamB.length < 5) teamB.push(player);
+            else throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
         } else {
-          if (teamA.length <= teamB.length && teamA.length < 5) teamA.push(player);
-          else if (teamB.length < 5) teamB.push(player);
-          else teamA.push(player);
+            // Normal assignment
+            if (teamA.length <= teamB.length && teamA.length < 5) teamA.push(player);
+            else if (teamB.length < 5) teamB.push(player);
+            else throw new Error('Impossibile completare le squadre');
         }
-      }
-
-      for (const player of normalPlayers) {
-        if (teamA.length < 5) teamA.push(player);
-        else teamB.push(player);
       }
 
       if (teamA.length !== 5 || teamB.length !== 5) throw new Error('Errore nella generazione');

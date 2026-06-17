@@ -92,10 +92,24 @@ export default function Home() {
   const [teamAName, setTeamAName] = useState('Falchi 🦅');
   const [teamBName, setTeamBName] = useState('Aquile 🦆');
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // --- Initial Fetch ---
+  // --- Data Fetch ---
+  const fetchPlayers = async () => {
+    try {
+      const res = await fetch('/api/giocatori');
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setDbPlayers(data);
+    } catch (err) {
+      console.error(err);
+      setError('Impossibile caricare i giocatori');
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -145,6 +159,27 @@ export default function Home() {
     };
     init();
   }, []);
+
+  const handleAddPlayer = async () => {
+    if (!newPlayerName.trim()) return;
+    try {
+      const res = await fetch('/api/giocatori', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Nome: newPlayerName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      showToast('Giocatore aggiunto!', 'success');
+      setNewPlayerName('');
+      setIsAddModalOpen(false);
+      await fetchPlayers();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
 
   // --- Theme Toggle ---
   useEffect(() => {
@@ -364,7 +399,12 @@ export default function Home() {
       {error && <div className="toast visible error" style={{position:'static', transform:'none', margin:'0 0 2rem 0'}}>{error}</div>}
 
       <section>
-        <h2>👥 Giocatori</h2>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
+            <h2>👥 Giocatori</h2>
+            <button className="secondary-btn" onClick={() => setIsAddModalOpen(true)}>
+                <Plus size={16}/> Aggiungi
+            </button>
+        </div>
         <div className="players-grid">
           {selectedPlayers.map((val, i) => (
             <CustomDropdown
@@ -379,6 +419,25 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {isAddModalOpen && (
+          <div className="modal-overlay">
+              <div className="modal-content">
+                  <h3>Nuovo Giocatore</h3>
+                  <input 
+                    type="text" 
+                    value={newPlayerName} 
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    placeholder="Nome giocatore"
+                    className="modal-input"
+                  />
+                  <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
+                      <button className="secondary-btn" onClick={() => setIsAddModalOpen(false)}>Annulla</button>
+                      <button className="create-teams-btn" onClick={handleAddPlayer}>Salva</button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       <section>
         <h2>⚡ Cluster di Vincolo</h2>

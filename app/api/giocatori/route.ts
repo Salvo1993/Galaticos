@@ -14,3 +14,25 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const { Nome } = await req.json();
+    const sanitizedNome = Nome.trim();
+    if (!sanitizedNome) return NextResponse.json({ error: 'Nome obbligatorio' }, { status: 400 });
+
+    const existing = await sql`
+      SELECT 1 FROM public."Giocatori" WHERE LOWER("Nome") = LOWER(${sanitizedNome})
+    `;
+
+    if (existing.length > 0) {
+      return NextResponse.json({ error: 'Giocatore già presente' }, { status: 409 });
+    }
+
+    await sql`INSERT INTO public."Giocatori" ("Nome") VALUES (${sanitizedNome})`;
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Insert Error:', error);
+    return NextResponse.json({ error: 'Failed to insert player' }, { status: 500 });
+  }
+}

@@ -435,7 +435,14 @@ export default function Home() {
             ].map(t => (
               <div key={t.team} className={`team-card ${t.cls}`}>
                 <div className="team-header">
-                  <input type="text" className="team-name" value={t.name} onChange={(e) => t.setName(e.target.value)} spellCheck={false} />
+                  <input 
+                    type="text" 
+                    className="team-name" 
+                    value={t.name} 
+                    onChange={(e) => t.setName(e.target.value)} 
+                    onBlur={() => saveSession(results)}
+                    spellCheck={false} 
+                  />
                   <Pencil size={16} style={{opacity:0.5}} />
                 </div>
                 <ul className="team-list">

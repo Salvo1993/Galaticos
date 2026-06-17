@@ -110,11 +110,19 @@ export default function Home() {
         setDbPlayers(playersData);
 
         if (sessionData) {
-          setSelectedPlayers(sessionData.selected_players || Array(10).fill(''));
-          setClusters(sessionData.clusters || []);
-          setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
-          setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
-          if (sessionData.team_a_players?.length > 0) {
+          // Validation Guard: Only apply session if it's complete and valid
+          const isValidSession = 
+            Array.isArray(sessionData.selected_players) && 
+            sessionData.selected_players.length === 10 &&
+            sessionData.selected_players.every((p: string) => p !== '') &&
+            Array.isArray(sessionData.team_a_players) && sessionData.team_a_players.length === 5 &&
+            Array.isArray(sessionData.team_b_players) && sessionData.team_b_players.length === 5;
+
+          if (isValidSession) {
+            setSelectedPlayers(sessionData.selected_players);
+            setClusters(sessionData.clusters || []);
+            setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
+            setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
             setResults({
               teamA: sessionData.team_a_players,
               teamB: sessionData.team_b_players

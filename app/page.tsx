@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Trash2, Calendar } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -91,6 +91,7 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [teamAName, setTeamAName] = useState('Falchi 🦅');
   const [teamBName, setTeamBName] = useState('Aquile 🦆');
+  const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -98,16 +99,22 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [playersRes, sessionRes] = await Promise.all([
+        const [playersRes, sessionRes, settingsRes] = await Promise.all([
           fetch('/api/giocatori'),
-          fetch('/api/session')
+          fetch('/api/session'),
+          fetch('/api/settings')
         ]);
         
         const playersData = await playersRes.json();
         const sessionData = await sessionRes.json();
+        const settingsData = await settingsRes.json();
 
         if (playersData.error) throw new Error(playersData.error);
         setDbPlayers(playersData);
+
+        if (settingsData && settingsData.match_label) {
+          setMatchLabel(settingsData.match_label);
+        }
 
         if (sessionData) {
           // Validation Guard: Only apply session if it's complete and valid
@@ -174,6 +181,29 @@ export default function Home() {
       });
     } catch (err) {
       console.error('Error saving session:', err);
+    }
+  };
+
+  const saveSettings = async (label: string) => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ match_label: label })
+      });
+    } catch (err) {
+      console.error('Error saving settings:', err);
+    }
+  };
+
+  const clearState = () => {
+    if (confirm('Sei sicuro di voler pulire tutte le selezioni correnti?')) {
+      setSelectedPlayers(Array(10).fill(''));
+      setClusters([]);
+      setResults(null);
+      setTeamAName('Falchi 🦅');
+      setTeamBName('Aquile 🦆');
+      showToast('Stato ripulito', 'info');
     }
   };
 
@@ -299,20 +329,36 @@ export default function Home() {
   return (
     <div className="container">
       <header>
-        <div className="logo">
-          <svg viewBox="0 0 100 100" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="4"/>
-            <path d="M50 2L35 25H65L50 2Z" fill="currentColor"/>
-            <path d="M20 35L2 50L20 65L35 50L20 35Z" fill="currentColor"/>
-            <path d="M80 35L98 50L80 65L65 50L80 35Z" fill="currentColor"/>
-            <path d="M35 75L50 98L65 75H35Z" fill="currentColor"/>
-            <path d="M35 25L20 35M65 25L80 35M20 65L35 75M80 65L65 75M35 50H65M50 25L50 75" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Random Six Fingers
+        <div className="header-top">
+          <div className="logo-section">
+            <div className="logo">
+              <svg viewBox="0 0 100 100" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="4"/>
+                <path d="M50 2L35 25H65L50 2Z" fill="currentColor"/>
+                <path d="M20 35L2 50L20 65L35 50L20 35Z" fill="currentColor"/>
+                <path d="M80 35L98 50L80 65L65 50L80 35Z" fill="currentColor"/>
+                <path d="M35 75L50 98L65 75H35Z" fill="currentColor"/>
+                <path d="M35 25L20 35M65 25L80 35M20 65L35 75M80 65L65 75M35 50H65M50 25L50 75" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Random Six Fingers
+            </div>
+            <div className="match-info">
+              <Calendar size={14} className="calendar-icon" />
+              <input 
+                type="text" 
+                className="match-label-input"
+                value={matchLabel}
+                onChange={(e) => setMatchLabel(e.target.value)}
+                onBlur={() => saveSettings(matchLabel)}
+                placeholder="Data e ora partita..."
+                spellCheck={false}
+              />
+            </div>
+          </div>
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
         </div>
-        <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
       </header>
 
       {error && <div className="toast visible error" style={{position:'static', transform:'none', margin:'0 0 2rem 0'}}>{error}</div>}
@@ -372,9 +418,12 @@ export default function Home() {
         </button>
       </section>
 
-      <div className="actions">
+      <div className="actions-main">
         <button className="create-teams-btn" onClick={generateTeams} disabled={loading}>
           ⚽ Crea Squadre
+        </button>
+        <button className="clear-btn" onClick={clearState} disabled={loading}>
+          <Trash2 size={20} /> PULISCI
         </button>
       </div>
 

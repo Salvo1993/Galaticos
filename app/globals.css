@@ -113,10 +113,20 @@
 
         /* Header */
         header {
+            margin-bottom: var(--space-8);
+        }
+
+        .header-top {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--space-8);
+            align-items: flex-start;
+            gap: var(--space-4);
+        }
+
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
         }
 
         .logo {
@@ -135,6 +145,37 @@
             fill: currentColor;
         }
 
+        .match-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            color: var(--color-text-muted);
+            font-size: var(--text-sm);
+        }
+
+        .calendar-icon {
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .match-label-input {
+            background: transparent;
+            border: none;
+            color: var(--color-text-muted);
+            font-family: var(--font-body);
+            font-size: var(--text-sm);
+            padding: 2px 4px;
+            border-radius: var(--radius-sm);
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .match-label-input:hover, .match-label-input:focus {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text);
+        }
+
         .theme-toggle {
             background: var(--color-surface);
             border: 1px solid var(--color-border);
@@ -147,6 +188,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
 
         .theme-toggle:hover {
@@ -439,10 +481,19 @@
         }
 
         /* Main Action Button */
-        .actions {
+        .actions-main {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            gap: var(--space-4);
             margin-top: var(--space-8);
+            align-items: center;
+        }
+
+        @media (min-width: 480px) {
+            .actions-main {
+                flex-direction: row;
+                justify-content: center;
+            }
         }
 
         .create-teams-btn {
@@ -457,6 +508,7 @@
             font-weight: 700;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: var(--space-3);
             cursor: pointer;
             transition: all 0.2s;
@@ -464,8 +516,27 @@
             width: 100%;
         }
 
+        .clear-btn {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            color: var(--color-error);
+            padding: 0 var(--space-6);
+            height: 56px;
+            border-radius: var(--radius-full);
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
         @media (min-width: 480px) {
-            .create-teams-btn {
+            .create-teams-btn, .clear-btn {
                 width: auto;
             }
         }
@@ -476,11 +547,17 @@
             box-shadow: 0 12px 20px -5px rgba(76, 175, 80, 0.4);
         }
 
-        .create-teams-btn:active:not(:disabled) {
+        .clear-btn:hover:not(:disabled) {
+            background: var(--color-surface-2);
+            border-color: var(--color-error);
+            transform: translateY(-2px);
+        }
+
+        .create-teams-btn:active:not(:disabled), .clear-btn:active:not(:disabled) {
             transform: scale(0.97);
         }
 
-        .create-teams-btn:disabled {
+        .create-teams-btn:disabled, .clear-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             box-shadow: none;

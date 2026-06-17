@@ -61,12 +61,6 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
       {isOpen && (
         <div className="dropdown-panel">
           <div className="dropdown-options">
-            <div 
-              className="dropdown-option placeholder-option"
-              onClick={() => { onChange(''); setIsOpen(false); }}
-            >
-              Nessuno
-            </div>
             {options.map((opt) => (
               <div 
                 key={opt.Nome}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Sun, Moon, Users, Zap, RotateCcw, Copy, Plus, X, Pencil, Trophy } from 'lucide-react';
+import { Sun, Moon, Users, Zap, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -17,6 +17,73 @@ interface Cluster {
 interface Results {
   teamA: string[];
   teamB: string[];
+}
+
+// --- Custom Components ---
+interface CustomDropdownProps {
+  value: string;
+  options: Player[];
+  onChange: (name: string) => void;
+  placeholder: string;
+  loading: boolean;
+  index: number;
+}
+
+function CustomDropdown({ value, options, onChange, placeholder, loading, index }: CustomDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="custom-dropdown" ref={dropdownRef}>
+      <div 
+        className={`dropdown-trigger ${isOpen ? 'open' : ''} ${loading ? 'loading' : ''}`}
+        onClick={() => !loading && setIsOpen(!isOpen)}
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && setIsOpen(!isOpen)}
+      >
+        <span className="player-number">{index + 1}</span>
+        <span className={`selected-value ${!value ? 'placeholder' : ''}`}>
+          {value || placeholder}
+        </span>
+        <ChevronDown size={18} className={`chevron ${isOpen ? 'rotated' : ''}`} />
+      </div>
+      
+      {isOpen && (
+        <div className="dropdown-panel">
+          <div className="dropdown-options">
+            <div 
+              className="dropdown-option placeholder-option"
+              onClick={() => { onChange(''); setIsOpen(false); }}
+            >
+              Nessuno
+            </div>
+            {options.map((opt) => (
+              <div 
+                key={opt.Nome}
+                className={`dropdown-option ${opt.Nome === value ? 'selected' : ''}`}
+                onClick={() => { onChange(opt.Nome); setIsOpen(false); }}
+              >
+                {opt.Nome}
+              </div>
+            ))}
+            {options.length === 0 && (
+              <div className="dropdown-no-options">Tutti selezionati</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Home() {
@@ -209,22 +276,15 @@ export default function Home() {
         <h2>👥 Giocatori</h2>
         <div className="players-grid">
           {selectedPlayers.map((val, i) => (
-            <div key={i} className="player-input-group">
-              <div className={`player-input-wrapper ${loading ? 'loading-shimmer' : ''}`}>
-                <span className="player-number">{i + 1}</span>
-                <select 
-                  className="player-input" 
-                  value={val} 
-                  onChange={(e) => handlePlayerChange(i, e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">Seleziona...</option>
-                  {getAvailableOptions(i).map(p => (
-                    <option key={p.Nome} value={p.Nome}>{p.Nome}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <CustomDropdown
+              key={i}
+              index={i}
+              value={val}
+              options={getAvailableOptions(i)}
+              onChange={(name) => handlePlayerChange(i, name)}
+              placeholder="Seleziona..."
+              loading={loading}
+            />
           ))}
         </div>
       </section>

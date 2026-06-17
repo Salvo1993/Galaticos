@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Sun, Moon, Users, Zap, RotateCcw, Copy, Plus, X, Pencil, Soccerball } from 'lucide-react';
+import { Sun, Moon, Users, Zap, RotateCcw, Copy, Plus, X, Pencil, Trophy } from 'lucide-react';
 
 // --- Types ---
 interface Player {

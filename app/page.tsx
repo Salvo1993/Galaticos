@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Sun, Moon, Users, Zap, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -102,17 +102,39 @@ export default function Home() {
 
   // --- Initial Fetch ---
   useEffect(() => {
-    fetch('/api/giocatori')
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        setDbPlayers(data);
+    const init = async () => {
+      try {
+        const [playersRes, sessionRes] = await Promise.all([
+          fetch('/api/giocatori'),
+          fetch('/api/session')
+        ]);
+        
+        const playersData = await playersRes.json();
+        const sessionData = await sessionRes.json();
+
+        if (playersData.error) throw new Error(playersData.error);
+        setDbPlayers(playersData);
+
+        if (sessionData) {
+          setSelectedPlayers(sessionData.selected_players || Array(10).fill(''));
+          setClusters(sessionData.clusters || []);
+          setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
+          setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
+          if (sessionData.team_a_players?.length > 0) {
+            setResults({
+              teamA: sessionData.team_a_players,
+              teamB: sessionData.team_b_players
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Initialization Error:', err);
+        setError('Impossibile caricare i dati dal database');
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        setError('Impossibile caricare i giocatori dal database');
-        setLoading(false);
-      });
+      }
+    };
+    init();
   }, []);
 
   // --- Theme Toggle ---
@@ -132,6 +154,25 @@ export default function Home() {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     return Math.abs(hash) % 360;
+  };
+
+  const saveSession = async (currentResults: Results) => {
+    try {
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selected_players: selectedPlayers,
+          clusters,
+          team_a_name: teamAName,
+          team_b_name: teamBName,
+          team_a_players: currentResults.teamA,
+          team_b_players: currentResults.teamB
+        })
+      });
+    } catch (err) {
+      console.error('Error saving session:', err);
+    }
   };
 
   // --- Logic ---
@@ -172,7 +213,7 @@ export default function Home() {
     }));
   };
 
-  const generateTeams = () => {
+  const generateTeams = async () => {
     // Validation
     if (selectedPlayers.some(p => !p)) {
       showToast('Seleziona tutti e 10 i nomi prima di continuare', 'error');
@@ -225,7 +266,9 @@ export default function Home() {
 
       if (teamA.length !== 5 || teamB.length !== 5) throw new Error('Errore nella generazione');
 
-      setResults({ teamA, teamB });
+      const newResults = { teamA, teamB };
+      setResults(newResults);
+      await saveSession(newResults);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e: any) {
       showToast(e.message, 'error');

@@ -241,8 +241,16 @@ export default function Home() {
     return timeStr.split(':').slice(0, 2).join(':');
   };
 
+  const normalizeScorers = (value: any) => {
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'string') return value.trim();
+    return '';
+  };
+
   const hasScorers = (m: MatchResult) => {
-    return (m.marcatori_a && m.marcatori_a.trim() !== '') || (m.marcatori_b && m.marcatori_b.trim() !== '');
+    const a = normalizeScorers(m.marcatori_a);
+    const b = normalizeScorers(m.marcatori_b);
+    return a !== '' || b !== '';
   };
 
   const saveSession = async (currentResults: Results) => {
@@ -666,7 +674,7 @@ export default function Home() {
                    </div>
                    <div className="match-score-area">
                      <span className="team-name">{m.team_a_name}</span>
-                     <span className="score">{m.risultato || '0-0'}</span>
+                     <span className="score badge">{m.risultato || '0-0'}</span>
                      <span className="team-name">{m.team_b_name}</span>
                    </div>
                 </div>
@@ -674,7 +682,7 @@ export default function Home() {
                   <div className="match-details">
                     {hasScorers(m) && (
                       <p className="scorers-detail">
-                         <strong>Marcatori:</strong> {m.team_a_name} ({m.marcatori_a || '-'}) | {m.team_b_name} ({m.marcatori_b || '-'})
+                         <strong>Marcatori:</strong> {m.team_a_name} ({normalizeScorers(m.marcatori_a) || '-'}) | {m.team_b_name} ({normalizeScorers(m.marcatori_b) || '-'})
                       </p>
                     )}
                     <div className="formations-detail">

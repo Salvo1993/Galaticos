@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Trash2, Calendar } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -116,9 +116,17 @@ export default function Home() {
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
   const [editingStadiumId, setEditingStadiumId] = useState<number | null>(null);
   const [stadiumInput, setStadiumInput] = useState('');
+  const [lightShirtTeamByMatch, setLightShirtTeamByMatch] = useState<Record<number, 'A' | 'B'>>({});
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
+
+  const toggleShirtAssignment = (matchId: number) => {
+    setLightShirtTeamByMatch(prev => ({
+      ...prev,
+      [matchId]: (prev[matchId] ?? 'A') === 'A' ? 'B' : 'A'
+    }));
+  };
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -831,7 +839,9 @@ export default function Home() {
                     <div className="match-score-area">
                       <div className="match-team match-team-a">
                         <span className="match-team-name">{m.team_a_name}</span>
-                        <span className="match-team-tag">Casa</span>
+                        <span className="match-tag" onClick={(e) => { e.stopPropagation(); toggleShirtAssignment(m.id); }}>
+                            {isLightOnA ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}
+                        </span>
                       </div>
 
                       <div className="match-scoreboard">
@@ -842,7 +852,9 @@ export default function Home() {
 
                       <div className="match-team match-team-b">
                         <span className="match-team-name">{m.team_b_name}</span>
-                        <span className="match-team-tag">Trasferta</span>
+                        <span className="match-tag" onClick={(e) => { e.stopPropagation(); toggleShirtAssignment(m.id); }}>
+                            {isLightOnA ? 'MAGLIE SCURE' : 'MAGLIE CHIARE'}
+                        </span>
                       </div>
                     </div>
 
@@ -878,6 +890,19 @@ export default function Home() {
                             ))}
                           </ul>
                         </div>
+                      </div>
+                      <div className="match-footer">
+                        <button
+                          type="button"
+                          className="swap-shirts-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleShirtAssignment(m.id);
+                          }}
+                        >
+                          <ArrowLeftRight size={14} />
+                          <span>Cambio maglie</span>
+                        </button>
                       </div>
                     </div>
                   )}

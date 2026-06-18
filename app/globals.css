@@ -736,26 +736,52 @@
             border-color: var(--color-text-muted);
         }
 
-        .stadium-input {
-            font-family: var(--font-body);
-            font-size: var(--text-sm);
-            color: var(--color-text);
-            background: var(--color-surface-2);
+        .match-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.75rem;
+        }
+
+        .match-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.55rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text-muted);
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            padding: 0.35rem 0.6rem;
-            width: 100%;
-            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: var(--space-1);
+        }
+
+        .match-tag:hover {
+            color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .swap-shirts-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface-2);
+            color: var(--color-text);
+            font: inherit;
+            font-size: 0.82rem;
+            cursor: pointer;
             transition: all 0.2s;
         }
 
-        .stadium-input:focus {
+        .swap-shirts-btn:hover {
+            background: var(--color-surface);
             border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-        }
-
-        .stadium-input::placeholder {
-            color: var(--color-text-muted);
         }
 
         .match-tag {

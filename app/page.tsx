@@ -789,7 +789,7 @@ export default function Home() {
         </section>
       )}
 
-      <section>
+      <section className="archive-typography">
         <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
         {matches.length === 0 ? (
           <p className="section-subtitle">Nessuna partita archiviata</p>

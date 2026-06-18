@@ -842,3 +842,59 @@
         .toast.success {
             border-left: 4px solid var(--color-success);
         }
+
+/* Archive typography override */
+.archive-typography .match-card {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.archive-typography .match-team-name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.archive-typography .match-meta,
+.archive-typography .match-details,
+.archive-typography .match-stadium,
+.archive-typography .match-scorers,
+.archive-typography .match-result,
+.archive-typography .match-score,
+.archive-typography .scorers-detail {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.archive-typography .match-tag,
+.archive-typography .match-team-tag {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.archive-typography .match-card button,
+.archive-typography .swap-shirts-btn,
+.archive-typography .expand-btn {
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+  .archive-typography .match-card {
+    font-size: 1rem;
+  }
+
+  .archive-typography .match-team-name {
+    font-size: 1rem;
+  }
+
+  .archive-typography .match-meta,
+  .archive-typography .match-details,
+  .archive-typography .match-stadium,
+  .archive-typography .match-scorers,
+  .archive-typography .match-result,
+  .archive-typography .match-score,
+  .archive-typography .scorers-detail {
+    font-size: 0.95rem;
+  }
+}

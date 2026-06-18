@@ -103,7 +103,7 @@ export default function Home() {
   const resultsRef = useRef<HTMLDivElement>(null);
   
   // Ref to track player elements
-  const playerRefs = useRef<Record<string, HTMLDivElement>>({});
+  const playerRefs = useRef<Record<string, HTMLLIElement>>({});
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

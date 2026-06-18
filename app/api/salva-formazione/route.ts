@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const day = datePart[1];
     const monthName = datePart[2].toLowerCase();
     const month = months[monthName] || '01';
-    const dateStr = `${day.padStart(2, '0')}/${month}/2026`;
+    const dateStr = `2026-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
     const timePart = parts[1].toLowerCase().replace('ore', '').trim();
     const timeStr = `${timePart.padStart(2, '0')}:00`;

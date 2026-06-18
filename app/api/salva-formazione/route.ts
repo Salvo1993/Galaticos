@@ -10,7 +10,7 @@ const months: Record<string, string> = {
 export async function POST(req: Request) {
   try {
     const { 
-        selected_players, clusters, team_a_name, team_b_name, 
+        team_a_name, team_b_name, 
         teamAPlayers, teamBPlayers 
     } = await req.json();
 
@@ -39,8 +39,8 @@ export async function POST(req: Request) {
           )
           VALUES (
             1,
-            ${JSON.stringify(selected_players || [])}::jsonb, 
-            ${JSON.stringify(clusters || [])}::jsonb, 
+            '[]'::jsonb, 
+            '[]'::jsonb, 
             ${team_a_name}, 
             ${team_b_name}, 
             ${JSON.stringify(teamAPlayers)}::jsonb, 
@@ -48,8 +48,6 @@ export async function POST(req: Request) {
             NOW()
           )
           ON CONFLICT (id) DO UPDATE SET
-            selected_players = EXCLUDED.selected_players,
-            clusters = EXCLUDED.clusters,
             team_a_name = EXCLUDED.team_a_name,
             team_b_name = EXCLUDED.team_b_name,
             team_a_players = EXCLUDED.team_a_players,

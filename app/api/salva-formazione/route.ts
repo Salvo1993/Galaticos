@@ -14,13 +14,11 @@ export async function POST(req: Request) {
         teamAPlayers, teamBPlayers 
     } = await req.json();
 
-    console.log('Backend Received Data for Saving:', { team_a_name, team_b_name, teamAPlayersLength: teamAPlayers?.length });
-
     if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
       return NextResponse.json({ error: 'Dati squadra mancanti o invalidi' }, { status: 400 });
     }
 
-    // Parse match_label for key (data + ora)
+    // Parse match_label per ottenere la chiave univoca (data + ora)
     const settings = await sql`SELECT match_label FROM public."SiteSettings" WHERE id = 1`;
     const matchLabel = settings[0]?.match_label || 'Venerdì 19 giugno - Ore 21';
     const parts = matchLabel.split('-').map((p: string) => p.trim());
@@ -32,10 +30,10 @@ export async function POST(req: Request) {
     const timePart = parts[1].toLowerCase().replace('ore', '').trim();
     const timeStr = `${timePart.padStart(2, '0')}:00`;
 
-    // Transactional Atomic Operation
-    await (sql as any).begin(async (tx: any) => {
-        // A) Upsert LatestSession (id=1, Singleton)
-        await tx`
+    // Operazione Atomica usando sql.transaction
+    await sql.transaction([
+        // A) Upsert LatestSession (Singleton con ID 1)
+        sql`
           INSERT INTO public."LatestSession" (
             id, selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, updated_at
           )
@@ -57,32 +55,19 @@ export async function POST(req: Request) {
             team_a_players = EXCLUDED.team_a_players,
             team_b_players = EXCLUDED.team_b_players,
             updated_at = NOW();
-        `;
+        `,
 
-        // B) Upsert Risultati (by data + ora)
-        const existing = await tx`
-          SELECT id FROM public."Risultati" 
-          WHERE data = ${dateStr} AND ora = ${timeStr}
-        `;
-
-        if (existing.length > 0) {
-          console.log('Updating existing match record:', existing[0].id);
-          await tx`
-            UPDATE public."Risultati"
-            SET team_a_name = ${team_a_name},
-                team_b_name = ${team_b_name},
-                team_a_players = ${JSON.stringify(teamAPlayers)}::jsonb,
-                team_b_players = ${JSON.stringify(teamBPlayers)}::jsonb
-            WHERE id = ${existing[0].id}
-          `;
-        } else {
-          console.log('Inserting new match record');
-          await tx`
-            INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
-            VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb)
-          `;
-        }
-    });
+        // B) Upsert Risultati (basato su vincolo unico data+ora)
+        sql`
+          INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
+          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb)
+          ON CONFLICT (data, ora) DO UPDATE SET
+            team_a_name = EXCLUDED.team_a_name,
+            team_b_name = EXCLUDED.team_b_name,
+            team_a_players = EXCLUDED.team_a_players,
+            team_b_players = EXCLUDED.team_b_players;
+        `
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

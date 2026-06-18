@@ -95,6 +95,7 @@ export default function Home() {
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
@@ -398,6 +399,24 @@ export default function Home() {
     navigator.clipboard.writeText(text).then(() => showToast('Risultato copiato!', 'success'));
   };
 
+  const saveFormation = async () => {
+    if (!results) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/salva-formazione', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName })
+      });
+      if (!res.ok) throw new Error('Errore nel salvataggio');
+      showToast('Formazione salvata!', 'success');
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // --- Dynamic Options ---
   const getAvailableOptions = (currentIndex: number) => {
     const otherSelected = selectedPlayers.filter((p, i) => i !== currentIndex && p !== '');
@@ -597,6 +616,9 @@ export default function Home() {
           <div className="results-actions">
             <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
             <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia</button>
+            <button className="create-teams-btn" onClick={saveFormation} disabled={isSaving}>
+                {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
+            </button>
           </div>
         </section>
       )}

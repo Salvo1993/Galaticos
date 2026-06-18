@@ -19,6 +19,19 @@ interface Results {
   teamB: string[];
 }
 
+interface MatchResult {
+  id: number;
+  data: string;
+  ora: string;
+  team_a_name: string;
+  team_b_name: string;
+  risultato: string | null;
+  marcatori_a: string | null;
+  marcatori_b: string | null;
+  team_a_players: string[];
+  team_b_players: string[];
+}
+
 // --- Custom Components ---
 interface CustomDropdownProps {
   value: string;
@@ -96,6 +109,8 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
@@ -130,18 +145,21 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [playersRes, sessionRes, settingsRes] = await Promise.all([
+        const [playersRes, sessionRes, settingsRes, matchesRes] = await Promise.all([
           fetch('/api/giocatori'),
           fetch('/api/session'),
-          fetch('/api/settings')
+          fetch('/api/settings'),
+          fetch('/api/risultati')
         ]);
         
         const playersData = await playersRes.json();
         const sessionData = await sessionRes.json();
         const settingsData = await settingsRes.json();
+        const matchesData = await matchesRes.json();
 
         if (playersData.error) throw new Error(playersData.error);
         setDbPlayers(playersData);
+        setMatches(Array.isArray(matchesData) ? matchesData : []);
 
         if (settingsData && settingsData.match_label) {
           setMatchLabel(settingsData.match_label);
@@ -625,6 +643,41 @@ export default function Home() {
       )}
 
       {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
+
+      <section>
+        <h2>🏆 Archivio Partite</h2>
+        {matches.length === 0 ? (
+          <p className="section-subtitle">Nessuna partita archiviata</p>
+        ) : (
+          <div className="matches-list">
+            {matches.map(m => (
+              <div key={m.id} className="match-card">
+                <div className="match-summary" onClick={() => setExpandedMatchId(expandedMatchId === m.id ? null : m.id)}>
+                   <div className="match-info-brief">
+                     <strong>{m.data} - {m.ora}</strong>
+                     <span className="match-teams">{m.team_a_name} vs {m.team_b_name}</span>
+                     <span className="match-score">{m.risultato || '0-0'}</span>
+                   </div>
+                   <ChevronDown size={20} className={`chevron ${expandedMatchId === m.id ? 'rotated' : ''}`} />
+                </div>
+                {expandedMatchId === m.id && (
+                  <div className="match-details">
+                    {(m.marcatori_a || m.marcatori_b) && (
+                      <p className="scorers-detail">
+                         <strong>Marcatori:</strong> {m.team_a_name} ({m.marcatori_a || '-'}) | {m.team_b_name} ({m.marcatori_b || '-'})
+                      </p>
+                    )}
+                    <div className="formations-detail">
+                       <div><strong>{m.team_a_name}:</strong> {m.team_a_players.join(', ')}</div>
+                       <div><strong>{m.team_b_name}:</strong> {m.team_b_players.join(', ')}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -97,65 +97,23 @@ export default function Home() {
   const [newPlayerName, setNewPlayerName] = useState('');
   
   // Swap state
-  const [swapSource, setSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
-  const [swapLines, setSwapLines] = useState<any[]>([]);
+  const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
-  
-  // Refs to track player elements
-  const playerRefs = useRef<Record<string, HTMLLIElement>>({});
-  // Refs to track player avatar containers
-  const playerAvatarRefs = useRef<Record<string, HTMLDivElement>>({});
 
-
+  // Clean up selection on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-        if (swapSource) {
-            setSwapSource(null);
-            setSwapLines([]);
+        if (activeSwapSource) {
+            setActiveSwapSource(null);
         }
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [swapSource]);
-
-  const updateSwapLines = () => {
-      if (!swapSource || !resultsRef.current) {
-          setSwapLines([]);
-          return;
-      }
-
-      const sourceEl = playerAvatarRefs.current[swapSource.name];
-      if (!sourceEl) return;
-
-      const sourceRect = sourceEl.getBoundingClientRect();
-      const sourcePoint = { x: sourceRect.left + sourceRect.width / 2, y: sourceRect.top + sourceRect.height / 2 };
-
-      const targetTeam = swapSource.team === 'teamA' ? results!.teamB : results!.teamA;
-      const lines = targetTeam.map((targetName, index) => {
-          const targetEl = playerAvatarRefs.current[targetName];
-          if (!targetEl) return null;
-          const targetRect = targetEl.getBoundingClientRect();
-          const targetPoint = { x: targetRect.left - 8, y: targetRect.top + targetRect.height / 2 };
-          
-          // Smooth bezier control point
-          const cp = { 
-              x: (sourcePoint.x + targetPoint.x) / 2, 
-              y: (sourcePoint.y + targetPoint.y) / 2 
-          };
-          
-          return {
-              d: `M ${sourcePoint.x} ${sourcePoint.y} Q ${cp.x} ${cp.y} ${targetPoint.x} ${targetPoint.y}`,
-              targetName
-          };
-      }).filter(Boolean);
-      setSwapLines(lines);
-  };
-
-  useEffect(updateSwapLines, [swapSource, results]);
-  useEffect(() => { window.addEventListener('resize', updateSwapLines); return () => window.removeEventListener('resize', updateSwapLines); }, [swapSource, results]);
+  }, [activeSwapSource]);
 
   // --- Data Fetch ---
+
   const fetchPlayers = async () => {
     try {
       const res = await fetch('/api/giocatori');
@@ -320,8 +278,7 @@ export default function Home() {
 
           setResults(newResults);
           saveSession(newResults);
-          setSwapSource(null);
-          setSwapLines([]);
+          setActiveSwapSource(null);
       }
   };
 
@@ -639,8 +596,8 @@ export default function Home() {
                         </div>
                         <button 
                             className="swap-icon-btn" 
-                            onClick={(e) => { e.stopPropagation(); setSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
-                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? 'var(--accent-color, #fff)' : 'rgba(255,255,255,0.4)' }}
+                            onClick={(e) => { e.stopPropagation(); setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? '#fff' : 'rgba(255,255,255,0.4)' }}
                         >
                             ⇄
                         </button>
@@ -652,26 +609,6 @@ export default function Home() {
             ))}
           </div>
           
-          {/* SVG Overlay for swap lines */}
-          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000, opacity: 0.9 }}>
-             <defs>
-               <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="4" refY="2" orient="auto">
-                 <polygon points="0 0, 4 2, 0 4" fill="rgba(255,255,255,0.7)" />
-               </marker>
-             </defs>
-             {swapLines.map((line, i) => (
-                 <path 
-                   key={i} 
-                   d={line.d}
-                   fill="none"
-                   stroke="rgba(255,255,255,0.6)"
-                   strokeWidth="1.2"
-                   strokeLinecap="round"
-                   markerEnd="url(#arrowhead)"
-                   style={{ filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.3))' }}
-                 />
-             ))}
-          </svg>
           <div className="results-actions">
             <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
             <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia</button>

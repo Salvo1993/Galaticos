@@ -30,6 +30,7 @@ interface MatchResult {
   marcatori_b: string | null;
   team_a_players: string[];
   team_b_players: string[];
+  Stadium: string | null;
 }
 
 // --- Custom Components ---

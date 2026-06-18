@@ -77,48 +77,7 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
         </div>
       )}
     </div>
-  );
-}
 
-function SwapDropdown({ otherTeamPlayers, onSwap }: { otherTeamPlayers: string[], onSwap: (target: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="swap-dropdown-container" ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <button className="swap-icon-btn" onClick={() => setIsOpen(!isOpen)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: '#888' }}>
-            <span style={{fontSize: '1.2rem'}}>⇄</span>
-        </button>
-
-        {isOpen && (
-            <div className="dropdown-panel swap-panel" style={{position: 'absolute', right: 0, top: '100%', zIndex: 10, background: 'var(--card-bg, #1a1a1a)', border: '1px solid var(--border-color, #333)', borderRadius: '4px', minWidth: '150px', boxShadow: '0 4px 6px rgba(0,0,0,0.3)'}}>
-                <div className="dropdown-options" style={{ display: 'flex', flexDirection: 'column' }}>
-                    {otherTeamPlayers.map(name => (
-                        <div
-                          key={name}
-                          className="dropdown-option"
-                          onClick={() => { onSwap(name); setIsOpen(false); }}
-                          style={{minHeight: '44px', display: 'flex', alignItems: 'center', padding: '0 1rem', cursor: 'pointer', color: 'var(--text-color, #fff)' }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                            {name}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
-    </div>
   );
 }
 
@@ -136,8 +95,57 @@ export default function Home() {
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
+  
+  // Swap state
+  const [swapSource, setSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
+  const [swapLines, setSwapLines] = useState<any[]>([]);
 
   const resultsRef = useRef<HTMLDivElement>(null);
+  
+  // Ref to track player elements
+  const playerRefs = useRef<Record<string, HTMLDivElement>>({});
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+        if (swapSource) {
+            setSwapSource(null);
+            setSwapLines([]);
+        }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [swapSource]);
+
+  const updateSwapLines = () => {
+      if (!swapSource || !resultsRef.current) {
+          setSwapLines([]);
+          return;
+      }
+
+      const sourceEl = playerRefs.current[swapSource.name];
+      if (!sourceEl) return;
+
+      const sourceRect = sourceEl.getBoundingClientRect();
+      const sourceCenter = { x: sourceRect.left + sourceRect.width / 2, y: sourceRect.top + sourceRect.height / 2 };
+
+      const targetTeam = swapSource.team === 'teamA' ? results!.teamB : results!.teamA;
+      const lines = targetTeam.map(targetName => {
+          const targetEl = playerRefs.current[targetName];
+          if (!targetEl) return null;
+          const targetRect = targetEl.getBoundingClientRect();
+          return {
+              x1: sourceCenter.x,
+              y1: sourceCenter.y,
+              x2: targetRect.left + targetRect.width / 2,
+              y2: targetRect.top + targetRect.height / 2,
+              targetName
+          };
+      }).filter(Boolean);
+      setSwapLines(lines);
+  };
+
+  useEffect(updateSwapLines, [swapSource, results]);
+  useEffect(() => { window.addEventListener('resize', updateSwapLines); return () => window.removeEventListener('resize', updateSwapLines); }, [swapSource, results]);
 
   // --- Data Fetch ---
   const fetchPlayers = async () => {
@@ -304,6 +312,8 @@ export default function Home() {
 
           setResults(newResults);
           saveSession(newResults);
+          setSwapSource(null);
+          setSwapLines([]);
       }
   };
 
@@ -577,20 +587,65 @@ export default function Home() {
                   {t.list.map(name => {
                     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
                     const hue = hashStringToHue(name);
+                    const isSwapTarget = swapSource && swapLines.some(l => l.targetName === name);
+                    const isSwapSource = swapSource?.name === name;
+
                     return (
-                      <li key={name} className="player-row" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                      <li 
+                        key={name} 
+                        className={`player-row ${isSwapTarget ? 'swap-target' : ''} ${isSwapSource ? 'swap-source' : ''}`}
+                        ref={el => el && (playerRefs.current[name] = el)}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0.5rem', borderRadius: '4px',
+                            cursor: isSwapTarget ? 'pointer' : 'default',
+                            background: isSwapTarget ? 'rgba(0,255,0,0.1)' : 'transparent',
+                            transition: 'all 0.2s'
+                        }}
+                        onClick={(e) => {
+                            if (isSwapTarget) {
+                                e.stopPropagation();
+                                handleSwap(swapSource!.name, swapSource!.team, name, t.team === 'A' ? 'teamA' : 'teamB');
+                            }
+                        }}
+                      >
                         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                             <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
                             <span className="player-name">{name}</span>
                         </div>
-                        <SwapDropdown
-                            otherTeamPlayers={t.team === 'A' ? results.teamB : results.teamA}
-                            onSwap={(target) => handleSwap(name, t.team === 'A' ? 'teamA' : 'teamB', target, t.team === 'A' ? 'teamB' : 'teamA')}
-                        />
+                        <button 
+                            className="swap-icon-btn" 
+                            onClick={(e) => { e.stopPropagation(); setSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? 'var(--accent-color, #0f0)' : '#888' }}
+                        >
+                            ⇄
+                        </button>
                       </li>
                     );
                   })}
                 </ul>
+              </div>
+            ))}
+          </div>
+          
+          {/* SVG Overlay for swap lines */}
+          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000 }}>
+             <defs>
+               <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                 <polygon points="0 0, 10 3.5, 0 7" fill="rgba(0,255,0,0.5)" />
+               </marker>
+             </defs>
+             {swapLines.map((line, i) => (
+                 <line 
+                   key={i} 
+                   x1={line.x1} y1={line.y1} 
+                   x2={line.x2} y2={line.y2} 
+                   stroke="rgba(0,255,0,0.5)" 
+                   strokeWidth="2" 
+                   markerEnd="url(#arrowhead)" 
+                 />
+             ))}
+          </svg>
               </div>
             ))}
           </div>

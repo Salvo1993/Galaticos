@@ -594,7 +594,13 @@ export default function Home() {
                       <li 
                         key={name} 
                         className={`player-row ${isSwapTarget ? 'swap-target' : ''} ${isSwapSource ? 'swap-source' : ''}`}
-                        ref={el => el && (playerRefs.current[name] = el)}
+                        ref={(el) => {
+                            if (el) {
+                                playerRefs.current[name] = el;
+                            } else {
+                                delete playerRefs.current[name];
+                            }
+                        }}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '0.5rem', borderRadius: '4px',

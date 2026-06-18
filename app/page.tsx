@@ -147,7 +147,7 @@ export default function Home() {
           fetch('/api/giocatori'),
           fetch('/api/session'),
           fetch('/api/settings'),
-          fetch('/api/risultati')
+          fetch('/api/risultati', { cache: 'no-store' })
         ]);
         
         const playersData = await playersRes.json();
@@ -449,7 +449,7 @@ export default function Home() {
 
       // Ricarica l'archivio partite per riflettere subito il nuovo salvataggio
       try {
-        const matchesRes = await fetch('/api/risultati');
+        const matchesRes = await fetch('/api/risultati', { cache: 'no-store' });
         const matchesData = await matchesRes.json();
         setMatches(Array.isArray(matchesData) ? matchesData : []);
       } catch (refreshErr) {

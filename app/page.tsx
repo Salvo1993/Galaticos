@@ -593,7 +593,7 @@ export default function Home() {
                                 }}
                             >
                                 <span>{p.Nome}</span>
-                                {selectedToDelete.has(p.Nome) && <span className="delete-mark">✕</span>}
+                                {selectedToDelete.has(p.Nome) && <span role="img" aria-label="remove">❌</span>}
                             </div>
                     ))}
                   </div>

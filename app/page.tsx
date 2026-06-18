@@ -80,6 +80,48 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
   );
 }
 
+function SwapDropdown({ otherTeamPlayers, onSwap }: { otherTeamPlayers: string[], onSwap: (target: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="swap-dropdown-container" ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <button className="swap-icon-btn" onClick={() => setIsOpen(!isOpen)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: '#888' }}>
+            <span style={{fontSize: '1.2rem'}}>⇄</span>
+        </button>
+
+        {isOpen && (
+            <div className="dropdown-panel swap-panel" style={{position: 'absolute', right: 0, top: '100%', zIndex: 10, background: 'var(--card-bg, #1a1a1a)', border: '1px solid var(--border-color, #333)', borderRadius: '4px', minWidth: '150px', boxShadow: '0 4px 6px rgba(0,0,0,0.3)'}}>
+                <div className="dropdown-options" style={{ display: 'flex', flexDirection: 'column' }}>
+                    {otherTeamPlayers.map(name => (
+                        <div
+                          key={name}
+                          className="dropdown-option"
+                          onClick={() => { onSwap(name); setIsOpen(false); }}
+                          style={{minHeight: '44px', display: 'flex', alignItems: 'center', padding: '0 1rem', cursor: 'pointer', color: 'var(--text-color, #fff)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            {name}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
@@ -240,6 +282,29 @@ export default function Home() {
       setTeamBName('Aquile 🦆');
       showToast('Stato ripulito', 'info');
     }
+  };
+
+  const handleSwap = (playerA: string, teamA: 'teamA' | 'teamB', playerB: string, teamB: 'teamA' | 'teamB') => {
+      if (!results) return;
+
+      const newResults = { ...results };
+      const listA = [...newResults.teamA];
+      const listB = [...newResults.teamB];
+
+      const idxA = listA.indexOf(playerA);
+      const idxB = listB.indexOf(playerB);
+
+      // Simple swap logic
+      if (idxA !== -1 && idxB !== -1) {
+          listA[idxA] = playerB;
+          listB[idxB] = playerA;
+
+          newResults.teamA = listA;
+          newResults.teamB = listB;
+
+          setResults(newResults);
+          saveSession(newResults);
+      }
   };
 
   // --- Logic ---
@@ -513,9 +578,15 @@ export default function Home() {
                     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
                     const hue = hashStringToHue(name);
                     return (
-                      <li key={name} className="player-row">
-                        <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
-                        <span className="player-name">{name}</span>
+                      <li key={name} className="player-row" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                            <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
+                            <span className="player-name">{name}</span>
+                        </div>
+                        <SwapDropdown
+                            otherTeamPlayers={t.team === 'A' ? results.teamB : results.teamA}
+                            onSwap={(target) => handleSwap(name, t.team === 'A' ? 'teamA' : 'teamB', target, t.team === 'A' ? 'teamB' : 'teamA')}
+                        />
                       </li>
                     );
                   })}

@@ -104,8 +104,9 @@ export default function Home() {
   
   // Refs to track player elements
   const playerRefs = useRef<Record<string, HTMLLIElement>>({});
-  // Refs to track player name containers
-  const playerNameRefs = useRef<Record<string, HTMLSpanElement>>({});
+  // Refs to track player avatar containers
+  const playerAvatarRefs = useRef<Record<string, HTMLDivElement>>({});
+
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -124,23 +125,23 @@ export default function Home() {
           return;
       }
 
-      const sourceEl = playerNameRefs.current[swapSource.name];
+      const sourceEl = playerAvatarRefs.current[swapSource.name];
       if (!sourceEl) return;
 
       const sourceRect = sourceEl.getBoundingClientRect();
-      const sourcePoint = { x: sourceRect.right + 10, y: sourceRect.top + sourceRect.height / 2 };
+      const sourcePoint = { x: sourceRect.left + sourceRect.width / 2, y: sourceRect.top + sourceRect.height / 2 };
 
       const targetTeam = swapSource.team === 'teamA' ? results!.teamB : results!.teamA;
       const lines = targetTeam.map((targetName, index) => {
-          const targetEl = playerNameRefs.current[targetName];
+          const targetEl = playerAvatarRefs.current[targetName];
           if (!targetEl) return null;
           const targetRect = targetEl.getBoundingClientRect();
-          const targetPoint = { x: targetRect.left - 5, y: targetRect.top + targetRect.height / 2 };
+          const targetPoint = { x: targetRect.left - 8, y: targetRect.top + targetRect.height / 2 };
           
-          // Quadratic Bezier control point: midpoint x, with y adjusted for fan effect
+          // Smooth bezier control point
           const cp = { 
               x: (sourcePoint.x + targetPoint.x) / 2, 
-              y: (sourcePoint.y + targetPoint.y) / 2 + (index - 2) * 20 
+              y: (sourcePoint.y + targetPoint.y) / 2 
           };
           
           return {
@@ -623,22 +624,23 @@ export default function Home() {
                         }}
                       >
                         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                            <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
-                            <span 
-                                className="player-name"
+                            <div 
+                                className="avatar" 
+                                style={{background: `hsl(${hue}, 60%, 45%)`}}
                                 ref={(el) => {
                                     if (el) {
-                                        playerNameRefs.current[name] = el;
+                                        playerAvatarRefs.current[name] = el;
                                     } else {
-                                        delete playerNameRefs.current[name];
+                                        delete playerAvatarRefs.current[name];
                                     }
                                 }}
-                            >{name}</span>
+                            >{initials}</div>
+                            <span className="player-name">{name}</span>
                         </div>
                         <button 
                             className="swap-icon-btn" 
                             onClick={(e) => { e.stopPropagation(); setSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
-                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? 'var(--accent-color, #0f0)' : '#888' }}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? 'var(--accent-color, #fff)' : 'rgba(255,255,255,0.4)' }}
                         >
                             ⇄
                         </button>
@@ -651,10 +653,10 @@ export default function Home() {
           </div>
           
           {/* SVG Overlay for swap lines */}
-          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000, opacity: 0.8 }}>
+          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000, opacity: 0.9 }}>
              <defs>
-               <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                 <polygon points="0 0, 6 3, 0 6" fill="var(--accent-color, #0f0)" />
+               <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="4" refY="2" orient="auto">
+                 <polygon points="0 0, 4 2, 0 4" fill="rgba(255,255,255,0.7)" />
                </marker>
              </defs>
              {swapLines.map((line, i) => (
@@ -662,10 +664,11 @@ export default function Home() {
                    key={i} 
                    d={line.d}
                    fill="none"
-                   stroke="var(--accent-color, #0f0)"
-                   strokeWidth="1.5"
+                   stroke="rgba(255,255,255,0.6)"
+                   strokeWidth="1.2"
+                   strokeLinecap="round"
                    markerEnd="url(#arrowhead)"
-                   style={{ filter: 'drop-shadow(0 0 2px var(--accent-color, #0f0))' }}
+                   style={{ filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.3))' }}
                  />
              ))}
           </svg>

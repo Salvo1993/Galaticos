@@ -402,11 +402,12 @@ export default function Home() {
   const saveFormation = async () => {
     if (!results) return;
     setIsSaving(true);
+    console.log('Frontend Sending Data:', { team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB });
     try {
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName })
+        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB })
       });
       if (!res.ok) throw new Error('Errore nel salvataggio');
       showToast('Formazione salvata!', 'success');

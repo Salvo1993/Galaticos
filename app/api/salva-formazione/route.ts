@@ -9,8 +9,12 @@ const months: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const { team_a_name, team_b_name } = await req.json();
-    if (!team_a_name || !team_b_name) return NextResponse.json({ error: 'Nomi squadre mancanti' }, { status: 400 });
+    const { team_a_name, team_b_name, teamAPlayers, teamBPlayers } = await req.json();
+    console.log('Backend Received Data:', { team_a_name, team_b_name, teamAPlayers, teamBPlayers });
+
+    if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
+      return NextResponse.json({ error: 'Dati squadra mancanti o invalidi' }, { status: 400 });
+    }
 
     // 1. Get match_label
     const settings = await sql`SELECT match_label FROM public."SiteSettings" WHERE id = 1`;
@@ -29,13 +33,15 @@ export async function POST(req: Request) {
 
     // 3. Upsert
     await sql`
-      INSERT INTO public."Risultati" (id, data, ora, team_a_name, team_b_name)
-      VALUES (1, ${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name})
+      INSERT INTO public."Risultati" (id, data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
+      VALUES (1, ${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}, ${JSON.stringify(teamBPlayers)})
       ON CONFLICT (id) DO UPDATE SET
         data = EXCLUDED.data,
         ora = EXCLUDED.ora,
         team_a_name = EXCLUDED.team_a_name,
-        team_b_name = EXCLUDED.team_b_name;
+        team_b_name = EXCLUDED.team_b_name,
+        team_a_players = EXCLUDED.team_a_players,
+        team_b_players = EXCLUDED.team_b_players;
     `;
 
     return NextResponse.json({ success: true });

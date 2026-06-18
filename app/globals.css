@@ -844,13 +844,21 @@
         }
 
 /* Archive typography override */
-.archive-typography .match-card {
+.archive-typography .match-card,
+.archive-typography .match-card p,
+.archive-typography .match-card span,
+.archive-typography .match-card div,
+.archive-typography .match-card li,
+.archive-typography .match-card strong,
+.archive-typography .match-card button,
+.archive-typography .match-card input {
   font-size: 1rem;
   line-height: 1.5;
 }
 
-.archive-typography .match-team-name {
-  font-size: 1rem;
+.archive-typography .match-team-name,
+.archive-typography .match-card .match-team-name {
+  font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -861,31 +869,52 @@
 .archive-typography .match-scorers,
 .archive-typography .match-result,
 .archive-typography .match-score,
-.archive-typography .scorers-detail {
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  color: var(--color-text-muted);
+.archive-typography .scorers-detail,
+.archive-typography .match-card .match-meta,
+.archive-typography .match-card .match-details,
+.archive-typography .match-card .match-stadium,
+.archive-typography .match-card .match-scorers,
+.archive-typography .match-card .match-result,
+.archive-typography .match-card .match-score,
+.archive-typography .match-card .scorers-detail {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--color-text);
 }
 
 .archive-typography .match-tag,
-.archive-typography .match-team-tag {
-  font-size: 0.8125rem;
+.archive-typography .match-team-tag,
+.archive-typography .match-card .match-tag,
+.archive-typography .match-card .match-team-tag {
+  font-size: 0.875rem;
   font-weight: 700;
+  line-height: 1.3;
 }
 
 .archive-typography .match-card button,
 .archive-typography .swap-shirts-btn,
-.archive-typography .expand-btn {
-  font-size: 0.9375rem;
+.archive-typography .expand-btn,
+.archive-typography .match-card .swap-shirts-btn,
+.archive-typography .match-card .expand-btn {
+  font-size: 0.98rem;
 }
 
 @media (max-width: 768px) {
-  .archive-typography .match-card {
+  .archive-typography .match-card,
+  .archive-typography .match-card p,
+  .archive-typography .match-card span,
+  .archive-typography .match-card div,
+  .archive-typography .match-card li,
+  .archive-typography .match-card strong,
+  .archive-typography .match-card button,
+  .archive-typography .match-card input {
     font-size: 1rem;
+    line-height: 1.5;
   }
 
-  .archive-typography .match-team-name {
-    font-size: 1rem;
+  .archive-typography .match-team-name,
+  .archive-typography .match-card .match-team-name {
+    font-size: 1.05rem;
   }
 
   .archive-typography .match-meta,
@@ -894,7 +923,21 @@
   .archive-typography .match-scorers,
   .archive-typography .match-result,
   .archive-typography .match-score,
-  .archive-typography .scorers-detail {
-    font-size: 0.95rem;
+  .archive-typography .scorers-detail,
+  .archive-typography .match-card .match-meta,
+  .archive-typography .match-card .match-details,
+  .archive-typography .match-card .match-stadium,
+  .archive-typography .match-card .match-scorers,
+  .archive-typography .match-card .match-result,
+  .archive-typography .match-card .match-score,
+  .archive-typography .match-card .scorers-detail {
+    font-size: 1rem;
+  }
+
+  .archive-typography .match-tag,
+  .archive-typography .match-team-tag,
+  .archive-typography .match-card .match-tag,
+  .archive-typography .match-card .match-team-tag {
+    font-size: 0.875rem;
   }
 }

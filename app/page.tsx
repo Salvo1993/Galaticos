@@ -113,6 +113,8 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
+  const [editingStadiumId, setEditingStadiumId] = useState<number | null>(null);
+  const [stadiumInput, setStadiumInput] = useState('');
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);

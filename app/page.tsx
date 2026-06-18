@@ -102,6 +102,8 @@ export default function Home() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
   
+  // Refs to track player elements
+  const playerRefs = useRef<Record<string, HTMLLIElement>>({});
   // Refs to track player name containers
   const playerNameRefs = useRef<Record<string, HTMLSpanElement>>({});
 

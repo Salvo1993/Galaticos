@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await sql.query(
+    await sql(
       'DELETE FROM public."Giocatori" WHERE "Nome" = ANY($1::text[])',
       [names]
     );

@@ -798,6 +798,7 @@ export default function Home() {
             {matches.map(m => {
               const isExpanded = expandedMatchId === m.id;
               const isEditing = editingStadiumId === m.id;
+              const isLightOnA = (lightShirtTeamByMatch[m.id] ?? 'A') === 'A';
               const scorersA = normalizeScorers(m.marcatori_a);
               const scorersB = normalizeScorers(m.marcatori_b);
               const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => s.trim());

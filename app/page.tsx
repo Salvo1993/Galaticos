@@ -501,16 +501,20 @@ export default function Home() {
         body: JSON.stringify({ data: m.data, ora: m.ora, stadium: stadiumInput })
       });
 
-      if (!res.ok) throw new Error('Errore salvataggio stadio');
+      const payload = await res.json();
+
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.error || 'Errore salvataggio stadio');
+      }
 
       setMatches(prev =>
         prev.map(match =>
-          match.id === m.id ? { ...match, Stadium: stadiumInput } : match
+          match.id === m.id ? { ...match, Stadium: payload.match.Stadium } : match
         )
       );
 
       setEditingStadiumId(null);
-      showToast('Stadio aggiornato!', 'success');
+      showToast(payload.message || 'Stadio aggiornato!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Errore salvataggio stadio', 'error');
     }

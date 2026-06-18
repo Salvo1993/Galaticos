@@ -660,50 +660,345 @@ export default function Home() {
       )}
 
       <section>
-        <h2>🏆 Archivio Partite</h2>
+        <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
         {matches.length === 0 ? (
           <p className="section-subtitle">Nessuna partita archiviata</p>
         ) : (
           <div className="matches-list">
-            {matches.map(m => (
-              <div key={m.id} className="match-card">
-                <div className="match-summary" onClick={() => setExpandedMatchId(expandedMatchId === m.id ? null : m.id)}>
-                   <div className="match-header">
-                     <span>{formatResultDate(m.data)}</span>
-                     <span>{formatResultTime(m.ora)}</span>
-                   </div>
-                   <div className="match-score-area">
-                     <span className="team-name">{m.team_a_name}</span>
-                     <span className="score badge">{m.risultato || '0-0'}</span>
-                     <span className="team-name">{m.team_b_name}</span>
-                   </div>
-                </div>
-                {expandedMatchId === m.id && (
-                  <div className="match-details">
-                    {hasScorers(m) && (
-                      <p className="scorers-detail">
-                         <strong>Marcatori:</strong> {m.team_a_name} ({normalizeScorers(m.marcatori_a) || '-'}) | {m.team_b_name} ({normalizeScorers(m.marcatori_b) || '-'})
-                      </p>
-                    )}
-                    <div className="formations-detail">
-                       <div className="formation-team">
-                         <span className="formation-title">{m.team_a_name}</span>
-                         <span>{m.team_a_players.join(', ')}</span>
-                       </div>
-                       <div className="formation-team">
-                         <span className="formation-title">{m.team_b_name}</span>
-                         <span>{m.team_b_players.join(', ')}</span>
-                       </div>
+            {matches.map(m => {
+              const isExpanded = expandedMatchId === m.id;
+              const scorersA = normalizeScorers(m.marcatori_a);
+              const scorersB = normalizeScorers(m.marcatori_b);
+              const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => s.trim());
+
+              return (
+                <div key={m.id} className={`match-card ${isExpanded ? 'expanded' : ''}`}>
+                  <div
+                    className="match-summary"
+                    onClick={() => setExpandedMatchId(isExpanded ? null : m.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setExpandedMatchId(isExpanded ? null : m.id)}
+                  >
+                    <div className="match-meta-row">
+                      <span className="match-meta">
+                        <Calendar size={13} />
+                        {formatResultDate(m.data)}
+                      </span>
+                      <span className="match-meta match-meta-time">{formatResultTime(m.ora)}</span>
                     </div>
+
+                    <div className="match-score-area">
+                      <div className="match-team match-team-a">
+                        <span className="match-team-name">{m.team_a_name}</span>
+                        <span className="match-team-tag">Casa</span>
+                      </div>
+
+                      <div className="match-scoreboard">
+                        <span className="score-num">{scoreA}</span>
+                        <span className="score-sep">–</span>
+                        <span className="score-num">{scoreB}</span>
+                      </div>
+
+                      <div className="match-team match-team-b">
+                        <span className="match-team-name">{m.team_b_name}</span>
+                        <span className="match-team-tag">Trasferta</span>
+                      </div>
+                    </div>
+
+                    <ChevronDown size={18} className={`match-chevron ${isExpanded ? 'rotated' : ''}`} />
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {isExpanded && (
+                    <div className="match-details">
+                      {hasScorers(m) && (
+                        <div className="scorers-detail">
+                          <span className="scorers-label">⚽ Marcatori</span>
+                          <div className="scorers-row">
+                            <span className="scorers-team">{scorersA || '—'}</span>
+                            <span className="scorers-divider" />
+                            <span className="scorers-team">{scorersB || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="formations-detail">
+                        <div className="formation-team">
+                          <span className="formation-title">{m.team_a_name}</span>
+                          <ul className="formation-players">
+                            {m.team_a_players.map(name => (
+                              <li key={name}>{name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="formation-team formation-team-b">
+                          <span className="formation-title">{m.team_b_name}</span>
+                          <ul className="formation-players">
+                            {m.team_b_players.map(name => (
+                              <li key={name}>{name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
 
       {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
+
+      <style jsx global>{`
+        .matches-list {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3, 0.75rem);
+        }
+
+        .match-card {
+          background: #0d1f12;
+          border: 0.5px solid rgba(52, 214, 128, 0.16);
+          border-radius: 14px;
+          overflow: hidden;
+          transition: border-color 0.2s ease;
+        }
+
+        .match-card.expanded {
+          border-color: rgba(52, 214, 128, 0.32);
+        }
+
+        .match-summary {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 0.25rem 0.75rem;
+          padding: 0.9rem 1.1rem 1.1rem;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .match-meta-row {
+          grid-column: 1 / -1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.6rem;
+        }
+
+        .match-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.72rem;
+          letter-spacing: 0.02em;
+          color: #6f9c81;
+          text-transform: capitalize;
+        }
+
+        .match-meta-time {
+          font-family: var(--font-mono, monospace);
+          color: #4f7560;
+        }
+
+        .match-score-area {
+          grid-column: 1 / 2;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          gap: 0.9rem;
+          width: 100%;
+        }
+
+        .match-team {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+          min-width: 0;
+        }
+
+        .match-team-a {
+          align-items: flex-end;
+          text-align: right;
+        }
+
+        .match-team-b {
+          align-items: flex-start;
+          text-align: left;
+        }
+
+        .match-team-name {
+          font-size: 0.92rem;
+          font-weight: 600;
+          color: #eafff0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 100%;
+        }
+
+        .match-team-tag {
+          font-size: 0.66rem;
+          color: #4f7560;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .match-scoreboard {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          background: #06120a;
+          border: 0.5px solid rgba(52, 214, 128, 0.3);
+          border-radius: 10px;
+          padding: 0.35rem 0.85rem;
+        }
+
+        .score-num {
+          font-family: var(--font-mono, monospace);
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: #34d680;
+          min-width: 1.1ch;
+          text-align: center;
+        }
+
+        .score-sep {
+          color: #2e4a37;
+          font-size: 0.95rem;
+        }
+
+        .match-chevron {
+          grid-column: 2 / 3;
+          grid-row: 2 / 3;
+          color: #4f7560;
+          transition: transform 0.2s ease;
+          align-self: center;
+        }
+
+        .match-chevron.rotated {
+          transform: rotate(180deg);
+        }
+
+        .match-details {
+          border-top: 0.5px solid rgba(52, 214, 128, 0.14);
+          padding: 1rem 1.1rem 1.15rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          background: rgba(52, 214, 128, 0.025);
+        }
+
+        .scorers-detail {
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
+        }
+
+        .scorers-label {
+          font-size: 0.7rem;
+          letter-spacing: 0.04em;
+          color: #6f9c81;
+          text-transform: uppercase;
+        }
+
+        .scorers-row {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .scorers-team {
+          font-size: 0.85rem;
+          color: #cfe8d8;
+          line-height: 1.5;
+        }
+
+        .scorers-row .scorers-team:first-child {
+          text-align: right;
+        }
+
+        .scorers-divider {
+          width: 1px;
+          align-self: stretch;
+          background: rgba(52, 214, 128, 0.18);
+        }
+
+        .formations-detail {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+        }
+
+        .formation-team {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .formation-team-b {
+          align-items: flex-end;
+        }
+
+        .formation-team-b .formation-players {
+          align-items: flex-end;
+        }
+
+        .formation-team-b .formation-title {
+          text-align: right;
+          width: 100%;
+        }
+
+        .formation-title {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #9fd9b6;
+          padding-bottom: 0.35rem;
+          border-bottom: 0.5px solid rgba(52, 214, 128, 0.16);
+          width: 100%;
+        }
+
+        .formation-players {
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          width: 100%;
+        }
+
+        .formation-players li {
+          font-size: 0.84rem;
+          color: #cfe8d8;
+          line-height: 1.4;
+        }
+
+        @media (max-width: 520px) {
+          .match-team-name {
+            font-size: 0.8rem;
+          }
+          .score-num {
+            font-size: 1.1rem;
+          }
+          .formations-detail {
+            grid-template-columns: 1fr;
+            gap: 0.9rem;
+          }
+          .formation-team-b {
+            align-items: flex-start;
+          }
+          .formation-team-b .formation-players {
+            align-items: flex-start;
+          }
+          .formation-team-b .formation-title {
+            text-align: left;
+          }
+        }
+      `}</style>
     </div>
   );
 }

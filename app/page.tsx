@@ -106,7 +106,10 @@ export default function Home() {
   const [teamBName, setTeamBName] = useState('Aquile 🦆');
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
@@ -210,6 +213,31 @@ export default function Home() {
       await fetchPlayers();
     } catch (err: any) {
       showToast(err.message, 'error');
+    }
+  };
+
+  const handleDeletePlayers = async () => {
+    if (selectedToDelete.size === 0) return;
+    setIsSaving(true);
+    try {
+        const res = await fetch('/api/giocatori/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ names: Array.from(selectedToDelete) })
+        });
+        if (!res.ok) throw new Error('Errore nella cancellazione');
+        
+        // Update UI
+        setSelectedPlayers(prev => prev.filter(name => !selectedToDelete.has(name)));
+        showToast('Giocatori eliminati!', 'success');
+        setSelectedToDelete(new Set());
+        setSearchQuery('');
+        setIsManageModalOpen(false);
+        await fetchPlayers();
+    } catch (err: any) {
+        showToast(err.message, 'error');
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -509,9 +537,14 @@ export default function Home() {
       <section>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
             <h2>👥 Giocatori</h2>
-            <button className="secondary-btn" onClick={() => setIsAddModalOpen(true)}>
-                <Plus size={16}/> Aggiungi
-            </button>
+            <div style={{display:'flex', gap:'var(--space-2)'}}>
+                <button className="secondary-btn" onClick={() => setIsManageModalOpen(true)}>
+                    Gestisci
+                </button>
+                <button className="secondary-btn" onClick={() => setIsAddModalOpen(true)}>
+                    <Plus size={16}/> Aggiungi
+                </button>
+            </div>
         </div>
         <div className="players-grid">
           {selectedPlayers.map((val, i) => (
@@ -527,6 +560,54 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {isManageModalOpen && (
+          <div className="modal-overlay">
+              <div className="modal-content">
+                  <h3>Gestisci Giocatori</h3>
+                  <input 
+                    type="text" 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cerca nome..."
+                    className="modal-input"
+                  />
+                  <div className="players-list-scroll" style={{maxHeight:'300px', overflowY:'auto', margin:'1rem 0', border:'1px solid var(--color-border)', borderRadius:'var(--radius-md)'}}>
+                    {dbPlayers
+                        .filter(p => p.Nome.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(p => (
+                            <div 
+                                key={p.Nome} 
+                                className={`player-row-select ${selectedToDelete.has(p.Nome) ? 'selected' : ''}`}
+                                style={{
+                                    padding:'0.8rem', cursor:'pointer', borderBottom:'1px solid var(--color-border)',
+                                    background: selectedToDelete.has(p.Nome) ? 'var(--color-primary-active)' : 'transparent',
+                                    color: selectedToDelete.has(p.Nome) ? '#fff' : 'var(--color-text)'
+                                }}
+                                onClick={() => {
+                                    const next = new Set(selectedToDelete);
+                                    if (next.has(p.Nome)) next.delete(p.Nome);
+                                    else next.add(p.Nome);
+                                    setSelectedToDelete(next);
+                                }}
+                            >
+                                {p.Nome}
+                            </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
+                      <button className="secondary-btn" onClick={() => setIsManageModalOpen(false)}>Annulla</button>
+                      <button 
+                        className="create-teams-btn" 
+                        onClick={handleDeletePlayers}
+                        disabled={isSaving || selectedToDelete.size === 0}
+                      >
+                          {isSaving ? 'Salvataggio...' : 'Salva cambiamenti'}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {isAddModalOpen && (
           <div className="modal-overlay">

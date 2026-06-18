@@ -768,3 +768,13 @@
         .toast.success {
             border-left: 4px solid var(--color-success);
         }
+
+        .delete-mark {
+            color: var(--color-error);
+            font-weight: 900;
+            background: rgba(239, 83, 80, 0.1);
+            padding: 0.15rem 0.6rem;
+            border-radius: var(--radius-full);
+            font-size: 0.8rem;
+            border: 1px solid var(--color-error);
+        }

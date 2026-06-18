@@ -582,7 +582,8 @@ export default function Home() {
                                 style={{
                                     padding:'0.8rem', cursor:'pointer', borderBottom:'1px solid var(--color-border)',
                                     background: selectedToDelete.has(p.Nome) ? 'var(--color-primary-active)' : 'transparent',
-                                    color: selectedToDelete.has(p.Nome) ? '#fff' : 'var(--color-text)'
+                                    color: selectedToDelete.has(p.Nome) ? '#fff' : 'var(--color-text)',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                 }}
                                 onClick={() => {
                                     const next = new Set(selectedToDelete);
@@ -591,7 +592,8 @@ export default function Home() {
                                     setSelectedToDelete(next);
                                 }}
                             >
-                                {p.Nome}
+                                <span>{p.Nome}</span>
+                                {selectedToDelete.has(p.Nome) && <span className="delete-mark">✕</span>}
                             </div>
                     ))}
                   </div>

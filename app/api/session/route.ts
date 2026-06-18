@@ -21,20 +21,29 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players } = body;
 
-    // INSERT semplice, l'ID sarà generato automaticamente dal database
+    // Use UPSERT with fixed ID 1 for singleton session
     await sql`
       INSERT INTO public."LatestSession" (
-        selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, updated_at
+        id, selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, updated_at
       )
       VALUES (
-        ${JSON.stringify(selected_players)}, 
-        ${JSON.stringify(clusters)}, 
-        ${team_a_name}, 
-        ${team_b_name}, 
-        ${JSON.stringify(team_a_players)}, 
-        ${JSON.stringify(team_b_players)}, 
+        1,
+        ${JSON.stringify(selected_players || [])}, 
+        ${JSON.stringify(clusters || [])}, 
+        ${team_a_name || 'Falchi 🦅'}, 
+        ${team_b_name || 'Aquile 🦆'}, 
+        ${JSON.stringify(team_a_players || [])}, 
+        ${JSON.stringify(team_b_players || [])}, 
         NOW()
-      );
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        selected_players = EXCLUDED.selected_players,
+        clusters = EXCLUDED.clusters,
+        team_a_name = EXCLUDED.team_a_name,
+        team_b_name = EXCLUDED.team_b_name,
+        team_a_players = EXCLUDED.team_a_players,
+        team_b_players = EXCLUDED.team_b_players,
+        updated_at = NOW();
     `;
     return NextResponse.json({ success: true });
   } catch (error) {

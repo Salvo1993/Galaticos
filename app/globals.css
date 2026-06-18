@@ -736,6 +736,45 @@
             border-color: var(--color-text-muted);
         }
 
+        .stadium-input {
+            font-family: var(--font-body);
+            font-size: var(--text-sm);
+            color: var(--color-text);
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 0.35rem 0.6rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .stadium-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+        }
+
+        .stadium-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        .match-tag {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.1rem 0.5rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: var(--space-1);
+            display: inline-block;
+        }
+        
+        .match-tag:hover {
+            color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         /* Utilities */
         .sr-only {
             position: absolute;

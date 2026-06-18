@@ -706,6 +706,15 @@
             justify-content: center;
         }
 
+        @media (max-width: 640px) {
+            .results-actions {
+                flex-wrap: wrap;
+            }
+            .results-actions .create-teams-btn {
+                flex-basis: 100%;
+            }
+        }
+
         .secondary-btn {
             background: var(--color-surface);
             border: 1px solid var(--color-border);

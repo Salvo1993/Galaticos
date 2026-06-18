@@ -446,6 +446,15 @@ export default function Home() {
       });
       if (!res.ok) throw new Error('Errore nel salvataggio');
       showToast('Formazione salvata!', 'success');
+
+      // Ricarica l'archivio partite per riflettere subito il nuovo salvataggio
+      try {
+        const matchesRes = await fetch('/api/risultati');
+        const matchesData = await matchesRes.json();
+        setMatches(Array.isArray(matchesData) ? matchesData : []);
+      } catch (refreshErr) {
+        console.error('Errore nel refresh archivio partite:', refreshErr);
+      }
     } catch (err: any) {
       showToast(err.message, 'error');
     } finally {

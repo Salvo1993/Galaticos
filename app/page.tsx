@@ -90,7 +90,6 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
         </div>
       )}
     </div>
-
   );
 }
 
@@ -129,7 +128,6 @@ export default function Home() {
   }, [activeSwapSource]);
 
   // --- Data Fetch ---
-
   const fetchPlayers = async () => {
     try {
       const res = await fetch('/api/giocatori');
@@ -233,6 +231,18 @@ export default function Home() {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     return Math.abs(hash) % 360;
+  };
+
+  const formatResultDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const formatResultTime = (timeStr: string) => {
+    return timeStr.split(':').slice(0, 2).join(':');
+  };
+
+  const hasScorers = (m: MatchResult) => {
+    return (m.marcatori_a && m.marcatori_a.trim() !== '') || (m.marcatori_b && m.marcatori_b.trim() !== '');
   };
 
   const saveSession = async (currentResults: Results) => {
@@ -420,7 +430,6 @@ export default function Home() {
   const saveFormation = async () => {
     if (!results) return;
     setIsSaving(true);
-    console.log('Frontend Sending Data:', { team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB });
     try {
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
@@ -642,8 +651,6 @@ export default function Home() {
         </section>
       )}
 
-      {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
-
       <section>
         <h2>🏆 Archivio Partite</h2>
         {matches.length === 0 ? (
@@ -653,23 +660,32 @@ export default function Home() {
             {matches.map(m => (
               <div key={m.id} className="match-card">
                 <div className="match-summary" onClick={() => setExpandedMatchId(expandedMatchId === m.id ? null : m.id)}>
-                   <div className="match-info-brief">
-                     <strong>{m.data} - {m.ora}</strong>
-                     <span className="match-teams">{m.team_a_name} vs {m.team_b_name}</span>
-                     <span className="match-score">{m.risultato || '0-0'}</span>
+                   <div className="match-header">
+                     <span>{formatResultDate(m.data)}</span>
+                     <span>{formatResultTime(m.ora)}</span>
                    </div>
-                   <ChevronDown size={20} className={`chevron ${expandedMatchId === m.id ? 'rotated' : ''}`} />
+                   <div className="match-score-area">
+                     <span className="team-name">{m.team_a_name}</span>
+                     <span className="score">{m.risultato || '0-0'}</span>
+                     <span className="team-name">{m.team_b_name}</span>
+                   </div>
                 </div>
                 {expandedMatchId === m.id && (
                   <div className="match-details">
-                    {(m.marcatori_a || m.marcatori_b) && (
+                    {hasScorers(m) && (
                       <p className="scorers-detail">
                          <strong>Marcatori:</strong> {m.team_a_name} ({m.marcatori_a || '-'}) | {m.team_b_name} ({m.marcatori_b || '-'})
                       </p>
                     )}
                     <div className="formations-detail">
-                       <div><strong>{m.team_a_name}:</strong> {m.team_a_players.join(', ')}</div>
-                       <div><strong>{m.team_b_name}:</strong> {m.team_b_players.join(', ')}</div>
+                       <div className="formation-team">
+                         <span className="formation-title">{m.team_a_name}</span>
+                         <span>{m.team_a_players.join(', ')}</span>
+                       </div>
+                       <div className="formation-team">
+                         <span className="formation-title">{m.team_b_name}</span>
+                         <span>{m.team_b_players.join(', ')}</span>
+                       </div>
                     </div>
                   </div>
                 )}
@@ -678,6 +694,8 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
     </div>
   );
 }

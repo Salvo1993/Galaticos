@@ -31,18 +31,28 @@ export async function POST(req: Request) {
     const timePart = parts[1].toLowerCase().replace('ore', '').trim();
     const timeStr = `${timePart.padStart(2, '0')}:00`;
 
-    // 3. Upsert
-    await sql`
-      INSERT INTO public."Risultati" (id, data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
-      VALUES (1, ${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}, ${JSON.stringify(teamBPlayers)})
-      ON CONFLICT (id) DO UPDATE SET
-        data = EXCLUDED.data,
-        ora = EXCLUDED.ora,
-        team_a_name = EXCLUDED.team_a_name,
-        team_b_name = EXCLUDED.team_b_name,
-        team_a_players = EXCLUDED.team_a_players,
-        team_b_players = EXCLUDED.team_b_players;
+    // 3. Select existing record by data and ora
+    const existing = await sql`
+      SELECT id FROM public."Risultati" 
+      WHERE data = ${dateStr} AND ora = ${timeStr}
     `;
+
+    // 4. Update or Insert
+    if (existing.length > 0) {
+      await sql`
+        UPDATE public."Risultati"
+        SET team_a_name = ${team_a_name},
+            team_b_name = ${team_b_name},
+            team_a_players = ${JSON.stringify(teamAPlayers)},
+            team_b_players = ${JSON.stringify(teamBPlayers)}
+        WHERE id = ${existing[0].id}
+      `;
+    } else {
+      await sql`
+        INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
+        VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}, ${JSON.stringify(teamBPlayers)})
+      `;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

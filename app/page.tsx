@@ -102,8 +102,8 @@ export default function Home() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
   
-  // Ref to track player elements
-  const playerRefs = useRef<Record<string, HTMLLIElement>>({});
+  // Refs to track player name containers
+  const playerNameRefs = useRef<Record<string, HTMLSpanElement>>({});
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -122,22 +122,27 @@ export default function Home() {
           return;
       }
 
-      const sourceEl = playerRefs.current[swapSource.name];
+      const sourceEl = playerNameRefs.current[swapSource.name];
       if (!sourceEl) return;
 
       const sourceRect = sourceEl.getBoundingClientRect();
-      const sourceCenter = { x: sourceRect.left + sourceRect.width / 2, y: sourceRect.top + sourceRect.height / 2 };
+      const sourcePoint = { x: sourceRect.right + 10, y: sourceRect.top + sourceRect.height / 2 };
 
       const targetTeam = swapSource.team === 'teamA' ? results!.teamB : results!.teamA;
-      const lines = targetTeam.map(targetName => {
-          const targetEl = playerRefs.current[targetName];
+      const lines = targetTeam.map((targetName, index) => {
+          const targetEl = playerNameRefs.current[targetName];
           if (!targetEl) return null;
           const targetRect = targetEl.getBoundingClientRect();
+          const targetPoint = { x: targetRect.left - 5, y: targetRect.top + targetRect.height / 2 };
+          
+          // Quadratic Bezier control point: midpoint x, with y adjusted for fan effect
+          const cp = { 
+              x: (sourcePoint.x + targetPoint.x) / 2, 
+              y: (sourcePoint.y + targetPoint.y) / 2 + (index - 2) * 20 
+          };
+          
           return {
-              x1: sourceCenter.x,
-              y1: sourceCenter.y,
-              x2: targetRect.left + targetRect.width / 2,
-              y2: targetRect.top + targetRect.height / 2,
+              d: `M ${sourcePoint.x} ${sourcePoint.y} Q ${cp.x} ${cp.y} ${targetPoint.x} ${targetPoint.y}`,
               targetName
           };
       }).filter(Boolean);
@@ -617,7 +622,16 @@ export default function Home() {
                       >
                         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                             <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
-                            <span className="player-name">{name}</span>
+                            <span 
+                                className="player-name"
+                                ref={(el) => {
+                                    if (el) {
+                                        playerNameRefs.current[name] = el;
+                                    } else {
+                                        delete playerNameRefs.current[name];
+                                    }
+                                }}
+                            >{name}</span>
                         </div>
                         <button 
                             className="swap-icon-btn" 
@@ -635,20 +649,21 @@ export default function Home() {
           </div>
           
           {/* SVG Overlay for swap lines */}
-          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000 }}>
+          <svg style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1000, opacity: 0.8 }}>
              <defs>
-               <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                 <polygon points="0 0, 10 3.5, 0 7" fill="rgba(0,255,0,0.5)" />
+               <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                 <polygon points="0 0, 6 3, 0 6" fill="var(--accent-color, #0f0)" />
                </marker>
              </defs>
              {swapLines.map((line, i) => (
-                 <line 
+                 <path 
                    key={i} 
-                   x1={line.x1} y1={line.y1} 
-                   x2={line.x2} y2={line.y2} 
-                   stroke="rgba(0,255,0,0.5)" 
-                   strokeWidth="2" 
-                   markerEnd="url(#arrowhead)" 
+                   d={line.d}
+                   fill="none"
+                   stroke="var(--accent-color, #0f0)"
+                   strokeWidth="1.5"
+                   markerEnd="url(#arrowhead)"
+                   style={{ filter: 'drop-shadow(0 0 2px var(--accent-color, #0f0))' }}
                  />
              ))}
           </svg>

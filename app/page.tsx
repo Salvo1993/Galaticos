@@ -492,6 +492,29 @@ export default function Home() {
     }
   };
 
+  const handleSaveStadium = async (m: MatchResult) => {
+    try {
+      const res = await fetch('/api/risultati/stadium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: m.data, ora: m.ora, stadium: stadiumInput })
+      });
+
+      if (!res.ok) throw new Error('Errore salvataggio stadio');
+
+      setMatches(prev =>
+        prev.map(match =>
+          match.id === m.id ? { ...match, Stadium: stadiumInput } : match
+        )
+      );
+
+      setEditingStadiumId(null);
+      showToast('Stadio aggiornato!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Errore salvataggio stadio', 'error');
+    }
+  };
+
   // --- Dynamic Options ---
   const getAvailableOptions = (currentIndex: number) => {
     const otherSelected = selectedPlayers.filter((p, i) => i !== currentIndex && p !== '');

@@ -646,9 +646,6 @@ export default function Home() {
                  />
              ))}
           </svg>
-              </div>
-            ))}
-          </div>
           <div className="results-actions">
             <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
             <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia</button>

@@ -759,6 +759,7 @@ export default function Home() {
           <div className="matches-list">
             {matches.map(m => {
               const isExpanded = expandedMatchId === m.id;
+              const isEditing = editingStadiumId === m.id;
               const scorersA = normalizeScorers(m.marcatori_a);
               const scorersB = normalizeScorers(m.marcatori_b);
               const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => s.trim());
@@ -773,6 +774,23 @@ export default function Home() {
                     onKeyDown={(e) => e.key === 'Enter' && setExpandedMatchId(isExpanded ? null : m.id)}
                   >
                     <div className="match-meta-row">
+                      <span className="match-meta" style={{color: 'var(--color-primary)'}}>
+                         {isEditing ? (
+                               <input 
+                                  value={stadiumInput} 
+                                  onChange={(e) => setStadiumInput(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleSaveStadium(m)}
+                                  onBlur={() => handleSaveStadium(m)}
+                                  autoFocus
+                                  className="stadium-input"
+                                  onClick={(e) => e.stopPropagation()}
+                               />
+                           ) : (
+                               <span onClick={(e) => { e.stopPropagation(); setEditingStadiumId(m.id); setStadiumInput(m.Stadium || ''); }}>
+                                 {m.Stadium || 'Aggiungi stadio ✎'}
+                               </span>
+                           )}
+                      </span>
                       <span className="match-meta">
                         <Calendar size={13} />
                         {formatResultDate(m.data)}

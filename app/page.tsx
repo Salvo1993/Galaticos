@@ -552,52 +552,37 @@ export default function Home() {
                   {t.list.map(name => {
                     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
                     const hue = hashStringToHue(name);
-                    const isSwapTarget = swapSource && swapLines.some(l => l.targetName === name);
-                    const isSwapSource = swapSource?.name === name;
+                    
+                    const isSwapTarget = activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
+                    const isSwapSource = activeSwapSource?.name === name;
 
                     return (
                       <li 
                         key={name} 
-                        className={`player-row ${isSwapTarget ? 'swap-target' : ''} ${isSwapSource ? 'swap-source' : ''}`}
-                        ref={(el) => {
-                            if (el) {
-                                playerRefs.current[name] = el;
-                            } else {
-                                delete playerRefs.current[name];
-                            }
-                        }}
+                        className={`player-row ${isSwapSource ? 'active-source' : ''} ${isSwapTarget ? 'selectable-target' : ''}`}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.5rem', borderRadius: '4px',
+                            padding: '0.6rem', borderRadius: '6px',
                             cursor: isSwapTarget ? 'pointer' : 'default',
-                            background: isSwapTarget ? 'rgba(0,255,0,0.1)' : 'transparent',
+                            background: isSwapSource ? 'rgba(255,255,255,0.1)' : (isSwapTarget ? 'rgba(255,255,255,0.05)' : 'transparent'),
+                            border: isSwapTarget ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
                             transition: 'all 0.2s'
                         }}
                         onClick={(e) => {
                             if (isSwapTarget) {
                                 e.stopPropagation();
-                                handleSwap(swapSource!.name, swapSource!.team, name, t.team === 'A' ? 'teamA' : 'teamB');
+                                handleSwap(activeSwapSource!.name, activeSwapSource!.team, name, t.team === 'A' ? 'teamA' : 'teamB');
                             }
                         }}
                       >
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                            <div 
-                                className="avatar" 
-                                style={{background: `hsl(${hue}, 60%, 45%)`}}
-                                ref={(el) => {
-                                    if (el) {
-                                        playerAvatarRefs.current[name] = el;
-                                    } else {
-                                        delete playerAvatarRefs.current[name];
-                                    }
-                                }}
-                            >{initials}</div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+                            <div className="avatar" style={{background: `hsl(${hue}, 60%, 45%)`}}>{initials}</div>
                             <span className="player-name">{name}</span>
                         </div>
                         <button 
                             className="swap-icon-btn" 
                             onClick={(e) => { e.stopPropagation(); setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
-                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.5rem', color: isSwapSource ? '#fff' : 'rgba(255,255,255,0.4)' }}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.4rem', color: isSwapSource ? '#fff' : 'rgba(255,255,255,0.4)' }}
                         >
                             ⇄
                         </button>

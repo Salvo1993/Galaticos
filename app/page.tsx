@@ -552,7 +552,6 @@ export default function Home() {
           newResults.teamB = listB;
 
           setResults(newResults);
-          saveSession(newResults);
           setActiveSwapSource(null);
       }
   };
@@ -654,7 +653,6 @@ export default function Home() {
 
       const newResults = { teamA, teamB };
       setResults(newResults);
-      await saveSession(newResults);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e: any) {
       showToast(e.message, 'error');
@@ -675,8 +673,14 @@ export default function Home() {
 
   const saveFormation = async () => {
     if (!results) return;
+    const pwd = prompt('Inserisci password per salvare la formazione:');
+    if (pwd !== 'ramborambo') {
+      showToast('Password errata', 'error');
+      return;
+    }
     setIsSaving(true);
     try {
+      await saveSession(results);
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -982,7 +986,6 @@ export default function Home() {
                     className="team-name" 
                     value={t.name} 
                     onChange={(e) => t.setName(e.target.value)} 
-                    onBlur={() => saveSession(results)}
                     spellCheck={false} 
                   />
                   <Pencil size={16} style={{opacity:0.5}} />

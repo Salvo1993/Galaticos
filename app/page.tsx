@@ -630,7 +630,7 @@ export default function Home() {
   const copyResults = () => {
     if (!results) return;
     const date = new Date().toLocaleDateString('it-IT');
-    const text = `⚽ RANDOM SIX FINGERS — Squadre del ${date}\n\n` +
+    const text = `⚽ GALATICOS — Squadre del ${date}\n\n` +
                  `${teamAName.toUpperCase()}\n` +
                  results.teamA.map((n, i) => `${i + 1}. ${n}`).join('\n') +
                  `\n\n${teamBName.toUpperCase()}\n` +
@@ -714,7 +714,7 @@ export default function Home() {
                 <path d="M35 75L50 98L65 75H35Z" fill="currentColor"/>
                 <path d="M35 25L20 35M65 25L80 35M20 65L35 75M80 65L65 75M35 50H65M50 25L50 75" stroke="currentColor" stroke-width="2"/>
               </svg>
-              Random Six Fingers
+              Galaticos
             </div>
             <div className="match-info">
               <Calendar size={14} className="calendar-icon" />

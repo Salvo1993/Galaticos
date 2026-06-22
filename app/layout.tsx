@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Random Six Fingers — Generatore Squadre Calcetto',
+  title: 'Galaticos — Generatore Squadre Calcetto',
   description: 'Generatore di squadre per calcetto amatoriale',
 };
 

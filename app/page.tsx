@@ -126,9 +126,52 @@ export default function Home() {
   const [updatingMatchId, setUpdatingMatchId] = useState<number | null>(null);
   const [updateScoreA, setUpdateScoreA] = useState('');
   const [updateScoreB, setUpdateScoreB] = useState('');
-  const [updateScorersA, setUpdateScorersA] = useState('');
-  const [updateScorersB, setUpdateScorersB] = useState('');
+  const [updateScorersA, setUpdateScorersA] = useState<Record<string, number>>({});
+  const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
   const [updatePassword, setUpdatePassword] = useState('');
+
+  const parseScorers = (scorersStr: string | null) => {
+    if (!scorersStr) return {};
+    const map: Record<string, number> = {};
+    scorersStr.split(',').forEach(s => {
+      const trimmed = s.trim();
+      if (!trimmed) return;
+      const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+      if (match) {
+        const name = match[1].trim();
+        const count = match[2] ? parseInt(match[2], 10) : 1;
+        map[name] = (map[name] || 0) + count;
+      }
+    });
+    return map;
+  };
+
+  const stringifyScorers = (map: Record<string, number>) => {
+    return Object.entries(map)
+      .filter(([_, count]) => count > 0)
+      .map(([name, count]) => count > 1 ? `${name} (${count})` : name)
+      .join(', ');
+  };
+
+  const handleAddGoal = (team: 'A' | 'B', player: string) => {
+    if (team === 'A') {
+      setUpdateScorersA(prev => ({...prev, [player]: (prev[player] || 0) + 1}));
+      setUpdateScoreA(prev => String(parseInt(prev || '0', 10) + 1));
+    } else {
+      setUpdateScorersB(prev => ({...prev, [player]: (prev[player] || 0) + 1}));
+      setUpdateScoreB(prev => String(parseInt(prev || '0', 10) + 1));
+    }
+  };
+
+  const handleResetScorers = (team: 'A' | 'B') => {
+    if (team === 'A') {
+      setUpdateScorersA({});
+      setUpdateScoreA('0');
+    } else {
+      setUpdateScorersB({});
+      setUpdateScoreB('0');
+    }
+  };
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
@@ -272,6 +315,8 @@ export default function Home() {
     }
 
     const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
+    const strScorersA = stringifyScorers(updateScorersA);
+    const strScorersB = stringifyScorers(updateScorersB);
 
     try {
       const res = await fetch('/api/risultati/update', {
@@ -280,8 +325,8 @@ export default function Home() {
         body: JSON.stringify({
           id: updatingMatchId,
           risultato,
-          marcatori_a: updateScorersA,
-          marcatori_b: updateScorersB,
+          marcatori_a: strScorersA,
+          marcatori_b: strScorersB,
           password: updatePassword
         })
       });
@@ -296,8 +341,8 @@ export default function Home() {
       setMatches(prev => prev.map(m => m.id === updatingMatchId ? {
         ...m,
         risultato,
-        marcatori_a: updateScorersA,
-        marcatori_b: updateScorersB
+        marcatori_a: strScorersA,
+        marcatori_b: strScorersB
       } : m));
     } catch (err: any) {
       showToast(err.message || 'Errore aggiornamento risultato', 'error');
@@ -964,8 +1009,8 @@ export default function Home() {
                             const [sA, sB] = (m.risultato || '0-0').split('-').map(s => s.trim());
                             setUpdateScoreA(sA || '0');
                             setUpdateScoreB(sB || '0');
-                            setUpdateScorersA(m.marcatori_a || '');
-                            setUpdateScorersB(m.marcatori_b || '');
+                            setUpdateScorersA(parseScorers(m.marcatori_a));
+                            setUpdateScorersB(parseScorers(m.marcatori_b));
                             setUpdatePassword('');
                             setIsUpdateModalOpen(true);
                           }}
@@ -1021,30 +1066,62 @@ export default function Home() {
                       </div>
                   </div>
 
-                  <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81' }}>
-                        Marcatori {updatingMatch?.team_a_name}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={updateScorersA} 
-                        onChange={e => setUpdateScorersA(e.target.value)} 
-                        placeholder="Esempio: Sarda, Febo" 
-                        className="modal-input" 
-                      />
+                  <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <label style={{ fontSize: '0.8rem', color: '#6f9c81' }}>
+                            Marcatori {updatingMatch?.team_a_name}
+                          </label>
+                          <button type="button" onClick={() => handleResetScorers('A')} style={{ background: 'transparent', border: 'none', color: '#e8b339', fontSize: '0.75rem', cursor: 'pointer', padding: '0.2rem' }}>
+                            Azzera
+                          </button>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {updatingMatch?.team_a_players?.map(player => (
+                          <button 
+                            key={player}
+                            type="button"
+                            onClick={() => handleAddGoal('A', player)}
+                            className="player-chip"
+                            style={{ position: 'relative', cursor: 'pointer', paddingRight: updateScorersA[player] ? '2rem' : '0.8rem', opacity: updateScorersA[player] ? 1 : 0.7 }}
+                          >
+                            {player}
+                            {updateScorersA[player] > 0 && (
+                              <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#000', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                {updateScorersA[player]}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                   </div>
 
                   <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81' }}>
-                        Marcatori {updatingMatch?.team_b_name}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={updateScorersB} 
-                        onChange={e => setUpdateScorersB(e.target.value)} 
-                        placeholder="Esempio: GiorgioK, SergioSp" 
-                        className="modal-input" 
-                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <label style={{ fontSize: '0.8rem', color: '#6f9c81' }}>
+                            Marcatori {updatingMatch?.team_b_name}
+                          </label>
+                          <button type="button" onClick={() => handleResetScorers('B')} style={{ background: 'transparent', border: 'none', color: '#e8b339', fontSize: '0.75rem', cursor: 'pointer', padding: '0.2rem' }}>
+                            Azzera
+                          </button>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {updatingMatch?.team_b_players?.map(player => (
+                          <button 
+                            key={player}
+                            type="button"
+                            onClick={() => handleAddGoal('B', player)}
+                            className="player-chip"
+                            style={{ position: 'relative', cursor: 'pointer', paddingRight: updateScorersB[player] ? '2rem' : '0.8rem', opacity: updateScorersB[player] ? 1 : 0.7 }}
+                          >
+                            {player}
+                            {updateScorersB[player] > 0 && (
+                              <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#000', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                {updateScorersB[player]}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                   </div>
 
                   <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>

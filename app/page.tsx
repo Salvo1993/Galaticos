@@ -111,6 +111,8 @@ export default function Home() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
+  const [editingPlayerName, setEditingPlayerName] = useState<string | null>(null);
+  const [editingPlayerValue, setEditingPlayerValue] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
@@ -331,10 +333,42 @@ export default function Home() {
     } catch (err: any) {
         showToast(err.message, 'error');
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
+  const handleEditPlayerSubmit = async (oldName: string) => {
+    if (!editingPlayerValue.trim() || editingPlayerValue.trim() === oldName) {
+      setEditingPlayerName(null);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/giocatori/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName, newName: editingPlayerValue.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante la modifica');
+      
+      showToast('Giocatore aggiornato!', 'success');
+      setEditingPlayerName(null);
+      
+      setSelectedPlayers(prev => prev.map(name => name === oldName ? editingPlayerValue.trim() : name));
+      
+      setClusters(prev => prev.map(c => ({
+        ...c,
+        members: c.members.map(m => m === oldName ? editingPlayerValue.trim() : m)
+      })));
+      
+      await fetchPlayers();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleUpdateResult = async () => {
     if (!updatingMatchId) return;
@@ -789,14 +823,57 @@ export default function Home() {
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                 }}
                                 onClick={() => {
+                                    if (editingPlayerName === p.Nome) return;
                                     const next = new Set(selectedToDelete);
                                     if (next.has(p.Nome)) next.delete(p.Nome);
                                     else next.add(p.Nome);
                                     setSelectedToDelete(next);
                                 }}
                             >
-                                <span>{p.Nome}</span>
-                                {selectedToDelete.has(p.Nome) && <span role="img" aria-label="remove">❌</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                                    {editingPlayerName === p.Nome ? (
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={editingPlayerValue}
+                                            onChange={(e) => setEditingPlayerValue(e.target.value)}
+                                            onBlur={() => handleEditPlayerSubmit(p.Nome)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleEditPlayerSubmit(p.Nome);
+                                                if (e.key === 'Escape') setEditingPlayerName(null);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{ 
+                                                background: 'transparent', 
+                                                border: '1px solid var(--color-text)', 
+                                                color: 'inherit', 
+                                                padding: '0.2rem 0.5rem', 
+                                                borderRadius: '4px', 
+                                                width: '80%',
+                                                outline: 'none'
+                                            }}
+                                        />
+                                    ) : (
+                                        <span>{p.Nome}</span>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                                    {editingPlayerName !== p.Nome && (
+                                        <span 
+                                            role="button" 
+                                            aria-label="edit" 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingPlayerName(p.Nome);
+                                                setEditingPlayerValue(p.Nome);
+                                            }}
+                                            style={{ color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}
+                                        >
+                                            <Pencil size={16} />
+                                        </span>
+                                    )}
+                                    {selectedToDelete.has(p.Nome) && <span role="img" aria-label="remove">❌</span>}
+                                </div>
                             </div>
                     ))}
                   </div>

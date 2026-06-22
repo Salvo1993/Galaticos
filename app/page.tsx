@@ -121,6 +121,17 @@ export default function Home() {
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
 
+  // Update Result state
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [updatingMatchId, setUpdatingMatchId] = useState<number | null>(null);
+  const [updateScoreA, setUpdateScoreA] = useState('');
+  const [updateScoreB, setUpdateScoreB] = useState('');
+  const [updateScorersA, setUpdateScorersA] = useState('');
+  const [updateScorersB, setUpdateScorersB] = useState('');
+  const [updatePassword, setUpdatePassword] = useState('');
+
+  const updatingMatch = matches.find(m => m.id === updatingMatchId);
+
   const toggleShirtAssignment = (matchId: number) => {
     setLightShirtTeamByMatch(prev => ({
       ...prev,
@@ -252,6 +263,46 @@ export default function Home() {
     }
   };
 
+
+  const handleUpdateResult = async () => {
+    if (!updatingMatchId) return;
+    if (updatePassword !== 'ramborambo') {
+      showToast('Password non valida', 'error');
+      return;
+    }
+
+    const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
+
+    try {
+      const res = await fetch('/api/risultati/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: updatingMatchId,
+          risultato,
+          marcatori_a: updateScorersA,
+          marcatori_b: updateScorersB,
+          password: updatePassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante l\'aggiornamento');
+
+      showToast('Risultato aggiornato!', 'success');
+      setIsUpdateModalOpen(false);
+
+      // Aggiorna lo stato dei match localmente
+      setMatches(prev => prev.map(m => m.id === updatingMatchId ? {
+        ...m,
+        risultato,
+        marcatori_a: updateScorersA,
+        marcatori_b: updateScorersB
+      } : m));
+    } catch (err: any) {
+      showToast(err.message || 'Errore aggiornamento risultato', 'error');
+    }
+  };
 
   // --- Theme Toggle ---
   useEffect(() => {
@@ -892,7 +943,7 @@ export default function Home() {
                           </ul>
                         </div>
                       </div>
-                      <div className="match-footer">
+                      <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
                         <button
                           type="button"
                           className="swap-shirts-btn"
@@ -904,6 +955,24 @@ export default function Home() {
                           <ArrowLeftRight size={14} />
                           <span>Cambio maglie</span>
                         </button>
+                        <button
+                          type="button"
+                          className="swap-shirts-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUpdatingMatchId(m.id);
+                            const [sA, sB] = (m.risultato || '0-0').split('-').map(s => s.trim());
+                            setUpdateScoreA(sA || '0');
+                            setUpdateScoreB(sB || '0');
+                            setUpdateScorersA(m.marcatori_a || '');
+                            setUpdateScorersB(m.marcatori_b || '');
+                            setUpdatePassword('');
+                            setIsUpdateModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={14} />
+                          <span>Aggiorna Risultato</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -913,6 +982,91 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {isUpdateModalOpen && (
+          <div className="modal-overlay">
+              <div className="modal-content" style={{ maxWidth: '450px' }}>
+                  <h3>Aggiorna Risultato</h3>
+                  <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+                    Modifica il risultato e i marcatori della partita
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.4rem', textAlign: 'center' }}>
+                            {updatingMatch?.team_a_name}
+                          </span>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            value={updateScoreA} 
+                            onChange={e => setUpdateScoreA(e.target.value)} 
+                            style={{ width: '70px', textAlign: 'center', fontSize: '1.2rem', padding: '0.5rem' }} 
+                            className="modal-input" 
+                          />
+                      </div>
+                      <span style={{ fontSize: '1.5rem', color: '#4f7560', alignSelf: 'flex-end', marginBottom: '0.5rem' }}>-</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.4rem', textAlign: 'center' }}>
+                            {updatingMatch?.team_b_name}
+                          </span>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            value={updateScoreB} 
+                            onChange={e => setUpdateScoreB(e.target.value)} 
+                            style={{ width: '70px', textAlign: 'center', fontSize: '1.2rem', padding: '0.5rem' }} 
+                            className="modal-input" 
+                          />
+                      </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81' }}>
+                        Marcatori {updatingMatch?.team_a_name}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={updateScorersA} 
+                        onChange={e => setUpdateScorersA(e.target.value)} 
+                        placeholder="Esempio: Sarda, Febo" 
+                        className="modal-input" 
+                      />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81' }}>
+                        Marcatori {updatingMatch?.team_b_name}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={updateScorersB} 
+                        onChange={e => setUpdateScorersB(e.target.value)} 
+                        placeholder="Esempio: GiorgioK, SergioSp" 
+                        className="modal-input" 
+                      />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
+                        Password di sicurezza
+                      </label>
+                      <input 
+                        type="password" 
+                        value={updatePassword} 
+                        onChange={e => setUpdatePassword(e.target.value)} 
+                        placeholder="Inserisci password per salvare..." 
+                        className="modal-input" 
+                      />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                      <button className="secondary-btn" onClick={() => setIsUpdateModalOpen(false)}>Annulla</button>
+                      <button className="create-teams-btn" onClick={handleUpdateResult}>Salva</button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
 

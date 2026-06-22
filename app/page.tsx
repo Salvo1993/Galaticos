@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -130,6 +130,10 @@ export default function Home() {
   const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
   const [updatePassword, setUpdatePassword] = useState('');
 
+  // Classifica state
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
   const parseScorers = (scorersInput: any) => {
     if (!scorersInput) return {};
     let scorersStr = '';
@@ -213,24 +217,44 @@ export default function Home() {
     }
   };
 
+  const fetchLeaderboard = async () => {
+    setIsLoadingLeaderboard(true);
+    try {
+      const res = await fetch('/api/classifica', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.leaderboard) {
+        setLeaderboard(data.leaderboard);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
-        const [playersRes, sessionRes, settingsRes, matchesRes] = await Promise.all([
+        const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes] = await Promise.all([
           fetch('/api/giocatori'),
           fetch('/api/session'),
           fetch('/api/settings'),
-          fetch('/api/risultati', { cache: 'no-store' })
+          fetch('/api/risultati', { cache: 'no-store' }),
+          fetch('/api/classifica', { cache: 'no-store' })
         ]);
         
         const playersData = await playersRes.json();
         const sessionData = await sessionRes.json();
         const settingsData = await settingsRes.json();
         const matchesData = await matchesRes.json();
+        const leaderboardData = await leaderboardRes.json();
 
         if (playersData.error) throw new Error(playersData.error);
         setDbPlayers(playersData);
         setMatches(Array.isArray(matchesData) ? matchesData : []);
+        if (leaderboardData.success && leaderboardData.leaderboard) {
+          setLeaderboard(leaderboardData.leaderboard);
+        }
 
         if (settingsData && settingsData.match_label) {
           setMatchLabel(settingsData.match_label);
@@ -349,6 +373,9 @@ export default function Home() {
         marcatori_a: strScorersA,
         marcatori_b: strScorersB
       } : m));
+
+      // Fetch classifica to reflect changes
+      fetchLeaderboard();
     } catch (err: any) {
       showToast(err.message || 'Errore aggiornamento risultato', 'error');
     }
@@ -1029,6 +1056,48 @@ export default function Home() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section className="dashboard-card" style={{ marginTop: '2rem' }}>
+        <h2><Medal size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Classifica</h2>
+        <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+          Classifica individuale calcolata sui risultati delle partite in archivio.
+        </p>
+
+        {isLoadingLeaderboard ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Caricamento classifica...</div>
+        ) : leaderboard.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun dato disponibile per la classifica.</div>
+        ) : (
+          <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(52, 214, 128, 0.16)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ background: 'rgba(52, 214, 128, 0.08)', borderBottom: '1px solid rgba(52, 214, 128, 0.16)' }}>
+                  <th style={{ padding: '0.8rem', textAlign: 'left', color: '#9fd9b6', fontWeight: 600 }}>Pos</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'left', color: '#9fd9b6', fontWeight: 600 }}>Nome</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Pt/Partita</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Giocate</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Punti</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Gol</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((row, index) => (
+                  <tr key={row.nome} style={{ borderBottom: index < leaderboard.length - 1 ? '1px solid rgba(52, 214, 128, 0.08)' : 'none', background: index % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.2)' }}>
+                    <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: index < 3 ? 'bold' : 'normal' }}>
+                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`}
+                    </td>
+                    <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: 600 }}>{row.nome}</td>
+                    <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e8b339', fontWeight: 'bold' }}>{row.pt_partita.toFixed(2)}</td>
+                    <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.partite_giocate}</td>
+                    <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.punti_assoluti}</td>
+                    <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.gol_fatti}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

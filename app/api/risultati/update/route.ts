@@ -15,9 +15,7 @@ export async function POST(req: Request) {
 
     const result = await sql`
       UPDATE public."Risultati"
-      SET risultato = ${risultato}, 
-          marcatori_a = ${JSON.stringify(marcatori_a || [])}::jsonb, 
-          marcatori_b = ${JSON.stringify(marcatori_b || [])}::jsonb
+      SET risultato = ${risultato}, marcatori_a = ${marcatori_a}, marcatori_b = ${marcatori_b}
       WHERE id = ${id}
       RETURNING *;
     `;
@@ -26,8 +24,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Partita non trovata' }, { status: 404 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Risultato aggiornato con successo',
       match: result[0]
     });

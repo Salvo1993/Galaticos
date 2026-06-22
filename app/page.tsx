@@ -130,8 +130,17 @@ export default function Home() {
   const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
   const [updatePassword, setUpdatePassword] = useState('');
 
-  const parseScorers = (scorersStr: string | null) => {
-    if (!scorersStr) return {};
+  const parseScorers = (scorersInput: any) => {
+    if (!scorersInput) return {};
+    let scorersStr = '';
+    if (Array.isArray(scorersInput)) {
+      scorersStr = scorersInput.join(', ');
+    } else if (typeof scorersInput === 'string') {
+      scorersStr = scorersInput;
+    } else {
+      return {};
+    }
+
     const map: Record<string, number> = {};
     scorersStr.split(',').forEach(s => {
       const trimmed = s.trim();

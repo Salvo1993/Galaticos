@@ -817,17 +817,10 @@ export default function Home() {
                                 key={p.Nome} 
                                 className={`player-row-select ${selectedToDelete.has(p.Nome) ? 'selected' : ''}`}
                                 style={{
-                                    padding:'0.8rem', cursor:'pointer', borderBottom:'1px solid var(--color-border)',
-                                    background: selectedToDelete.has(p.Nome) ? 'var(--color-primary-active)' : 'transparent',
-                                    color: selectedToDelete.has(p.Nome) ? '#fff' : 'var(--color-text)',
+                                    padding:'0.8rem', borderBottom:'1px solid var(--color-border)',
+                                    background: selectedToDelete.has(p.Nome) ? 'rgba(255, 68, 68, 0.15)' : 'transparent',
+                                    color: selectedToDelete.has(p.Nome) ? '#ff4444' : 'var(--color-text)',
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                }}
-                                onClick={() => {
-                                    if (editingPlayerName === p.Nome) return;
-                                    const next = new Set(selectedToDelete);
-                                    if (next.has(p.Nome)) next.delete(p.Nome);
-                                    else next.add(p.Nome);
-                                    setSelectedToDelete(next);
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
@@ -867,12 +860,31 @@ export default function Home() {
                                                 setEditingPlayerName(p.Nome);
                                                 setEditingPlayerValue(p.Nome);
                                             }}
-                                            style={{ color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}
+                                            style={{ color: 'var(--color-text)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                                         >
                                             <Pencil size={16} />
                                         </span>
                                     )}
-                                    {selectedToDelete.has(p.Nome) && <span role="img" aria-label="remove">❌</span>}
+                                    <span 
+                                        role="button" 
+                                        aria-label="remove" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const next = new Set(selectedToDelete);
+                                            if (next.has(p.Nome)) next.delete(p.Nome);
+                                            else next.add(p.Nome);
+                                            setSelectedToDelete(next);
+                                        }}
+                                        style={{ 
+                                            color: '#ff4444', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            cursor: 'pointer',
+                                            opacity: selectedToDelete.has(p.Nome) ? 1 : 0.6
+                                        }}
+                                    >
+                                        <X size={18} />
+                                    </span>
                                 </div>
                             </div>
                     ))}

@@ -165,20 +165,16 @@ export default function Home() {
   const handleAddGoal = (team: 'A' | 'B', player: string) => {
     if (team === 'A') {
       setUpdateScorersA(prev => ({...prev, [player]: (prev[player] || 0) + 1}));
-      setUpdateScoreA(prev => String(parseInt(prev || '0', 10) + 1));
     } else {
       setUpdateScorersB(prev => ({...prev, [player]: (prev[player] || 0) + 1}));
-      setUpdateScoreB(prev => String(parseInt(prev || '0', 10) + 1));
     }
   };
 
   const handleResetScorers = (team: 'A' | 'B') => {
     if (team === 'A') {
       setUpdateScorersA({});
-      setUpdateScoreA('0');
     } else {
       setUpdateScorersB({});
-      setUpdateScoreB('0');
     }
   };
 
@@ -1085,22 +1081,36 @@ export default function Home() {
                           </button>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {updatingMatch?.team_a_players?.map(player => (
-                          <button 
-                            key={player}
-                            type="button"
-                            onClick={() => handleAddGoal('A', player)}
-                            className="player-chip"
-                            style={{ position: 'relative', cursor: 'pointer', paddingRight: updateScorersA[player] ? '2rem' : '0.8rem', opacity: updateScorersA[player] ? 1 : 0.7 }}
-                          >
-                            {player}
-                            {updateScorersA[player] > 0 && (
-                              <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#000', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                {updateScorersA[player]}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                        {updatingMatch?.team_a_players?.map(player => {
+                          const count = updateScorersA[player] || 0;
+                          const hasScored = count > 0;
+                          return (
+                            <button 
+                              key={player}
+                              type="button"
+                              onClick={() => handleAddGoal('A', player)}
+                              className={`player-chip ${hasScored ? 'selected' : ''}`}
+                              style={{ 
+                                position: 'relative', cursor: 'pointer', 
+                                paddingRight: hasScored ? '2.2rem' : '1rem',
+                                paddingLeft: '1rem', paddingBottom: '0.5rem', paddingTop: '0.5rem',
+                                opacity: 1, 
+                                background: hasScored ? '#266341' : 'transparent',
+                                border: hasScored ? '1px solid #34d680' : '1px solid rgba(52, 214, 128, 0.3)',
+                                color: hasScored ? '#fff' : '#cfe8d8',
+                                fontWeight: hasScored ? 'bold' : 'normal',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {player}
+                              {hasScored && (
+                                <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#06120a', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '900', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                                  {count}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                   </div>
 
@@ -1114,22 +1124,36 @@ export default function Home() {
                           </button>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {updatingMatch?.team_b_players?.map(player => (
-                          <button 
-                            key={player}
-                            type="button"
-                            onClick={() => handleAddGoal('B', player)}
-                            className="player-chip"
-                            style={{ position: 'relative', cursor: 'pointer', paddingRight: updateScorersB[player] ? '2rem' : '0.8rem', opacity: updateScorersB[player] ? 1 : 0.7 }}
-                          >
-                            {player}
-                            {updateScorersB[player] > 0 && (
-                              <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#000', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                {updateScorersB[player]}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                        {updatingMatch?.team_b_players?.map(player => {
+                          const count = updateScorersB[player] || 0;
+                          const hasScored = count > 0;
+                          return (
+                            <button 
+                              key={player}
+                              type="button"
+                              onClick={() => handleAddGoal('B', player)}
+                              className={`player-chip ${hasScored ? 'selected' : ''}`}
+                              style={{ 
+                                position: 'relative', cursor: 'pointer', 
+                                paddingRight: hasScored ? '2.2rem' : '1rem',
+                                paddingLeft: '1rem', paddingBottom: '0.5rem', paddingTop: '0.5rem',
+                                opacity: 1, 
+                                background: hasScored ? '#266341' : 'transparent',
+                                border: hasScored ? '1px solid #34d680' : '1px solid rgba(52, 214, 128, 0.3)',
+                                color: hasScored ? '#fff' : '#cfe8d8',
+                                fontWeight: hasScored ? 'bold' : 'normal',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {player}
+                              {hasScored && (
+                                <span style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: '#34d680', color: '#06120a', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '900', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                                  {count}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                   </div>
 

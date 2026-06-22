@@ -15,7 +15,9 @@ export async function POST(req: Request) {
 
     const result = await sql`
       UPDATE public."Risultati"
-      SET risultato = ${risultato}, marcatori_a = ${marcatori_a}, marcatori_b = ${marcatori_b}
+      SET risultato = ${risultato}, 
+          marcatori_a = ${JSON.stringify(marcatori_a || [])}::jsonb, 
+          marcatori_b = ${JSON.stringify(marcatori_b || [])}::jsonb
       WHERE id = ${id}
       RETURNING *;
     `;

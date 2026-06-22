@@ -381,6 +381,43 @@ export default function Home() {
     }
   };
 
+  const handleDeleteMatch = async () => {
+    if (!updatingMatchId) return;
+    if (updatePassword !== 'ramborambo') {
+      showToast('Password non valida', 'error');
+      return;
+    }
+
+    if (!confirm('Sei sicuro di voler eliminare questa partita? Questa operazione è irreversibile.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/risultati/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: updatingMatchId,
+          password: updatePassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante l\'eliminazione');
+
+      showToast('Partita eliminata!', 'success');
+      setIsUpdateModalOpen(false);
+
+      // Remove from state
+      setMatches(prev => prev.filter(m => m.id !== updatingMatchId));
+
+      // Fetch classifica to reflect changes
+      fetchLeaderboard();
+    } catch (err: any) {
+      showToast(err.message || 'Errore eliminazione partita', 'error');
+    }
+  };
+
   // --- Theme Toggle ---
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -1239,9 +1276,15 @@ export default function Home() {
                       />
                   </div>
 
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
-                      <button className="secondary-btn" onClick={() => setIsUpdateModalOpen(false)}>Annulla</button>
-                      <button className="create-teams-btn" onClick={handleUpdateResult}>Salva</button>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button className="secondary-btn" onClick={handleDeleteMatch} style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)', padding: '0.6rem 1rem' }}>
+                        <Trash2 size={16} style={{ display: 'inline', verticalAlign: '-3px', marginRight: '4px' }} />
+                        Elimina
+                      </button>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                        <button className="secondary-btn" onClick={() => setIsUpdateModalOpen(false)}>Annulla</button>
+                        <button className="create-teams-btn" onClick={handleUpdateResult}>Salva</button>
+                      </div>
                   </div>
               </div>
           </div>

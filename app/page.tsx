@@ -135,6 +135,41 @@ export default function Home() {
   // Classifica state
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sortConfig && sortConfig.key === key) {
+      if (sortConfig.direction === 'desc') direction = 'asc';
+      else { setSortConfig(null); return; }
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedLeaderboard = React.useMemo(() => {
+    let sortableItems = [...leaderboard];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+        if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [leaderboard, sortConfig]);
+
+  const getSortIndicator = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? ' 🔼' : ' 🔽';
+  };
 
   const parseScorers = (scorersInput: any) => {
     if (!scorersInput) return {};
@@ -225,7 +260,7 @@ export default function Home() {
       const res = await fetch('/api/classifica', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.leaderboard) {
-        setLeaderboard(data.leaderboard);
+        setLeaderboard(data.leaderboard.map((item: any, i: number) => ({ ...item, originalIndex: i })));
       }
     } catch (err) {
       console.error(err);
@@ -255,7 +290,7 @@ export default function Home() {
         setDbPlayers(playersData);
         setMatches(Array.isArray(matchesData) ? matchesData : []);
         if (leaderboardData.success && leaderboardData.leaderboard) {
-          setLeaderboard(leaderboardData.leaderboard);
+          setLeaderboard(leaderboardData.leaderboard.map((item: any, i: number) => ({ ...item, originalIndex: i })));
         }
 
         if (settingsData && settingsData.match_label) {
@@ -1250,18 +1285,20 @@ export default function Home() {
               <thead>
                 <tr style={{ background: 'rgba(52, 214, 128, 0.08)', borderBottom: '1px solid rgba(52, 214, 128, 0.16)' }}>
                   <th style={{ padding: '0.8rem', textAlign: 'left', color: '#9fd9b6', fontWeight: 600 }}>Pos</th>
-                  <th style={{ padding: '0.8rem', textAlign: 'left', color: '#9fd9b6', fontWeight: 600 }}>Nome</th>
-                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Pt/Partita</th>
-                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Giocate</th>
-                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Punti</th>
-                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600 }}>Gol</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'left', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nome')}>Nome{getSortIndicator('nome')}</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('pt_partita')}>Pt/Partita{getSortIndicator('pt_partita')}</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('partite_giocate')}>Giocate{getSortIndicator('partite_giocate')}</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('punti_assoluti')}>Punti{getSortIndicator('punti_assoluti')}</th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('gol_fatti')}>Gol{getSortIndicator('gol_fatti')}</th>
                 </tr>
               </thead>
               <tbody>
-                {leaderboard.map((row, index) => (
-                  <tr key={row.nome} style={{ borderBottom: index < leaderboard.length - 1 ? '1px solid rgba(52, 214, 128, 0.08)' : 'none', background: index % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.2)' }}>
-                    <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: index < 3 ? 'bold' : 'normal' }}>
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`}
+                {sortedLeaderboard.map((row, index) => {
+                  const origIdx = row.originalIndex !== undefined ? row.originalIndex : index;
+                  return (
+                  <tr key={row.nome} style={{ borderBottom: index < sortedLeaderboard.length - 1 ? '1px solid rgba(52, 214, 128, 0.08)' : 'none', background: index % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.2)' }}>
+                    <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: origIdx < 3 ? 'bold' : 'normal' }}>
+                      {origIdx === 0 ? '🥇' : origIdx === 1 ? '🥈' : origIdx === 2 ? '🥉' : `${origIdx + 1}°`}
                     </td>
                     <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: 600 }}>{row.nome}</td>
                     <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e8b339', fontWeight: 'bold' }}>{row.pt_partita.toFixed(2)}</td>
@@ -1269,7 +1306,7 @@ export default function Home() {
                     <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.punti_assoluti}</td>
                     <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.gol_fatti}</td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>

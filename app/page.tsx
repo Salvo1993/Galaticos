@@ -452,6 +452,39 @@ export default function Home() {
     }
   };
 
+  const promptDeleteMatch = async (matchId: number) => {
+    const pwd = window.prompt('Inserisci password per eliminare la partita:');
+    if (pwd !== 'ramborambo') {
+      if (pwd !== null) showToast('Password errata', 'error');
+      return;
+    }
+
+    if (!window.confirm('Sei sicuro di voler eliminare questa partita? Questa operazione è irreversibile.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/risultati/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: matchId,
+          password: pwd
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante l\'eliminazione');
+
+      showToast('Partita eliminata!', 'success');
+      
+      setMatches(prev => prev.filter(m => m.id !== matchId));
+      fetchLeaderboard();
+    } catch (err: any) {
+      showToast(err.message || 'Errore eliminazione partita', 'error');
+    }
+  };
+
   // --- Theme Toggle ---
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -1149,7 +1182,7 @@ export default function Home() {
                           </ul>
                         </div>
                       </div>
-                      <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                         <button
                           type="button"
                           className="swap-shirts-btn"
@@ -1178,6 +1211,18 @@ export default function Home() {
                         >
                           <Pencil size={14} />
                           <span>Aggiorna Risultato</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="swap-shirts-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            promptDeleteMatch(m.id);
+                          }}
+                          style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)' }}
+                        >
+                          <Trash2 size={14} />
+                          <span>Elimina</span>
                         </button>
                       </div>
                     </div>

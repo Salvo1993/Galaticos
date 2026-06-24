@@ -1,6 +1,5 @@
 'use client';
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal } from 'lucide-react';
 
 // --- Types ---
@@ -146,7 +145,7 @@ export default function Home() {
     setSortConfig({ key, direction });
   };
 
-  const sortedLeaderboard = React.useMemo(() => {
+  const sortedLeaderboard = useMemo(() => {
     let sortableItems = [...leaderboard];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {

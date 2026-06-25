@@ -44,7 +44,9 @@ interface CustomDropdownProps {
 
 function CustomDropdown({ value, options, onChange, placeholder, loading, index }: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -55,6 +57,16 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
+  const filteredOptions = options.filter(opt => opt.Nome.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="custom-dropdown" ref={dropdownRef}>
@@ -73,8 +85,29 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
       
       {isOpen && (
         <div className="dropdown-panel">
+          <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+            <input 
+              ref={inputRef}
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cerca..."
+              style={{ 
+                width: '100%', padding: '0.4rem', borderRadius: '4px', 
+                border: '1px solid var(--color-border)', 
+                background: 'rgba(0,0,0,0.2)', color: 'var(--color-text)', outline: 'none' 
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                 if (e.key === 'Enter' && filteredOptions.length > 0) {
+                     onChange(filteredOptions[0].Nome);
+                     setIsOpen(false);
+                 }
+              }}
+            />
+          </div>
           <div className="dropdown-options">
-            {options.map((opt) => (
+            {filteredOptions.map((opt) => (
               <div 
                 key={opt.Nome}
                 className={`dropdown-option ${opt.Nome === value ? 'selected' : ''}`}
@@ -83,8 +116,11 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
                 {opt.Nome}
               </div>
             ))}
-            {options.length === 0 && (
+            {options.length === 0 && searchQuery === '' && (
               <div className="dropdown-no-options">Tutti selezionati</div>
+            )}
+            {filteredOptions.length === 0 && searchQuery !== '' && (
+              <div className="dropdown-no-options">Nessun risultato</div>
             )}
           </div>
         </div>

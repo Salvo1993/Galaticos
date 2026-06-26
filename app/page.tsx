@@ -231,6 +231,106 @@ export default function Home() {
     return map;
   };
 
+  const affinityData = useMemo(() => {
+    if (!matches || matches.length === 0) return null;
+    
+    const latestMatch = matches[0];
+    const matchDate = new Date(latestMatch.data);
+    const today = new Date();
+    const matchDateClean = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
+    const todayClean = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const diffTime = Math.abs(todayClean.getTime() - matchDateClean.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays >= 7) {
+      return null;
+    }
+    
+    // Parse scores
+    const [scoreA, scoreB] = (latestMatch.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+    const isDraw = scoreA === scoreB;
+    const teamAWon = scoreA > scoreB;
+    
+    const teamAPlayers = latestMatch.team_a_players || [];
+    const teamBPlayers = latestMatch.team_b_players || [];
+    
+    const scorersA = parseScorers(latestMatch.marcatori_a);
+    const scorersB = parseScorers(latestMatch.marcatori_b);
+    
+    // Seeded random helper to ensure stability across page reloads
+    const seededRandom = (seed: string) => {
+      let h = 0;
+      for (let i = 0; i < seed.length; i++) {
+        h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+      }
+      return function() {
+        let t = h += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+
+    const shuffleWithSeed = (array: string[], seed: string) => {
+      const rand = seededRandom(seed);
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+    
+    const getSortedPlayers = (players: string[], scorersMap: Record<string, number>, seedSuffix: string) => {
+      const seed = `${latestMatch.id}_${seedSuffix}`;
+      const shuffled = shuffleWithSeed(players, seed);
+      
+      const normalizedScorers: Record<string, number> = {};
+      Object.entries(scorersMap).forEach(([name, goals]) => {
+        normalizedScorers[name.toLowerCase().trim()] = goals;
+      });
+
+      return shuffled.map(name => {
+        const normName = name.toLowerCase().trim();
+        return {
+          name,
+          goals: normalizedScorers[normName] || 0
+        };
+      }).sort((a, b) => b.goals - a.goals);
+    };
+    
+    let affinityPlayers: string[] = [];
+    let separationPlayers: string[] = [];
+    
+    if (isDraw) {
+      const sortedA = getSortedPlayers(teamAPlayers, scorersA, 'drawA');
+      const sortedB = getSortedPlayers(teamBPlayers, scorersB, 'drawB');
+      const playerA = sortedA[0]?.name;
+      const playerB = sortedB[0]?.name;
+      affinityPlayers = [playerA, playerB].filter(Boolean);
+      separationPlayers = [];
+    } else {
+      const winningPlayersList = teamAWon ? teamAPlayers : teamBPlayers;
+      const winningScorers = teamAWon ? scorersA : scorersB;
+      
+      const losingPlayersList = teamAWon ? teamBPlayers : teamAPlayers;
+      const losingScorers = teamAWon ? scorersB : scorersA;
+      
+      const sortedWinners = getSortedPlayers(winningPlayersList, winningScorers, 'winner');
+      affinityPlayers = sortedWinners.slice(0, 2).map(p => p.name);
+      
+      const sortedLosers = getSortedPlayers(losingPlayersList, losingScorers, 'loser');
+      separationPlayers = sortedLosers.slice(0, 2).map(p => p.name);
+    }
+    
+    return {
+      isDraw,
+      affinityPlayers,
+      separationPlayers
+    };
+  }, [matches]);
+
   const stringifyScorers = (map: Record<string, number>) => {
     return Object.entries(map)
       .filter(([_, count]) => count > 0)
@@ -1303,6 +1403,148 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {affinityData && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: affinityData.isDraw ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 'var(--space-6)',
+          marginTop: '2rem',
+          marginBottom: '2rem'
+        }}>
+          {/* Box 1: Affinità della settimana */}
+          <div className="affinity-card" style={{
+            background: 'var(--color-surface-2)',
+            border: '1px solid rgba(76, 175, 80, 0.2)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-6)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            boxShadow: 'var(--shadow-md)',
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'all 0.3s ease',
+          }}>
+            {/* Subtle top indicator/accent bar */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #4caf50, #81c784)' }} />
+            
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: '#81c784',
+              marginBottom: 'var(--space-4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              justifyContent: 'center'
+            }}>
+              Affinità della settimana 🤼🧑🤝🧑
+            </h3>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '2.5rem',
+              marginTop: '0.75rem',
+              width: '100%'
+            }}>
+              {affinityData.affinityPlayers.map((player) => (
+                <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="avatar" style={{ 
+                    width: '52px', 
+                    height: '52px', 
+                    fontSize: '1.2rem',
+                    background: `hsl(${hashStringToHue(player)}, 60%, 45%)`,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                    border: '2px solid rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    fontWeight: 700,
+                    color: '#fff'
+                  }}>
+                    {player.split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </div>
+                  <span style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '0.95rem' }}>{player}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Box 2: Meglio chiuderla qui */}
+          {!affinityData.isDraw && affinityData.separationPlayers.length > 0 && (
+            <div className="affinity-card" style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid rgba(239, 83, 80, 0.2)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-6)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              boxShadow: 'var(--shadow-md)',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.3s ease',
+            }}>
+              {/* Subtle top indicator/accent bar */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #ef5350, #e57373)' }} />
+              
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#e57373',
+                marginBottom: 'var(--space-4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                justifyContent: 'center'
+              }}>
+                Meglio chiuderla qui 💔😰
+              </h3>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '2.5rem',
+                marginTop: '0.75rem',
+                width: '100%'
+              }}>
+                {affinityData.separationPlayers.map((player) => (
+                  <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="avatar" style={{ 
+                      width: '52px', 
+                      height: '52px', 
+                      fontSize: '1.2rem',
+                      background: `hsl(${hashStringToHue(player)}, 60%, 45%)`,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                      border: '2px solid rgba(255,255,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      fontWeight: 700,
+                      color: '#fff'
+                    }}>
+                      {player.split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '0.95rem' }}>{player}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <section className="dashboard-card" style={{ marginTop: '2rem' }}>
         <h2><Medal size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Classifica</h2>

@@ -942,13 +942,15 @@ const formatResultTime = (timeStr?: string) => {
       const listA = [...newResults.teamA];
       const listB = [...newResults.teamB];
 
-      const idxA = listA.indexOf(playerA);
-      const idxB = listB.indexOf(playerB);
+      const list1 = teamA === 'teamA' ? listA : listB;
+      const list2 = teamB === 'teamA' ? listA : listB;
 
-      // Simple swap logic
-      if (idxA !== -1 && idxB !== -1) {
-          listA[idxA] = playerB;
-          listB[idxB] = playerA;
+      const idx1 = list1.indexOf(playerA);
+      const idx2 = list2.indexOf(playerB);
+
+      if (idx1 !== -1 && idx2 !== -1) {
+          list1[idx1] = playerB;
+          list2[idx2] = playerA;
 
           newResults.teamA = listA;
           newResults.teamB = listB;

@@ -57,8 +57,8 @@ export async function POST(req: Request) {
 
         // B) Upsert Risultati (basato su vincolo unico data+ora)
         sql`
-          INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players)
-          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb)
+          INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players, "Stadium")
+          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb, 'Campi Sole')
           ON CONFLICT (data, ora) DO UPDATE SET
             team_a_name = EXCLUDED.team_a_name,
             team_b_name = EXCLUDED.team_b_name,

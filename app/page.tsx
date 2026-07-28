@@ -1122,8 +1122,8 @@ const formatResultTime = (timeStr?: string) => {
        if (latestMatch.Stadium) {
            matchHeader += `🏟️ Stadio: *${latestMatch.Stadium}*\n`;
            const stadiumLower = latestMatch.Stadium.toLowerCase();
-           if (stadiumLower.includes('seidita')) {
-               matchHeader += `📍 Posizione: https://maps.app.goo.gl/s6VN2tVMBeaiA1pEA\n`;
+           if (stadiumLower.includes('mickey club')) {
+               matchHeader += `📍 Posizione: https://maps.app.goo.gl/861SeXq2nyDFhBFC6\n`;
            } else if (stadiumLower.includes('campi sole')) {
                matchHeader += `📍 Posizione: https://share.google/anSHFS2sZEGNlMWWP\n`;
            }
@@ -1181,12 +1181,13 @@ const formatResultTime = (timeStr?: string) => {
     }
   };
 
-  const handleSaveStadium = async (m: MatchResult) => {
+  const handleSaveStadium = async (m: MatchResult, overrideVal?: string) => {
     try {
+      const finalStadium = overrideVal !== undefined ? overrideVal : stadiumInput;
       const res = await fetch('/api/risultati/stadium', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: m.data, ora: m.ora, stadium: stadiumInput })
+        body: JSON.stringify({ data: m.data, ora: m.ora, stadium: finalStadium })
       });
 
       const payload = await res.json();
@@ -1769,15 +1770,20 @@ const formatResultTime = (timeStr?: string) => {
                     <div className="match-meta-row">
                       <span className="match-meta" style={{color: 'var(--color-primary)'}}>
                          {isEditing ? (
-                               <input 
+                                <select
+                                  autoFocus 
                                   value={stadiumInput} 
-                                  onChange={(e) => setStadiumInput(e.target.value)}
-                                  onKeyDown={(e) => e.key === 'Enter' && handleSaveStadium(m)}
+                                  onChange={(e) => { 
+                                      setStadiumInput(e.target.value); 
+                                      handleSaveStadium(m, e.target.value); 
+                                  }}
                                   onBlur={() => handleSaveStadium(m)}
-                                  autoFocus
                                   className="stadium-input"
-                                  onClick={(e) => e.stopPropagation()}
-                               />
+                                  style={{ padding: '0.2rem', fontSize: '0.9rem', width: '150px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
+                                >
+                                  <option value="Campi Sole">Campi Sole</option>
+                                  <option value="Mickey Club">Mickey Club</option>
+                                </select>
                            ) : (
                                <span onClick={(e) => { e.stopPropagation(); setEditingStadiumId(m.id); setStadiumInput(m.Stadium || ''); }}>
                                  {m.Stadium || 'Aggiungi stadio ✎'}

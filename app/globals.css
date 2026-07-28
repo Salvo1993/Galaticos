@@ -1245,10 +1245,11 @@
     border: 2px solid #5a7b9e;
     box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 40px rgba(0,0,0,1);
     border-radius: 8px;
-    width: 100%;
+    width: 95%;
+    max-height: 90vh;
     max-width: 500px;
     color: white;
-    overflow: hidden;
+    overflow-y: auto;
     font-family: 'Helvetica Neue', Helvetica, sans-serif;
 }
 .pes-modal-header {
@@ -1258,6 +1259,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 .pes-modal-header h3 {
     margin: 0;

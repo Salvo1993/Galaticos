@@ -21,6 +21,7 @@ interface Player {
   piede?: string;
   origine_punteggi?: string;
   Skill?: string;
+  Score?: number;
 }
 
 interface Cluster {
@@ -280,7 +281,7 @@ export default function Home() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPlayerOldName, setEditingPlayerOldName] = useState('');
   const [editingPlayerName, setEditingPlayerName] = useState('');
-  const [editingPlayerRole, setEditingPlayerRole] = useState('');
+  const [editingPlayerStats, setEditingPlayerStats] = useState<Partial<Player>>({});
   const [newPlayerName, setNewPlayerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
@@ -690,10 +691,6 @@ export default function Home() {
       showToast('Nome obbligatorio', 'error');
       return;
     }
-    if (editingPlayerName.trim() === editingPlayerOldName && editingPlayerRole.trim() === (dbPlayers.find(p => p.Nome === editingPlayerOldName)?.Ruolo || '')) {
-      setIsEditModalOpen(false);
-      return;
-    }
     setIsSaving(true);
     try {
       const res = await fetch('/api/giocatori/update', {
@@ -702,7 +699,8 @@ export default function Home() {
         body: JSON.stringify({ 
           oldName: editingPlayerOldName, 
           newName: editingPlayerName.trim(), 
-          newRole: editingPlayerRole.trim() 
+          newRole: editingPlayerStats.Ruolo?.trim() || '',
+          stats: { ...editingPlayerStats, Nome: editingPlayerName.trim() }
         })
       });
       const data = await res.json();
@@ -1398,7 +1396,7 @@ const formatResultTime = (timeStr?: string) => {
                                             e.stopPropagation();
                                             setEditingPlayerOldName(p.Nome);
                                             setEditingPlayerName(p.Nome);
-                                            setEditingPlayerRole(p.Ruolo || '');
+                                            setEditingPlayerStats({ ...p });
                                             setIsEditModalOpen(true);
                                         }}
                                         style={{ color: 'var(--color-text)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -1443,30 +1441,80 @@ const formatResultTime = (timeStr?: string) => {
           </div>
       )}
 
-      {isEditModalOpen && (
-          <div className="modal-overlay">
-              <div className="modal-content">
-                  <h3>Modifica Giocatore</h3>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
-                    <input 
-                      type="text" 
-                      value={editingPlayerName} 
-                      onChange={(e) => setEditingPlayerName(e.target.value)}
-                      placeholder="Nome giocatore"
-                      className="modal-input"
-                    />
+      {isEditModalOpen && (() => {
+          const uniqueRoles = Array.from(new Set(dbPlayers.map(p => p.Ruolo).filter(Boolean)));
+          const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
+          const textFields = ['Skill', 'piede'] as const;
+
+          return (
+          <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+              <div className="modal-content" style={{maxWidth: '600px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+                      <h3 style={{margin:0}}>Modifica Giocatore</h3>
+                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
                   </div>
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo</label>
-                    <input 
-                      type="text" 
-                      value={editingPlayerRole} 
-                      onChange={(e) => setEditingPlayerRole(e.target.value)}
-                      placeholder="Es. Attaccante, Portiere..."
-                      className="modal-input"
-                    />
+                  
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
+                        <input 
+                            autoFocus
+                            type="text" 
+                            className="modal-input"
+                            value={editingPlayerName} 
+                            onChange={(e) => setEditingPlayerName(e.target.value)}
+                            placeholder="Nuovo nome..."
+                        />
+                        </div>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo</label>
+                        <select 
+                            value={editingPlayerStats.Ruolo || ''} 
+                            onChange={(e) => setEditingPlayerStats(prev => ({...prev, Ruolo: e.target.value}))}
+                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Nessuno</option>
+                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                        </div>
+                    </div>
+
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Statistiche Fisiche e Tecniche</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
+                        {statFields.map(f => (
+                           <div key={f}>
+                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                             <input 
+                               type="number" 
+                               className="modal-input"
+                               value={editingPlayerStats[f as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f]: e.target.value ? parseInt(e.target.value) : null}))}
+                               placeholder="-"
+                             />
+                           </div> 
+                        ))}
+                    </div>
+
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Altre Informazioni</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        {textFields.map(f => (
+                           <div key={f}>
+                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                             <input 
+                               type="text" 
+                               className="modal-input"
+                               value={editingPlayerStats[f as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f]: e.target.value}))}
+                               placeholder="-"
+                             />
+                           </div> 
+                        ))}
+                    </div>
+
                   </div>
+                  
                   <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
                       <button className="secondary-btn" onClick={() => setIsEditModalOpen(false)}>Annulla</button>
                       <button className="create-teams-btn" onClick={handleEditPlayerSubmit} disabled={isSaving}>
@@ -1475,7 +1523,8 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
               </div>
           </div>
-      )}
+          );
+      })()}
 
       {isAddModalOpen && (
           <div className="modal-overlay">

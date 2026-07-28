@@ -284,6 +284,7 @@ export default function Home() {
   const [editingPlayerName, setEditingPlayerName] = useState('');
   const [editingPlayerStats, setEditingPlayerStats] = useState<Partial<Player>>({});
   const [editingPlayerImage, setEditingPlayerImage] = useState<File | null>(null);
+  const [newPlayerStats, setNewPlayerStats] = useState<Partial<Player>>({});
   const [newPlayerImage, setNewPlayerImage] = useState<File | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -670,7 +671,14 @@ export default function Home() {
   }, []);
 
   const handleAddPlayer = async () => {
-    if (!newPlayerName.trim()) return;
+    if (!newPlayerName.trim()) {
+        showToast("Nome obbligatorio", "error");
+        return;
+    }
+    if (!newPlayerStats.Ruolo?.trim()) {
+        showToast("Ruolo obbligatorio", "error");
+        return;
+    }
 
     const pwd = window.prompt("Inserisci la password per aggiungere il giocatore:");
     if (pwd !== 'ramborambo') {
@@ -682,7 +690,11 @@ export default function Home() {
       const res = await fetch('/api/giocatori', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Nome: newPlayerName })
+        body: JSON.stringify({ 
+            Nome: newPlayerName.trim(),
+            Ruolo: newPlayerStats.Ruolo?.trim(),
+            stats: { ...newPlayerStats, Nome: newPlayerName.trim() }
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -701,6 +713,7 @@ export default function Home() {
       showToast('Giocatore aggiunto!', 'success');
       setNewPlayerName('');
       setNewPlayerImage(null);
+      setNewPlayerStats({});
       setIsAddModalOpen(false);
       await fetchPlayers();
     } catch (err: any) {
@@ -1582,37 +1595,102 @@ const formatResultTime = (timeStr?: string) => {
           );
       })()}
 
-      {isAddModalOpen && (
-          <div className="modal-overlay">
-              <div className="modal-content">
-                  <h3>Nuovo Giocatore</h3>
-                  <input 
-                    type="text" 
-                    value={newPlayerName} 
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                    placeholder="Nome giocatore"
-                    className="modal-input"
-                  />
-                  <div style={{ marginTop: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina (Opzionale)</label>
-                    <input 
-                      type="file" 
-                      accept="image/png, image/jpeg, image/jpg"
-                      onChange={(e) => {
-                          if (e.target.files && e.target.files.length > 0) {
-                              setNewPlayerImage(e.target.files[0]);
-                          }
-                      }}
-                      className="modal-input"
-                    />
+      {isAddModalOpen && (() => {
+          const uniqueRoles = Array.from(new Set(dbPlayers.map(p => p.Ruolo).filter(Boolean)));
+          const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
+          const textFields = ['Skill', 'piede'] as const;
+
+          return (
+          <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+              <div className="modal-content" style={{maxWidth: '600px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+                      <h3 style={{margin:0}}>Nuovo Giocatore</h3>
+                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
                   </div>
+                  
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
+                        <input 
+                            autoFocus
+                            type="text" 
+                            className="modal-input"
+                            value={newPlayerName} 
+                            onChange={(e) => setNewPlayerName(e.target.value)}
+                            placeholder="Nome..."
+                        />
+                        </div>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo <span style={{color: 'red'}}>*</span></label>
+                        <select 
+                            value={newPlayerStats.Ruolo || ''} 
+                            onChange={(e) => setNewPlayerStats(prev => ({...prev, Ruolo: e.target.value}))}
+                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Nessuno (Obbligatorio)</option>
+                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                        </div>
+                    </div>
+
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Statistiche Fisiche e Tecniche</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
+                        {statFields.map(f => (
+                           <div key={f}>
+                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                             <input 
+                               type="number" 
+                               className="modal-input"
+                               value={newPlayerStats[f as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f]: e.target.value ? parseInt(e.target.value) : null}))}
+                               placeholder="-"
+                             />
+                           </div> 
+                        ))}
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina / Immagine Profilo</label>
+                        <input 
+                            type="file" 
+                            accept="image/png, image/jpeg, image/jpg"
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    setNewPlayerImage(e.target.files[0]);
+                                }
+                            }}
+                            className="modal-input"
+                        />
+                    </div>
+
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Altre Informazioni</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        {textFields.map(f => (
+                           <div key={f}>
+                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                             <input 
+                               type="text" 
+                               className="modal-input"
+                               value={newPlayerStats[f as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f]: e.target.value}))}
+                               placeholder="-"
+                             />
+                           </div> 
+                        ))}
+                    </div>
+
+                  </div>
+                  
                   <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
                       <button className="secondary-btn" onClick={() => setIsAddModalOpen(false)}>Annulla</button>
                       <button className="create-teams-btn" onClick={handleAddPlayer}>Salva</button>
                   </div>
               </div>
           </div>
-      )}
+          );
+      })()}
 
       <section>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

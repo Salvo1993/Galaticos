@@ -11,7 +11,8 @@ export async function POST(req: Request) {
   try {
     const { 
         team_a_name, team_b_name, 
-        teamAPlayers, teamBPlayers 
+        teamAPlayers, teamBPlayers,
+        stadium
     } = await req.json();
 
     if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
@@ -58,12 +59,13 @@ export async function POST(req: Request) {
         // B) Upsert Risultati (basato su vincolo unico data+ora)
         sql`
           INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players, "Stadium")
-          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb, 'Campi Sole')
+          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb, ${stadium || 'Campi Sole'})
           ON CONFLICT (data, ora) DO UPDATE SET
             team_a_name = EXCLUDED.team_a_name,
             team_b_name = EXCLUDED.team_b_name,
             team_a_players = EXCLUDED.team_a_players,
-            team_b_players = EXCLUDED.team_b_players;
+            team_b_players = EXCLUDED.team_b_players,
+            "Stadium" = EXCLUDED."Stadium";
         `
     ]);
 

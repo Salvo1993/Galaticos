@@ -346,6 +346,7 @@ export default function Home() {
   // Save Formation state
   const [isSaveFormationModalOpen, setIsSaveFormationModalOpen] = useState(false);
   const [saveFormationPassword, setSaveFormationPassword] = useState('');
+  const [selectedStadium, setSelectedStadium] = useState('Campi Sole');
 
   // Classifica state
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -1212,7 +1213,7 @@ const formatResultTime = (timeStr?: string) => {
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB })
+        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB, stadium: selectedStadium })
       });
       if (!res.ok) throw new Error('Errore nel salvataggio');
       showToast('Formazione salvata!', 'success');
@@ -1755,6 +1756,18 @@ const formatResultTime = (timeStr?: string) => {
         </button>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+        <select 
+          value={selectedStadium} 
+          onChange={(e) => setSelectedStadium(e.target.value)}
+          className="stadium-input"
+          style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', fontSize: '0.9rem', width: '200px', outline: 'none', textAlign: 'center' }}
+        >
+          <option value="Campi Sole">Campi Sole</option>
+          <option value="Mickey Club">Mickey Club</option>
+        </select>
+      </div>
+
       {results && (() => {
         const latestMatch = matches.length > 0 ? matches[0] : null;
         const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
@@ -1965,26 +1978,7 @@ const formatResultTime = (timeStr?: string) => {
                   >
                     <div className="match-meta-row">
                       <span className="match-meta" style={{color: 'var(--color-primary)'}}>
-                         {isEditing ? (
-                                <select
-                                  autoFocus 
-                                  value={stadiumInput} 
-                                  onChange={(e) => { 
-                                      setStadiumInput(e.target.value); 
-                                      handleSaveStadium(m, e.target.value); 
-                                  }}
-                                  onBlur={() => handleSaveStadium(m)}
-                                  className="stadium-input"
-                                  style={{ padding: '0.2rem', fontSize: '0.9rem', width: '150px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
-                                >
-                                  <option value="Campi Sole">Campi Sole</option>
-                                  <option value="Mickey Club">Mickey Club</option>
-                                </select>
-                           ) : (
-                               <span onClick={(e) => { e.stopPropagation(); setEditingStadiumId(m.id); setStadiumInput(m.Stadium || ''); }}>
-                                 {m.Stadium || 'Aggiungi stadio ✎'}
-                               </span>
-                           )}
+                         {m.Stadium || 'Campi Sole'}
                       </span>
                       <span className="match-meta">
                         <Calendar size={13} />

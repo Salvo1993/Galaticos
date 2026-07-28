@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../../lib/db';
+import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
@@ -23,12 +24,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Partita non trovata' }, { status: 404 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Partita eliminata con successo'
+    // Ricalcola e salva la classifica in modo atomico dopo ogni eliminazione
+    const leaderboard = await recalculateAndSaveClassifica(sql);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Partita eliminata con successo',
+      leaderboard,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete Match Error:', error);
-    return NextResponse.json({ success: false, error: 'Errore interno durante l\'eliminazione' }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Errore interno durante l'eliminazione" }, { status: 500 });
   }
 }

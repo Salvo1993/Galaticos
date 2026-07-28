@@ -1,7 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not defined');
-}
+// Permette alla build di Vercel di passare anche se il DB non è ancora collegato
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgres://dummy:dummy@dummy/dummy';
 
-export const sql = neon(process.env.DATABASE_URL);
+export const sql = neon(connectionString);

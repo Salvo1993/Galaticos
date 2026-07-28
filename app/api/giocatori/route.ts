@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
 
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const players = await sql`
-      SELECT "Nome" 
+      SELECT * 
       FROM public."Giocatori" 
       ORDER BY "Nome" ASC
     `;

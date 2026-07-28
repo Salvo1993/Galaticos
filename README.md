@@ -1,4 +1,4 @@
-# Random Six Fingers ⚽
+# El Futbol ⚽
 
 Generatore di squadre per calcetto amatoriale con vincoli di cluster.
 
@@ -16,7 +16,7 @@ Basta aprire il file `index.html` nel browser.
 
 ## Deploy
 Il progetto è configurato per il deploy su Vercel.
-URL: [random-six-fingers.vercel.app](https://random-six-fingers.vercel.app)
+URL: [elfutbol.vercel.app](https://elfutbol.vercel.app)
 
 ## Stack Tecnico
 - HTML5

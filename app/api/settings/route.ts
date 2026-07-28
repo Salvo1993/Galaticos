@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const settings = await sql`SELECT match_label FROM public."SiteSettings" WHERE id = 1`;

@@ -5,10 +5,12 @@ const pool = new Pool({
 });
 
 async function main() {
-  const res = await pool.query('SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \'Giocatori\'');
-  console.log(res.rows);
-  const data = await pool.query('SELECT * FROM "Giocatori" LIMIT 1');
-  console.log(data.rows);
+  const res = await pool.query(`
+    SELECT trigger_name, event_manipulation, event_object_table, action_statement
+    FROM information_schema.triggers
+    WHERE event_object_table = 'Risultati';
+  `);
+  console.log('Triggers:', res.rows);
   pool.end();
 }
 

@@ -3,9 +3,10 @@ import { sql } from '../../../../lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { oldName, newName } = await req.json();
+    const { oldName, newName, newRole } = await req.json();
     const sanitizedOld = oldName?.trim();
     const sanitizedNew = newName?.trim();
+    const sanitizedRole = newRole?.trim() || null;
 
     if (!sanitizedOld || !sanitizedNew) {
       return NextResponse.json({ error: 'Nomi mancanti' }, { status: 400 });
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
 
     await sql`
       UPDATE public."Giocatori"
-      SET "Nome" = ${sanitizedNew}
+      SET "Nome" = ${sanitizedNew}, "Ruolo" = ${sanitizedRole}
       WHERE "Nome" = ${sanitizedOld}
     `;
 

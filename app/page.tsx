@@ -1141,7 +1141,7 @@ const formatResultTime = (timeStr?: string) => {
                  `\n\n*${teamBName.toUpperCase()}*\n` +
                  `${getShirtInfo('B')}\n` +
                  results.teamB.map((n, i) => `${i + 1}. ${n}`).join('\n') +
-                 `\n\nMaggiori informazioni disponibili su https://el-futbol-ten.vercel.app/`;
+                 `\n\nMaggiori informazioni disponibili su https://galaticos-eta.vercel.app/`;
 
     navigator.clipboard.writeText(text).then(() => showToast('Risultato copiato!', 'success'));
   };

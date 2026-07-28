@@ -282,6 +282,8 @@ export default function Home() {
   const [editingPlayerOldName, setEditingPlayerOldName] = useState('');
   const [editingPlayerName, setEditingPlayerName] = useState('');
   const [editingPlayerStats, setEditingPlayerStats] = useState<Partial<Player>>({});
+  const [editingPlayerImage, setEditingPlayerImage] = useState<File | null>(null);
+  const [newPlayerImage, setNewPlayerImage] = useState<File | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
@@ -668,6 +670,13 @@ export default function Home() {
 
   const handleAddPlayer = async () => {
     if (!newPlayerName.trim()) return;
+
+    const pwd = window.prompt("Inserisci la password per aggiungere il giocatore:");
+    if (pwd !== 'ramborambo') {
+        showToast("Password non valida", "error");
+        return;
+    }
+
     try {
       const res = await fetch('/api/giocatori', {
         method: 'POST',
@@ -676,9 +685,21 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      if (newPlayerImage) {
+        const formData = new FormData();
+        formData.append('file', newPlayerImage);
+        formData.append('playerName', newPlayerName.trim());
+        const uploadRes = await fetch('/api/giocatori/upload-image', {
+          method: 'POST',
+          body: formData
+        });
+        if (!uploadRes.ok) throw new Error('Errore caricamento immagine');
+      }
       
       showToast('Giocatore aggiunto!', 'success');
       setNewPlayerName('');
+      setNewPlayerImage(null);
       setIsAddModalOpen(false);
       await fetchPlayers();
     } catch (err: any) {
@@ -691,6 +712,13 @@ export default function Home() {
       showToast('Nome obbligatorio', 'error');
       return;
     }
+
+    const pwd = window.prompt("Inserisci la password per salvare la modifica:");
+    if (pwd !== 'ramborambo') {
+        showToast("Password non valida", "error");
+        return;
+    }
+
     setIsSaving(true);
     try {
       const res = await fetch('/api/giocatori/update', {
@@ -705,8 +733,20 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Errore durante la modifica');
+
+      if (editingPlayerImage) {
+        const formData = new FormData();
+        formData.append('file', editingPlayerImage);
+        formData.append('playerName', editingPlayerName.trim());
+        const uploadRes = await fetch('/api/giocatori/upload-image', {
+          method: 'POST',
+          body: formData
+        });
+        if (!uploadRes.ok) throw new Error('Errore caricamento immagine');
+      }
       
       showToast('Giocatore aggiornato!', 'success');
+      setEditingPlayerImage(null);
       setIsEditModalOpen(false);
       
       setSelectedPlayers(prev => prev.map(name => name === editingPlayerOldName ? editingPlayerName.trim() : name));
@@ -1497,6 +1537,20 @@ const formatResultTime = (timeStr?: string) => {
                         ))}
                     </div>
 
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina / Immagine Profilo</label>
+                        <input 
+                            type="file" 
+                            accept="image/png, image/jpeg, image/jpg"
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    setEditingPlayerImage(e.target.files[0]);
+                                }
+                            }}
+                            className="modal-input"
+                        />
+                    </div>
+
                     <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Altre Informazioni</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
                         {textFields.map(f => (
@@ -1537,6 +1591,19 @@ const formatResultTime = (timeStr?: string) => {
                     placeholder="Nome giocatore"
                     className="modal-input"
                   />
+                  <div style={{ marginTop: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina (Opzionale)</label>
+                    <input 
+                      type="file" 
+                      accept="image/png, image/jpeg, image/jpg"
+                      onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                              setNewPlayerImage(e.target.files[0]);
+                          }
+                      }}
+                      className="modal-input"
+                    />
+                  </div>
                   <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
                       <button className="secondary-btn" onClick={() => setIsAddModalOpen(false)}>Annulla</button>
                       <button className="create-teams-btn" onClick={handleAddPlayer}>Salva</button>

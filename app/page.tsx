@@ -728,6 +728,13 @@ export default function Home() {
 
   const handleDeletePlayers = async () => {
     if (selectedToDelete.size === 0) return;
+    
+    const pwd = window.prompt('Inserisci la password per confermare l\'eliminazione:');
+    if (pwd !== 'ramborambo') {
+      showToast('Password non valida', 'error');
+      return;
+    }
+
     setIsSaving(true);
     try {
         const res = await fetch('/api/giocatori/delete', {

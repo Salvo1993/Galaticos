@@ -2544,8 +2544,13 @@ const formatResultTime = (timeStr?: string) => {
           <div className="pes-modal-overlay" onClick={() => setSelectedPlayerForCard(null)}>
             <div className="pes-modal-content" onClick={e => e.stopPropagation()}>
               <div className="pes-modal-header">
-                <h3>{selectedPlayerForCard}</h3>
-                <span style={{ fontSize: '0.85rem', color: '#9fd9b6', textTransform: 'uppercase' }}>{role}</span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h3>{selectedPlayerForCard}</h3>
+                  <span style={{ fontSize: '0.85rem', color: '#9fd9b6', textTransform: 'uppercase', marginTop: '2px' }}>{role}</span>
+                </div>
+                <button className="secondary-btn" style={{padding:'0.2rem', display:'flex', background: 'transparent', border: 'none', color: '#9fd9b6'}} onClick={() => setSelectedPlayerForCard(null)}>
+                  <X size={24} />
+                </button>
               </div>
               {playerObj?.Skill && (
                 <div className="pes-modal-skill" style={{

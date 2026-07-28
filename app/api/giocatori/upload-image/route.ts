@@ -38,8 +38,8 @@ export async function POST(req: Request) {
     await fs.writeFile(filePath, buffer);
 
     return NextResponse.json({ success: true, filename });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload Error:', error);
-    return NextResponse.json({ error: 'Errore upload' }, { status: 500 });
+    return NextResponse.json({ error: 'Errore upload', details: error.message || String(error) }, { status: 500 });
   }
 }

@@ -742,7 +742,8 @@ export default function Home() {
           method: 'POST',
           body: formData
         });
-        if (!uploadRes.ok) throw new Error('Errore caricamento immagine');
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) throw new Error(uploadData.details || 'Errore caricamento immagine');
       }
       
       showToast('Giocatore aggiornato!', 'success');

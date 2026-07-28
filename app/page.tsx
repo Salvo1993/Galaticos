@@ -956,7 +956,6 @@ const formatResultTime = (timeStr?: string) => {
           newResults.teamB = listB;
 
           setResults(newResults);
-          saveSession(newResults);
           setActiveSwapSource(null);
       }
   };
@@ -1577,7 +1576,6 @@ const formatResultTime = (timeStr?: string) => {
                     className="team-name" 
                     value={t.name} 
                     onChange={(e) => t.setName(e.target.value)} 
-                    onBlur={() => saveSession(results)}
                     spellCheck={false} 
                     style={{ flex: 1, cursor: 'text' }}
                   />

@@ -1328,3 +1328,53 @@
     text-transform: uppercase;
     transform: translate(-50%, -50%);
 }
+
+/* LIGHT THEME SPECIFIC COMPONENT OVERRIDES */
+[data-theme="light"] .dropdown-trigger,
+[data-theme="light"] .dropdown-trigger.loading {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    border-color: #cbd5e1;
+    color: #1e293b;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.02), 0 2px 4px rgba(0,0,0,0.1);
+}
+[data-theme="light"] .dropdown-trigger:hover:not(.loading) {
+    border-color: var(--color-primary);
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+[data-theme="light"] .dropdown-panel {
+    background: #ffffff;
+}
+[data-theme="light"] .cluster-card,
+[data-theme="light"] .team-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(241,245,249,0.95) 100%);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-color: var(--color-border);
+}
+[data-theme="light"] .team-falchi .team-header,
+[data-theme="light"] .team-pampas .team-header,
+[data-theme="light"] .team-card:nth-child(odd) .team-header {
+    background: linear-gradient(90deg, #e0f2fe 0%, #f1f5f9 100%);
+    border-bottom-color: #0284c7;
+}
+[data-theme="light"] .team-aquile .team-header,
+[data-theme="light"] .team-patagonia .team-header,
+[data-theme="light"] .team-card:nth-child(even) .team-header {
+    background: linear-gradient(90deg, #ffedd5 0%, #f1f5f9 100%);
+    border-bottom-color: #ea580c;
+}
+[data-theme="light"] .team-name {
+    text-shadow: none;
+    color: var(--color-text);
+}
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] .pes-modal-header h3 {
+    text-shadow: none;
+}
+[data-theme="light"] h2 {
+    background: linear-gradient(90deg, rgba(2, 132, 199, 0.1) 0%, transparent 100%);
+}
+[data-theme="light"] .pes-radar-labels span {
+    color: rgba(0,0,0,0.7);
+}

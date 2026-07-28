@@ -101,6 +101,18 @@
             padding: var(--space-4);
         }
 
+        [data-theme="light"] body {
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.03) 0px,
+                    rgba(0, 0, 0, 0.03) 1px,
+                    transparent 1px,
+                    transparent 3px
+                ),
+                linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+        }
+
         .container {
             max-width: 1000px;
             margin: 0 auto;

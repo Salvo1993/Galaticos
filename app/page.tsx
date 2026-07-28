@@ -22,6 +22,7 @@ interface Player {
   origine_punteggi?: string;
   Skill?: string;
   Score?: number;
+  figurina?: string;
 }
 
 interface Cluster {
@@ -1816,7 +1817,7 @@ const formatResultTime = (timeStr?: string) => {
                         }}
                       >
                         <img 
-                          src={`/players/${name}.jpg`}
+                          src={dbPlayers.find(p => p.Nome === name)?.figurina || `/players/${name}.jpg`}
                           alt={name}
                           style={{
                               width: '56px',
@@ -2489,8 +2490,8 @@ const formatResultTime = (timeStr?: string) => {
                 <div className="pes-left-col">
                   <div className="pes-player-image-container" style={{ width: '130px', height: '170px', border: '2px solid rgba(107, 155, 198, 0.6)', borderRadius: '4px', overflow: 'hidden', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <img 
-                      src={`/players/${encodeURIComponent(selectedPlayerForCard)}.jpg`} 
-                      alt={selectedPlayerForCard} 
+                      src={playerObj?.figurina || `/players/${encodeURIComponent(selectedPlayerForCard || '')}.jpg`} 
+                      alt={selectedPlayerForCard || ''} 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;

@@ -1416,9 +1416,12 @@ const formatResultTime = (timeStr?: string) => {
       </section>
 
       {isManageModalOpen && (
-          <div className="modal-overlay">
-              <div className="modal-content">
-                  <h3>Gestisci Giocatori</h3>
+          <div className="modal-overlay" onClick={() => setIsManageModalOpen(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+                      <h3 style={{margin:0}}>Gestisci Giocatori</h3>
+                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsManageModalOpen(false)}><X size={20} /></button>
+                  </div>
                   <input 
                     type="text" 
                     value={searchQuery} 

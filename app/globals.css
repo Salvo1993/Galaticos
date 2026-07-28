@@ -239,8 +239,15 @@
         /* Players Grid */
         .players-grid {
             display: grid;
-            gap: var(--space-4);
-            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 500px) {
+            .players-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-4);
+            }
         }
 
         @media (min-width: 768px) {

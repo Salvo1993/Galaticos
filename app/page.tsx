@@ -1122,8 +1122,11 @@ const formatResultTime = (timeStr?: string) => {
        matchHeader = `⚽ GALATICOS — ${latestMatch.id}ª Giornata\n🗓️ *${formattedDate}* - ⏰ *${latestMatch.ora}*\n`;
        if (latestMatch.Stadium) {
            matchHeader += `🏟️ Stadio: *${latestMatch.Stadium}*\n`;
-           if (latestMatch.Stadium.toLowerCase().includes('seidita')) {
+           const stadiumLower = latestMatch.Stadium.toLowerCase();
+           if (stadiumLower.includes('seidita')) {
                matchHeader += `📍 Posizione: https://maps.app.goo.gl/s6VN2tVMBeaiA1pEA\n`;
+           } else if (stadiumLower.includes('campi sole')) {
+               matchHeader += `📍 Posizione: https://share.google/anSHFS2sZEGNlMWWP\n`;
            }
        }
        matchHeader += `\n`;

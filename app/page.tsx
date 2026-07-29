@@ -637,9 +637,36 @@ export default function Home() {
           setLeaderboard(leaderboardData.leaderboard);
         }
 
+        let currentLabel = 'Venerdì 19 giugno - Ore 21';
         if (settingsData && settingsData.match_label) {
-          setMatchLabel(settingsData.match_label);
+          currentLabel = settingsData.match_label;
+          setMatchLabel(currentLabel);
         }
+
+        const months: Record<string, string> = {
+          'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04',
+          'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08',
+          'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12'
+        };
+
+        const parts = currentLabel.split('-').map(p => p.trim());
+        let expectedDate = '';
+        let expectedTime = '';
+        if (parts.length >= 2) {
+            const datePart = parts[0].split(' ');
+            if (datePart.length >= 3) {
+                const day = datePart[1].padStart(2, '0');
+                const monthName = datePart[2].toLowerCase();
+                const month = months[monthName] || '01';
+                expectedDate = `2026-${month}-${day}`;
+            }
+            const timePart = parts[1].toLowerCase().replace('ore', '').trim();
+            expectedTime = `${timePart.padStart(2, '0')}:00`;
+        }
+
+        const savedMatch = (Array.isArray(matchesData) ? matchesData : []).find(
+            (m: MatchResult) => m.data === expectedDate && (m.ora === expectedTime || m.ora === (expectedTime + ':00') || m.ora + ':00' === expectedTime)
+        );
 
         if (sessionData) {
           // Validation Guard: Only apply session if it's complete and valid
@@ -653,12 +680,22 @@ export default function Home() {
           if (isValidSession) {
             setSelectedPlayers(sessionData.selected_players);
             setClusters(sessionData.clusters || []);
-            setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
-            setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
-            setResults({
-              teamA: sessionData.team_a_players,
-              teamB: sessionData.team_b_players
-            });
+            
+            if (savedMatch) {
+              setTeamAName(savedMatch.team_a_name || sessionData.team_a_name || 'Falchi 🦅');
+              setTeamBName(savedMatch.team_b_name || sessionData.team_b_name || 'Aquile 🦆');
+              setResults({
+                teamA: savedMatch.team_a_players || [],
+                teamB: savedMatch.team_b_players || []
+              });
+            } else {
+              setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
+              setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
+              setResults({
+                teamA: sessionData.team_a_players,
+                teamB: sessionData.team_b_players
+              });
+            }
           }
         }
       } catch (err) {

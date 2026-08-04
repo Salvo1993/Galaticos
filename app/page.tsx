@@ -2755,7 +2755,7 @@ const formatResultTime = (timeStr?: string) => {
       {isAddCampoModalOpen && (
         <div className="modal-overlay" onClick={() => setIsAddCampoModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <h2 
                   style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5, margin: 0, fontSize: '1.2rem', paddingRight: '0.8rem', borderRight: '1px solid rgba(255,255,255,0.2)' }} 

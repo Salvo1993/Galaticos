@@ -2756,13 +2756,13 @@ const formatResultTime = (timeStr?: string) => {
         <div className="modal-overlay" onClick={() => setIsAddCampoModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'nowrap' }}>
                 <h2 
-                  style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5, margin: 0, fontSize: '1.2rem', paddingRight: '0.8rem', borderRight: '1px solid rgba(255,255,255,0.2)' }} 
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5, margin: 0, fontSize: '1.1rem', paddingRight: '0.8rem', borderRight: '1px solid rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }} 
                   onClick={() => { setCampoModalMode('add'); setNewCampoName(''); setNewCampoUrl(''); setCampoPassword(''); setSelectedCampoIdToManage(null); }}
                 >AGGIUNGI CAMPO</h2>
                 <h2 
-                  style={{ cursor: 'pointer', opacity: campoModalMode === 'manage' ? 1 : 0.5, margin: 0, fontSize: '1.2rem' }}
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'manage' ? 1 : 0.5, margin: 0, fontSize: '1.1rem', whiteSpace: 'nowrap' }}
                   onClick={() => setCampoModalMode('manage')}
                 >GESTISCI</h2>
               </div>
@@ -2776,7 +2776,7 @@ const formatResultTime = (timeStr?: string) => {
             </div>
             
             {campoModalMode === 'manage' && (
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: '1.2rem' }}>
                 <label>Seleziona Campo da Gestire</label>
                 <select 
                   className="modal-input"
@@ -2800,7 +2800,7 @@ const formatResultTime = (timeStr?: string) => {
               </div>
             )}
 
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: '1.2rem' }}>
               <label>Nome Campo *</label>
               <input 
                 type="text" 
@@ -2811,7 +2811,7 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: '1.2rem' }}>
               <label>Posizione URL (Google Maps)</label>
               <input 
                 type="text" 
@@ -2822,7 +2822,7 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label>Password *</label>
               <input 
                 type="password" 

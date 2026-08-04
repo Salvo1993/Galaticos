@@ -266,6 +266,7 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
 
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
+  const [dbCampi, setDbCampi] = useState<{id: number, nome: string, posizione_url: string | null}[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [isClustersExpanded, setIsClustersExpanded] = useState(false);
@@ -616,12 +617,13 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes] = await Promise.all([
+        const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes, campiRes] = await Promise.all([
           fetch('/api/giocatori'),
           fetch('/api/session'),
           fetch('/api/settings'),
           fetch('/api/risultati', { cache: 'no-store' }),
-          fetch('/api/classifica', { cache: 'no-store' })
+          fetch('/api/classifica', { cache: 'no-store' }),
+          fetch('/api/campi', { cache: 'no-store' })
         ]);
         
         const playersData = await playersRes.json();
@@ -629,9 +631,11 @@ export default function Home() {
         const settingsData = await settingsRes.json();
         const matchesData = await matchesRes.json();
         const leaderboardData = await leaderboardRes.json();
+        const campiData = await campiRes.json().catch(() => []);
 
         if (playersData.error) throw new Error(playersData.error);
         setDbPlayers(playersData);
+        setDbCampi(Array.isArray(campiData) ? campiData : []);
         setMatches(Array.isArray(matchesData) ? matchesData : []);
         if (leaderboardData.success && leaderboardData.leaderboard) {
           setLeaderboard(leaderboardData.leaderboard);
@@ -1189,11 +1193,9 @@ const formatResultTime = (timeStr?: string) => {
        matchHeader = `⚽ GALATICOS — ${latestMatch.id}ª Giornata\n🗓️ *${formattedDate}* - ⏰ *${latestMatch.ora}*\n`;
        if (latestMatch.Stadium) {
            matchHeader += `🏟️ Stadio: *${latestMatch.Stadium}*\n`;
-           const stadiumLower = latestMatch.Stadium.toLowerCase();
-           if (stadiumLower.includes('mickey club')) {
-               matchHeader += `📍 Posizione: https://maps.app.goo.gl/861SeXq2nyDFhBFC6\n`;
-           } else if (stadiumLower.includes('campi sole')) {
-               matchHeader += `📍 Posizione: https://share.google/anSHFS2sZEGNlMWWP\n`;
+           const matchCampo = dbCampi.find(c => c.nome === latestMatch.Stadium);
+           if (matchCampo && matchCampo.posizione_url) {
+               matchHeader += `📍 Posizione: ${matchCampo.posizione_url}\n`;
            }
        }
        matchHeader += `\n`;
@@ -1780,8 +1782,10 @@ const formatResultTime = (timeStr?: string) => {
           className="stadium-input"
           style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', fontSize: '0.9rem', width: '200px', outline: 'none', textAlign: 'center' }}
         >
-          <option value="Campi Sole">Campi Sole</option>
-          <option value="Mickey Club">Mickey Club</option>
+          {dbCampi.map(c => (
+            <option key={c.id} value={c.nome}>{c.nome}</option>
+          ))}
+          {dbCampi.length === 0 && <option value="Campi Sole">Campi Sole</option>}
         </select>
       </div>
 

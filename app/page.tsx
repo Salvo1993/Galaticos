@@ -2726,10 +2726,10 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div className="modal-footer" style={{ marginTop: '2rem' }}>
-              <button className="btn-cancel" onClick={() => setIsAddCampoModalOpen(false)}>Annulla</button>
+            <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
+              <button className="secondary-btn" onClick={() => setIsAddCampoModalOpen(false)}>Annulla</button>
               <button 
-                className="btn-primary" 
+                className="create-teams-btn" 
                 onClick={handleAddCampo}
               >
                 Aggiungi

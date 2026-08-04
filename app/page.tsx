@@ -289,6 +289,8 @@ export default function Home() {
   const [newPlayerImage, setNewPlayerImage] = useState<File | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isAddCampoModalOpen, setIsAddCampoModalOpen] = useState(false);
+  const [campoModalMode, setCampoModalMode] = useState<'add'|'manage'>('add');
+  const [selectedCampoIdToManage, setSelectedCampoIdToManage] = useState<number | null>(null);
   const [newCampoName, setNewCampoName] = useState('');
   const [newCampoUrl, setNewCampoUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -750,20 +752,26 @@ export default function Home() {
     }
 
     try {
+      const payload: any = { 
+          nome: newCampoName.trim(),
+          posizione_url: newCampoUrl.trim()
+      };
+      if (campoModalMode === 'manage' && selectedCampoIdToManage) {
+          payload.id = selectedCampoIdToManage;
+      }
+
       const res = await fetch('/api/campi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            nome: newCampoName.trim(),
-            posizione_url: newCampoUrl.trim()
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      showToast('Campo aggiunto!', 'success');
+      showToast(campoModalMode === 'add' ? 'Campo aggiunto!' : 'Campo aggiornato!', 'success');
       setNewCampoName('');
       setNewCampoUrl('');
+      setSelectedCampoIdToManage(null);
       setIsAddCampoModalOpen(false);
       
       // Refetch campi
@@ -771,6 +779,35 @@ export default function Home() {
       const campiData = await campiRes.json().catch(() => []);
       setDbCampi(Array.isArray(campiData) ? campiData : []);
       setSelectedStadium(newCampoName.trim());
+      
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleDeleteCampo = async () => {
+    if (!selectedCampoIdToManage) return;
+    if (!confirm("Sei sicuro di voler eliminare questo campo?")) return;
+
+    try {
+      const res = await fetch('/api/campi', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedCampoIdToManage })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      showToast('Campo eliminato!', 'success');
+      setNewCampoName('');
+      setNewCampoUrl('');
+      setSelectedCampoIdToManage(null);
+      setIsAddCampoModalOpen(false);
+      
+      // Refetch campi
+      const campiRes = await fetch('/api/campi', { cache: 'no-store' });
+      const campiData = await campiRes.json().catch(() => []);
+      setDbCampi(Array.isArray(campiData) ? campiData : []);
       
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -1825,7 +1862,13 @@ const formatResultTime = (timeStr?: string) => {
           {dbCampi.length === 0 && <option value="Campi Sole">Campi Sole</option>}
         </select>
         <button 
-          onClick={() => setIsAddCampoModalOpen(true)}
+          onClick={() => {
+            setCampoModalMode('add');
+            setNewCampoName('');
+            setNewCampoUrl('');
+            setSelectedCampoIdToManage(null);
+            setIsAddCampoModalOpen(true);
+          }}
           style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Aggiungi nuovo campo"
         >
@@ -2700,10 +2743,51 @@ const formatResultTime = (timeStr?: string) => {
       {isAddCampoModalOpen && (
         <div className="modal-overlay" onClick={() => setIsAddCampoModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Aggiungi Campo</h2>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <h2 
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5 }} 
+                  onClick={() => { setCampoModalMode('add'); setNewCampoName(''); setNewCampoUrl(''); setSelectedCampoIdToManage(null); }}
+                >Aggiungi Campo</h2>
+                <h2 
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'manage' ? 1 : 0.5 }}
+                  onClick={() => setCampoModalMode('manage')}
+                >Gestisci</h2>
+              </div>
+              <button 
+                className="secondary-btn" 
+                style={{padding:'0.2rem', display:'flex', background: 'transparent', border: 'none', color: '#9fd9b6', cursor: 'pointer'}} 
+                onClick={() => setIsAddCampoModalOpen(false)}
+              >
+                <X size={24} />
+              </button>
             </div>
             
+            {campoModalMode === 'manage' && (
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Seleziona Campo da Gestire</label>
+                <select 
+                  className="modal-input"
+                  style={{ width: '100%', padding: '0.5rem', background: 'var(--color-surface-2)', color: 'white', borderRadius: '4px' }}
+                  value={selectedCampoIdToManage || ''}
+                  onChange={(e) => {
+                     const id = Number(e.target.value);
+                     setSelectedCampoIdToManage(id);
+                     const c = dbCampi.find(x => x.id === id);
+                     if (c) {
+                        setNewCampoName(c.nome);
+                        setNewCampoUrl(c.posizione_url || '');
+                     }
+                  }}
+                >
+                  <option value="">-- Seleziona --</option>
+                  {dbCampi.map(c => (
+                     <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="form-group">
               <label>Nome Campo *</label>
               <input 
@@ -2726,13 +2810,19 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
-              <button className="secondary-btn" onClick={() => setIsAddCampoModalOpen(false)}>Annulla</button>
+            <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)', justifyContent: 'flex-end'}}>
+              {campoModalMode === 'manage' && selectedCampoIdToManage && (
+                 <button 
+                   className="btn-cancel"
+                   style={{ background: '#d32f2f', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
+                   onClick={handleDeleteCampo}
+                 >Elimina</button>
+              )}
               <button 
                 className="create-teams-btn" 
                 onClick={handleAddCampo}
               >
-                Aggiungi
+                {campoModalMode === 'add' ? 'Aggiungi' : 'Salva'}
               </button>
             </div>
           </div>

@@ -293,6 +293,7 @@ export default function Home() {
   const [selectedCampoIdToManage, setSelectedCampoIdToManage] = useState<number | null>(null);
   const [newCampoName, setNewCampoName] = useState('');
   const [newCampoUrl, setNewCampoUrl] = useState('');
+  const [campoPassword, setCampoPassword] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
@@ -750,6 +751,10 @@ export default function Home() {
         showToast("Nome campo obbligatorio", "error");
         return;
     }
+    if (campoPassword !== 'ramborambo') {
+        showToast("Password errata", "error");
+        return;
+    }
 
     try {
       const payload: any = { 
@@ -771,6 +776,7 @@ export default function Home() {
       showToast(campoModalMode === 'add' ? 'Campo aggiunto!' : 'Campo aggiornato!', 'success');
       setNewCampoName('');
       setNewCampoUrl('');
+      setCampoPassword('');
       setSelectedCampoIdToManage(null);
       setIsAddCampoModalOpen(false);
       
@@ -787,6 +793,10 @@ export default function Home() {
 
   const handleDeleteCampo = async () => {
     if (!selectedCampoIdToManage) return;
+    if (campoPassword !== 'ramborambo') {
+        showToast("Password errata", "error");
+        return;
+    }
     if (!confirm("Sei sicuro di voler eliminare questo campo?")) return;
 
     try {
@@ -801,6 +811,7 @@ export default function Home() {
       showToast('Campo eliminato!', 'success');
       setNewCampoName('');
       setNewCampoUrl('');
+      setCampoPassword('');
       setSelectedCampoIdToManage(null);
       setIsAddCampoModalOpen(false);
       
@@ -1866,6 +1877,7 @@ const formatResultTime = (timeStr?: string) => {
             setCampoModalMode('add');
             setNewCampoName('');
             setNewCampoUrl('');
+            setCampoPassword('');
             setSelectedCampoIdToManage(null);
             setIsAddCampoModalOpen(true);
           }}
@@ -2743,23 +2755,23 @@ const formatResultTime = (timeStr?: string) => {
       {isAddCampoModalOpen && (
         <div className="modal-overlay" onClick={() => setIsAddCampoModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <h2 
-                  style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5 }} 
-                  onClick={() => { setCampoModalMode('add'); setNewCampoName(''); setNewCampoUrl(''); setSelectedCampoIdToManage(null); }}
-                >Aggiungi Campo</h2>
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'add' ? 1 : 0.5, margin: 0, fontSize: '1.2rem', paddingRight: '0.8rem', borderRight: '1px solid rgba(255,255,255,0.2)' }} 
+                  onClick={() => { setCampoModalMode('add'); setNewCampoName(''); setNewCampoUrl(''); setCampoPassword(''); setSelectedCampoIdToManage(null); }}
+                >AGGIUNGI CAMPO</h2>
                 <h2 
-                  style={{ cursor: 'pointer', opacity: campoModalMode === 'manage' ? 1 : 0.5 }}
+                  style={{ cursor: 'pointer', opacity: campoModalMode === 'manage' ? 1 : 0.5, margin: 0, fontSize: '1.2rem' }}
                   onClick={() => setCampoModalMode('manage')}
-                >Gestisci</h2>
+                >GESTISCI</h2>
               </div>
               <button 
                 className="secondary-btn" 
-                style={{padding:'0.2rem', display:'flex', background: 'transparent', border: 'none', color: '#9fd9b6', cursor: 'pointer'}} 
+                style={{padding:'0 0 0 0.5rem', margin: 0, display:'flex', background: 'transparent', border: 'none', color: '#9fd9b6', cursor: 'pointer'}} 
                 onClick={() => setIsAddCampoModalOpen(false)}
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
             
@@ -2810,7 +2822,18 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)', justifyContent: 'flex-end'}}>
+            <div className="form-group">
+              <label>Password *</label>
+              <input 
+                type="password" 
+                value={campoPassword} 
+                onChange={e => setCampoPassword(e.target.value)} 
+                placeholder="Inserisci password"
+                className="modal-input"
+              />
+            </div>
+            
+            <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)', justifyContent: 'center'}}>
               {campoModalMode === 'manage' && selectedCampoIdToManage && (
                  <button 
                    className="btn-cancel"
@@ -2822,7 +2845,7 @@ const formatResultTime = (timeStr?: string) => {
                 className="create-teams-btn" 
                 onClick={handleAddCampo}
               >
-                {campoModalMode === 'add' ? 'Aggiungi' : 'Salva'}
+                {campoModalMode === 'add' ? 'AGGIUNGI' : 'SALVA'}
               </button>
             </div>
           </div>

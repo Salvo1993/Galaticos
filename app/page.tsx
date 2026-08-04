@@ -288,6 +288,9 @@ export default function Home() {
   const [newPlayerStats, setNewPlayerStats] = useState<Partial<Player>>({});
   const [newPlayerImage, setNewPlayerImage] = useState<File | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [isAddCampoModalOpen, setIsAddCampoModalOpen] = useState(false);
+  const [newCampoName, setNewCampoName] = useState('');
+  const [newCampoUrl, setNewCampoUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
@@ -735,6 +738,40 @@ export default function Home() {
       setNewPlayerStats({});
       setIsAddModalOpen(false);
       await fetchPlayers();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleAddCampo = async () => {
+    if (!newCampoName.trim()) {
+        showToast("Nome campo obbligatorio", "error");
+        return;
+    }
+
+    try {
+      const res = await fetch('/api/campi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            nome: newCampoName.trim(),
+            posizione_url: newCampoUrl.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      showToast('Campo aggiunto!', 'success');
+      setNewCampoName('');
+      setNewCampoUrl('');
+      setIsAddCampoModalOpen(false);
+      
+      // Refetch campi
+      const campiRes = await fetch('/api/campi', { cache: 'no-store' });
+      const campiData = await campiRes.json().catch(() => []);
+      setDbCampi(Array.isArray(campiData) ? campiData : []);
+      setSelectedStadium(newCampoName.trim());
+      
     } catch (err: any) {
       showToast(err.message, 'error');
     }
@@ -1775,7 +1812,7 @@ const formatResultTime = (timeStr?: string) => {
         </button>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', gap: '0.5rem', alignItems: 'center' }}>
         <select 
           value={selectedStadium} 
           onChange={(e) => setSelectedStadium(e.target.value)}
@@ -1787,6 +1824,13 @@ const formatResultTime = (timeStr?: string) => {
           ))}
           {dbCampi.length === 0 && <option value="Campi Sole">Campi Sole</option>}
         </select>
+        <button 
+          onClick={() => setIsAddCampoModalOpen(true)}
+          style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Aggiungi nuovo campo"
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
       {results && (() => {
@@ -2651,6 +2695,49 @@ const formatResultTime = (timeStr?: string) => {
       })()}
 
       {toast && <div className={`toast visible ${toast.type}`}>{toast.message}</div>}
+
+      {/* Add Campo Modal */}
+      {isAddCampoModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAddCampoModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Aggiungi Campo</h2>
+            </div>
+            
+            <div className="form-group">
+              <label>Nome Campo *</label>
+              <input 
+                type="text" 
+                value={newCampoName} 
+                onChange={e => setNewCampoName(e.target.value)} 
+                placeholder="Es. Seidita"
+                className="modal-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Posizione URL (Google Maps)</label>
+              <input 
+                type="text" 
+                value={newCampoUrl} 
+                onChange={e => setNewCampoUrl(e.target.value)} 
+                placeholder="Es. https://maps.app.goo.gl/..."
+                className="modal-input"
+              />
+            </div>
+            
+            <div className="modal-footer" style={{ marginTop: '2rem' }}>
+              <button className="btn-cancel" onClick={() => setIsAddCampoModalOpen(false)}>Annulla</button>
+              <button 
+                className="btn-primary" 
+                onClick={handleAddCampo}
+              >
+                Aggiungi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .matches-list {

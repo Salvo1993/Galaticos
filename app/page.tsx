@@ -1275,7 +1275,7 @@ const formatResultTime = (timeStr?: string) => {
     if (latestMatch) {
        const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
        const formattedDate = new Date(latestMatch.data).toLocaleDateString('it-IT', dateOptions);
-       matchHeader = `⚽ GALATICOS — ${latestMatch.id}ª Giornata\n🗓️ *${formattedDate}* - ⏰ *${latestMatch.ora}*\n`;
+       matchHeader = `⚽ GALATICOS — ${matches.length}ª Giornata\n🗓️ *${formattedDate}* - ⏰ *${latestMatch.ora}*\n`;
        if (latestMatch.Stadium) {
            matchHeader += `🏟️ Stadio: *${latestMatch.Stadium}*\n`;
            const matchCampo = dbCampi.find(c => c.nome === latestMatch.Stadium);

@@ -84,10 +84,14 @@
 
         html {
             background-color: var(--color-bg);
+            overflow-x: hidden;
+            width: 100%;
         }
 
         body {
             font-family: var(--font-body);
+            overflow-x: hidden;
+            width: 100%;
             background: 
                 repeating-linear-gradient(
                     0deg,

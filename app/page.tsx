@@ -1269,18 +1269,28 @@ const formatResultTime = (timeStr?: string) => {
   const copyResults = () => {
     if (!results) return;
     
+    const e_soccer = String.fromCodePoint(0x26BD);
+    const e_dash = String.fromCodePoint(0x2014);
+    const e_ord = String.fromCodePoint(0x00AA);
+    const e_cal = String.fromCodePoint(0x1F5D3, 0xFE0F);
+    const e_clock = String.fromCodePoint(0x23F0);
+    const e_stadium = String.fromCodePoint(0x1F3DF, 0xFE0F);
+    const e_pin = String.fromCodePoint(0x1F4CD);
+    const e_white = String.fromCodePoint(0x26AA);
+    const e_black = String.fromCodePoint(0x26AB);
+
     const latestMatch = matches.length > 0 ? matches[0] : null;
-    let matchHeader = `⚽ GALATICOS — Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
+    let matchHeader = `${e_soccer} GALATICOS ${e_dash} Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
     
     if (latestMatch) {
        const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
        const formattedDate = new Date(latestMatch.data).toLocaleDateString('it-IT', dateOptions);
-       matchHeader = `⚽ GALATICOS — ${matches.length}ª Giornata\n🗓️ *${formattedDate}* - ⏰ *${latestMatch.ora}*\n`;
+       matchHeader = `${e_soccer} GALATICOS ${e_dash} ${matches.length}${e_ord} Giornata\n${e_cal} *${formattedDate}* - ${e_clock} *${latestMatch.ora}*\n`;
        if (latestMatch.Stadium) {
-           matchHeader += `🏟️ Stadio: *${latestMatch.Stadium}*\n`;
+           matchHeader += `${e_stadium} Stadio: *${latestMatch.Stadium}*\n`;
            const matchCampo = dbCampi.find(c => c.nome === latestMatch.Stadium);
            if (matchCampo && matchCampo.posizione_url) {
-               matchHeader += `📍 Posizione: ${matchCampo.posizione_url}\n`;
+               matchHeader += `${e_pin} Posizione: ${matchCampo.posizione_url}\n`;
            }
        }
        matchHeader += `\n`;
@@ -1289,7 +1299,7 @@ const formatResultTime = (timeStr?: string) => {
     const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
     const currentLightTeam = isSameAsLatest ? (lightShirtTeamByMatch[latestMatch.id] ?? 'A') : 'A';
     
-    const getShirtInfo = (team: 'A'|'B') => currentLightTeam === team ? '⚪ *Maglie Chiare*' : '⚫ *Maglie Scure*';
+    const getShirtInfo = (team: 'A'|'B') => currentLightTeam === team ? `${e_white} *Maglie Chiare*` : `${e_black} *Maglie Scure*`;
 
     const text = `${matchHeader}` +
                  `*${teamAName.toUpperCase()}*\n` +

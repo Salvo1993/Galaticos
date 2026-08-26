@@ -766,6 +766,8 @@ export default function Home() {
           setMatchLabel(currentLabel);
         }
 
+        const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
+
         if (Array.isArray(matchesData) && matchesData.length > 0 && !mediaFilterPartita) {
           const matchWithMedia = matchesData.find(m => 
             Array.isArray(mediaData) && mediaData.some(media => media.partita_id === m.id)

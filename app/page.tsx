@@ -2774,7 +2774,7 @@ const formatResultTime = (timeStr?: string) => {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div>
               {(() => {
                 const filteredMedia = mediaItems.filter(m => {
                   if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
@@ -2791,14 +2791,11 @@ const formatResultTime = (timeStr?: string) => {
                         const inTeamB = match.team_b_players?.includes(mediaFilterGiocatore);
                         const playedInMatch = inTeamA || inTeamB;
                         
-                        // Se è partita completa e il giocatore ha giocato, mostra il video
                         if (m.tipologia === 'Partita Completa' && playedInMatch) {
                           playerMatches = true;
                         }
-                        // Se l'autore è la squadra in cui gioca, mostra il video
                         else if (m.giocatore === match.team_a_name && inTeamA) playerMatches = true;
                         else if (m.giocatore === match.team_b_name && inTeamB) playerMatches = true;
-                        // Se il co-autore è la squadra in cui gioca, mostra il video
                         else if (m.co_giocatore === match.team_a_name && inTeamA) playerMatches = true;
                         else if (m.co_giocatore === match.team_b_name && inTeamB) playerMatches = true;
                       }
@@ -2811,11 +2808,11 @@ const formatResultTime = (timeStr?: string) => {
                 });
 
                 if (filteredMedia.length === 0) {
-                   return <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun video {mediaFilterPartita ? 'per questa partita' : 'presente'}.</div>;
+                   return <div style={{ textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun video {mediaFilterPartita ? 'per questa partita' : 'presente'}.</div>;
                 }
 
-                return filteredMedia.map(m => (
-                  <div key={m.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
+                const renderMediaCard = (m: MediaItem, isLarge = false) => (
+                  <div key={m.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: isLarge ? '800px' : 'none', margin: isLarge ? '0 auto' : '0' }}>
                     <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                       <iframe 
                         src={`https://www.youtube.com/embed/${m.youtube_id}`} 
@@ -2845,7 +2842,35 @@ const formatResultTime = (timeStr?: string) => {
                        )}
                     </div>
                   </div>
-                ));
+                );
+
+                const partitaCompleta = filteredMedia.filter(m => m.tipologia === 'Partita Completa');
+                const otherMedia = filteredMedia.filter(m => m.tipologia !== 'Partita Completa');
+                
+                const groupedMedia = otherMedia.reduce((acc, m) => {
+                  if (!acc[m.tipologia]) acc[m.tipologia] = [];
+                  acc[m.tipologia].push(m);
+                  return acc;
+                }, {} as Record<string, MediaItem[]>);
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {partitaCompleta.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                        {partitaCompleta.map(m => renderMediaCard(m, true))}
+                      </div>
+                    )}
+                    
+                    {Object.entries(groupedMedia).map(([tipologia, mediaList]) => (
+                      <div key={tipologia} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#e8b339', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>{tipologia}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {mediaList.map(m => renderMediaCard(m, false))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
               })()}
             </div>
           </div>

@@ -2760,8 +2760,36 @@ const formatResultTime = (timeStr?: string) => {
               {(() => {
                 const filteredMedia = mediaItems.filter(m => {
                   if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
-                  if (mediaFilterGiocatore && m.giocatore !== mediaFilterGiocatore) return false;
                   if (mediaFilterTipologia && m.tipologia !== mediaFilterTipologia) return false;
+                  
+                  if (mediaFilterGiocatore) {
+                    let playerMatches = false;
+                    
+                    if (m.giocatore === mediaFilterGiocatore || m.co_giocatore === mediaFilterGiocatore) {
+                      playerMatches = true;
+                    } else {
+                      const match = matches.find(x => x.id === m.partita_id);
+                      if (match) {
+                        const inTeamA = match.team_a_players?.includes(mediaFilterGiocatore);
+                        const inTeamB = match.team_b_players?.includes(mediaFilterGiocatore);
+                        const playedInMatch = inTeamA || inTeamB;
+                        
+                        // Se è partita completa e il giocatore ha giocato, mostra il video
+                        if (m.tipologia === 'Partita Completa' && playedInMatch) {
+                          playerMatches = true;
+                        }
+                        // Se l'autore è la squadra in cui gioca, mostra il video
+                        else if (m.giocatore === match.team_a_name && inTeamA) playerMatches = true;
+                        else if (m.giocatore === match.team_b_name && inTeamB) playerMatches = true;
+                        // Se il co-autore è la squadra in cui gioca, mostra il video
+                        else if (m.co_giocatore === match.team_a_name && inTeamA) playerMatches = true;
+                        else if (m.co_giocatore === match.team_b_name && inTeamB) playerMatches = true;
+                      }
+                    }
+                    
+                    if (!playerMatches) return false;
+                  }
+                  
                   return true;
                 });
 
@@ -2831,25 +2859,51 @@ const formatResultTime = (timeStr?: string) => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Autore (Protagonista)</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Autore/i (Protagonista o Squadra)</label>
               <select className="modal-input" value={newMediaAutore} onChange={e => setNewMediaAutore(e.target.value)} style={{ width: '100%' }}>
                 <option value="">-- Nessun autore --</option>
                 {(() => {
                   const sm = matches.find(m => m.id === Number(mediaFilterPartita));
-                  const players = sm ? [...(sm.team_a_players || []), ...(sm.team_b_players || [])] : [];
-                  return players.map(p => <option key={p} value={p}>{p}</option>);
+                  if (!sm) return null;
+                  const teams = [sm.team_a_name, sm.team_b_name].filter(Boolean);
+                  const players = [...(sm.team_a_players || []), ...(sm.team_b_players || [])];
+                  return (
+                    <>
+                      <optgroup label="Squadre">
+                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                      </optgroup>
+                      <optgroup label="Giocatori">
+                        {players.map(p => <option key={p} value={p}>{p}</option>)}
+                      </optgroup>
+                    </>
+                  );
                 })()}
               </select>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Co-Autore (opzionale)</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Co-Autore/i (opzionale)</label>
               <select className="modal-input" value={newMediaCoAutore} onChange={e => setNewMediaCoAutore(e.target.value)} style={{ width: '100%' }}>
                 <option value="">-- Nessun co-autore --</option>
                 {(() => {
                   const sm = matches.find(m => m.id === Number(mediaFilterPartita));
-                  const players = sm ? [...(sm.team_a_players || []), ...(sm.team_b_players || [])] : [];
-                  return players.filter(p => p !== newMediaAutore).map(p => <option key={p} value={p}>{p}</option>);
+                  if (!sm) return null;
+                  const teams = [sm.team_a_name, sm.team_b_name].filter(Boolean).filter(t => t !== newMediaAutore);
+                  const players = [...(sm.team_a_players || []), ...(sm.team_b_players || [])].filter(p => p !== newMediaAutore);
+                  return (
+                    <>
+                      {teams.length > 0 && (
+                        <optgroup label="Squadre">
+                          {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                        </optgroup>
+                      )}
+                      {players.length > 0 && (
+                        <optgroup label="Giocatori">
+                          {players.map(p => <option key={p} value={p}>{p}</option>)}
+                        </optgroup>
+                      )}
+                    </>
+                  );
                 })()}
               </select>
             </div>

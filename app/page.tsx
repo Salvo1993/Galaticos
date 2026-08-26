@@ -766,9 +766,16 @@ export default function Home() {
           setMatchLabel(currentLabel);
         }
 
-        const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
-        if (savedMatch && !mediaFilterPartita) {
-          setMediaFilterPartita(String(savedMatch.id));
+        if (Array.isArray(matchesData) && matchesData.length > 0 && !mediaFilterPartita) {
+          const matchWithMedia = matchesData.find(m => 
+            Array.isArray(mediaData) && mediaData.some(media => media.partita_id === m.id)
+          );
+          
+          if (matchWithMedia) {
+            setMediaFilterPartita(String(matchWithMedia.id));
+          } else {
+            setMediaFilterPartita(String(matchesData[0].id));
+          }
         }
 
         if (sessionData) {
@@ -2657,7 +2664,12 @@ const formatResultTime = (timeStr?: string) => {
             setIsMediaArchiveOpen(nextState);
             if (nextState && !mediaFilterPartita) {
                if (matches.length > 0) {
-                 setMediaFilterPartita(String(matches[0].id));
+                 const matchWithMedia = matches.find(m => mediaItems.some(media => media.partita_id === m.id));
+                 if (matchWithMedia) {
+                   setMediaFilterPartita(String(matchWithMedia.id));
+                 } else {
+                   setMediaFilterPartita(String(matches[0].id));
+                 }
                }
             }
           }}

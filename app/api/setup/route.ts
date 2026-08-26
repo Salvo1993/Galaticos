@@ -20,9 +20,9 @@ export async function GET() {
         youtube_id TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      
-      ALTER TABLE public."Media" ADD COLUMN IF NOT EXISTS co_giocatore TEXT;
     `;
+    
+    await sql`ALTER TABLE public."Media" ADD COLUMN IF NOT EXISTS co_giocatore TEXT;`;
     
     return NextResponse.json({ success: true, message: "Database columns and tables added successfully!" });
   } catch (err: any) {

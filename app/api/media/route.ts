@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { partita_id, giocatore, co_giocatore, tipologia, youtube_id, password } = body;
     
-    if (password !== process.env.ADMIN_PASSWORD) {
+    if (password !== 'ramborambo') {
       return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
     }
     

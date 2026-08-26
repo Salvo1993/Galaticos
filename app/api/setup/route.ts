@@ -10,16 +10,18 @@ export async function GET() {
     await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "origine_punteggi" TEXT;`;
     await sql`ALTER TABLE public."Risultati" ADD COLUMN IF NOT EXISTS "voti_giocatori" JSONB;`;
     await sql`ALTER TABLE public."classifica" ADD COLUMN IF NOT EXISTS "media_voto" REAL DEFAULT 0;`;
-
     await sql`
       CREATE TABLE IF NOT EXISTS public."Media" (
         id SERIAL PRIMARY KEY,
         partita_id INTEGER REFERENCES public."Risultati"(id) ON DELETE CASCADE,
         giocatore TEXT,
+        co_giocatore TEXT,
         tipologia TEXT NOT NULL,
         youtube_id TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      ALTER TABLE public."Media" ADD COLUMN IF NOT EXISTS co_giocatore TEXT;
     `;
     
     return NextResponse.json({ success: true, message: "Database columns and tables added successfully!" });

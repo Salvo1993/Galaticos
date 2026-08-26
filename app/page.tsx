@@ -55,6 +55,7 @@ interface MediaItem {
   id: number;
   partita_id: number;
   giocatore: string | null;
+  co_giocatore: string | null;
   tipologia: string;
   youtube_id: string;
   created_at: string;
@@ -133,6 +134,90 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
             ))}
             {filteredOptions.length === 0 && (
               <div className="dropdown-no-options">Nessun giocatore trovato</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Generic Searchable Dropdown ---
+interface SearchableDropdownProps {
+  value: string;
+  options: { label: string; value: string }[];
+  onChange: (value: string) => void;
+  placeholder: string;
+}
+
+function SearchableDropdown({ value, options, onChange, placeholder }: SearchableDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+    }
+  }, [isOpen]);
+
+  const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
+  const selectedLabel = options.find(o => o.value === value)?.label || '';
+
+  return (
+    <div className="custom-dropdown" style={{ flex: 1, minWidth: '150px' }} ref={dropdownRef}>
+      <div 
+        className={`dropdown-trigger ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        tabIndex={0}
+      >
+        <span className={`selected-value ${!value ? 'placeholder' : ''}`}>
+          {selectedLabel || placeholder}
+        </span>
+        <ChevronDown size={18} className={`chevron ${isOpen ? 'rotated' : ''}`} />
+      </div>
+      
+      {isOpen && (
+        <div className="dropdown-panel" style={{ zIndex: 1000, position: 'absolute', width: '100%' }}>
+          <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, background: 'var(--color-surface-2)', zIndex: 2 }}>
+             <input
+               type="text"
+               value={searchTerm}
+               onChange={e => setSearchTerm(e.target.value)}
+               placeholder="Cerca..."
+               style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none', fontSize: '0.85rem' }}
+               autoFocus
+               onClick={(e) => e.stopPropagation()}
+             />
+          </div>
+          <div className="dropdown-options" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <div 
+              className={`dropdown-option ${value === '' ? 'selected' : ''}`}
+              onClick={() => { onChange(''); setIsOpen(false); }}
+            >
+              {placeholder}
+            </div>
+            {filteredOptions.map((opt) => (
+              <div 
+                key={opt.value}
+                className={`dropdown-option ${opt.value === value ? 'selected' : ''}`}
+                onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              >
+                {opt.label}
+              </div>
+            ))}
+            {filteredOptions.length === 0 && (
+              <div className="dropdown-no-options">Nessun risultato</div>
             )}
           </div>
         </div>
@@ -334,6 +419,15 @@ export default function Home() {
   const [mediaFilterPartita, setMediaFilterPartita] = useState<string>('');
   const [mediaFilterGiocatore, setMediaFilterGiocatore] = useState<string>('');
   const [mediaFilterTipologia, setMediaFilterTipologia] = useState<string>('');
+  
+  // Add Media modal state
+  const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
+  const [newMediaYoutubeUrl, setNewMediaYoutubeUrl] = useState('');
+  const [newMediaAutore, setNewMediaAutore] = useState('');
+  const [newMediaCoAutore, setNewMediaCoAutore] = useState('');
+  const [newMediaTipologia, setNewMediaTipologia] = useState('');
+  const [newMediaPassword, setNewMediaPassword] = useState('');
+  const [isSavingMedia, setIsSavingMedia] = useState(false);
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -1015,6 +1109,50 @@ export default function Home() {
       }
     } catch (err: any) {
       showToast(err.message || 'Errore eliminazione partita', 'error');
+    }
+  };
+
+  // --- Add Media Handler ---
+  const handleAddMedia = async () => {
+    if (!mediaFilterPartita) { showToast('Seleziona una partita prima di aggiungere media', 'error'); return; }
+    if (!newMediaYoutubeUrl) { showToast('Inserisci un link YouTube', 'error'); return; }
+    if (!newMediaTipologia) { showToast('Seleziona una tipologia', 'error'); return; }
+    if (!newMediaPassword) { showToast('Inserisci la password', 'error'); return; }
+
+    // Extract youtube_id from URL
+    let youtubeId = newMediaYoutubeUrl;
+    const ytMatch = newMediaYoutubeUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) youtubeId = ytMatch[1];
+
+    setIsSavingMedia(true);
+    try {
+      const res = await fetch('/api/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partita_id: Number(mediaFilterPartita),
+          giocatore: newMediaAutore || null,
+          co_giocatore: newMediaCoAutore || null,
+          tipologia: newMediaTipologia,
+          youtube_id: youtubeId,
+          password: newMediaPassword
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante il salvataggio');
+
+      showToast('Media aggiunto con successo!', 'success');
+      setIsAddMediaModalOpen(false);
+      setNewMediaYoutubeUrl(''); setNewMediaAutore(''); setNewMediaCoAutore(''); setNewMediaTipologia(''); setNewMediaPassword('');
+
+      // Refresh media list
+      const mediaRes = await fetch('/api/media', { cache: 'no-store' });
+      const mediaData = await mediaRes.json().catch(() => []);
+      setMediaItems(Array.isArray(mediaData) ? mediaData : []);
+    } catch (err: any) {
+      showToast(err.message || 'Errore salvataggio media', 'error');
+    } finally {
+      setIsSavingMedia(false);
     }
   };
 
@@ -2510,103 +2648,243 @@ const formatResultTime = (timeStr?: string) => {
           <ChevronDown size={20} className={`match-chevron ${isMediaArchiveOpen ? 'rotated' : ''}`} />
         </div>
         
-        {isMediaArchiveOpen && (
+        {isMediaArchiveOpen && (() => {
+          const selectedMatch = mediaFilterPartita ? matches.find(m => m.id === Number(mediaFilterPartita)) : null;
+          const matchPlayers = selectedMatch ? [...(selectedMatch.team_a_players || []), ...(selectedMatch.team_b_players || [])] : [];
+          
+          return (
           <div style={{ marginTop: '1rem' }}>
-            <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
-              Esplora i video delle partite. Puoi filtrare per partita, giocatore o tipologia.
-            </p>
-
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-               <select 
-                 className="modal-input" 
-                 value={mediaFilterPartita} 
-                 onChange={e => setMediaFilterPartita(e.target.value)}
-                 style={{ flex: 1, minWidth: '150px' }}
-               >
-                 <option value="">Tutte le Partite</option>
-                 {matches.map(m => (
-                   <option key={m.id} value={m.id}>
-                     {new Date(m.data).toLocaleDateString('it-IT')} - {m.team_a_name} vs {m.team_b_name}
-                   </option>
-                 ))}
-               </select>
-
-               <select 
-                 className="modal-input" 
-                 value={mediaFilterGiocatore} 
-                 onChange={e => setMediaFilterGiocatore(e.target.value)}
-                 style={{ flex: 1, minWidth: '150px' }}
-               >
-                 <option value="">Tutti i Giocatori</option>
-                 {dbPlayers.map(p => (
-                   <option key={p.Nome} value={p.Nome}>{p.Nome}</option>
-                 ))}
-               </select>
-
-               <select 
-                 className="modal-input" 
-                 value={mediaFilterTipologia} 
-                 onChange={e => setMediaFilterTipologia(e.target.value)}
-                 style={{ flex: 1, minWidth: '150px' }}
-               >
-                 <option value="">Tutte le Tipologie</option>
-                 <option value="Partita Completa">Partita Completa</option>
-                 <option value="Giocata">Giocata</option>
-                 <option value="Epic Fail">Epic Fail</option>
-                 <option value="Golazo">Golazo</option>
-                 <option value="Paratona">Paratona</option>
-               </select>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+              <p className="section-subtitle" style={{ margin: 0 }}>
+                Esplora i video delle partite. Puoi filtrare per partita, giocatore o tipologia.
+              </p>
+              <button 
+                className="create-teams-btn" 
+                style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                onClick={() => {
+                  if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
+                  setNewMediaYoutubeUrl(''); setNewMediaAutore(''); setNewMediaCoAutore(''); setNewMediaTipologia(''); setNewMediaPassword('');
+                  setIsAddMediaModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Aggiungi Media
+              </button>
             </div>
+
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem', position: 'relative' }}>
+               <SearchableDropdown 
+                 value={mediaFilterPartita} 
+                 onChange={setMediaFilterPartita}
+                 placeholder="Tutte le Partite"
+                 options={matches.map(m => ({ value: String(m.id), label: `${new Date(m.data).toLocaleDateString('it-IT')} - ${m.team_a_name} vs ${m.team_b_name}` }))}
+               />
+
+               <SearchableDropdown 
+                 value={mediaFilterGiocatore} 
+                 onChange={setMediaFilterGiocatore}
+                 placeholder="Tutti i Giocatori"
+                 options={dbPlayers.map(p => ({ value: p.Nome, label: p.Nome }))}
+               />
+
+               <SearchableDropdown 
+                 value={mediaFilterTipologia} 
+                 onChange={setMediaFilterTipologia}
+                 placeholder="Tutte le Tipologie"
+                 options={[
+                   { value: 'Partita Completa', label: 'Partita Completa' },
+                   { value: 'Giocata', label: 'Giocata' },
+                   { value: 'Epic Fail', label: 'Epic Fail' },
+                   { value: 'Golazo', label: 'Golazo' },
+                   { value: 'Paratona', label: 'Paratona' }
+                 ]}
+               />
+            </div>
+
+            {selectedMatch && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(52, 152, 219, 0.2)', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#6f9c81' }}>
+                  <span>{selectedMatch.Stadium || 'Campo'}</span>
+                  <span>{new Date(selectedMatch.data).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <span>{selectedMatch.ora ? selectedMatch.ora.substring(0, 5) : ''}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginBottom: '0.8rem' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1rem', color: '#cfe8d8', textAlign: 'right', flex: 1 }}>{selectedMatch.team_a_name}</span>
+                  <div style={{ background: 'rgba(52, 152, 219, 0.2)', padding: '0.3rem 0.8rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', color: '#3498db', letterSpacing: '2px' }}>
+                    {selectedMatch.risultato || '0 - 0'}
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '1rem', color: '#cfe8d8', textAlign: 'left', flex: 1 }}>{selectedMatch.team_b_name}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.3rem', textAlign: 'center' }}>{selectedMatch.team_a_name}</div>
+                    {selectedMatch.team_a_players.map(name => {
+                      const vote = selectedMatch.voti_giocatori?.[name];
+                      const allVotes = Object.values(selectedMatch.voti_giocatori || {}).map(v => Number(v) || 0);
+                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
+                      const isMvp = vote !== undefined && vote === maxV && maxV > 0;
+                      return (
+                        <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#cfe8d8', padding: '1px 0' }}>
+                          <span>{name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {isMvp && <Medal size={12} style={{ color: '#FFD700' }} />}
+                            <span style={{ fontWeight: 'bold', color: getVoteColor(vote) }}>{vote ?? '-'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ width: '1px', background: 'rgba(52, 152, 219, 0.2)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.3rem', textAlign: 'center' }}>{selectedMatch.team_b_name}</div>
+                    {selectedMatch.team_b_players.map(name => {
+                      const vote = selectedMatch.voti_giocatori?.[name];
+                      const allVotes = Object.values(selectedMatch.voti_giocatori || {}).map(v => Number(v) || 0);
+                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
+                      const isMvp = vote !== undefined && vote === maxV && maxV > 0;
+                      return (
+                        <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#cfe8d8', padding: '1px 0' }}>
+                          <span>{name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {isMvp && <Medal size={12} style={{ color: '#FFD700' }} />}
+                            <span style={{ fontWeight: 'bold', color: getVoteColor(vote) }}>{vote ?? '-'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-              {mediaItems.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun media presente.</div>
-              ) : (
-                (() => {
-                  const filteredMedia = mediaItems.filter(m => {
-                    if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
-                    if (mediaFilterGiocatore && m.giocatore !== mediaFilterGiocatore) return false;
-                    if (mediaFilterTipologia && m.tipologia !== mediaFilterTipologia) return false;
-                    return true;
-                  });
+              {(() => {
+                const filteredMedia = mediaItems.filter(m => {
+                  if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
+                  if (mediaFilterGiocatore && m.giocatore !== mediaFilterGiocatore) return false;
+                  if (mediaFilterTipologia && m.tipologia !== mediaFilterTipologia) return false;
+                  return true;
+                });
 
-                  if (filteredMedia.length === 0) {
-                     return <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun video corrisponde ai filtri.</div>;
-                  }
+                if (filteredMedia.length === 0) {
+                   return <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun video {mediaFilterPartita ? 'per questa partita' : 'presente'}.</div>;
+                }
 
-                  return filteredMedia.map(m => (
-                    <div key={m.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-                        <iframe 
-                          src={`https://www.youtube.com/embed/${m.youtube_id}`} 
-                          title="YouTube video player" 
-                          frameBorder="0" 
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                          allowFullScreen
-                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                        ></iframe>
-                      </div>
-                      <div style={{ padding: '0.8rem' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
-                           <span style={{ fontSize: '0.8rem', background: 'rgba(52, 152, 219, 0.2)', color: '#3498db', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{m.tipologia}</span>
+                return filteredMedia.map(m => (
+                  <div key={m.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${m.youtube_id}`} 
+                        title="YouTube video player" 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                      ></iframe>
+                    </div>
+                    <div style={{ padding: '0.8rem' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+                         <span style={{ fontSize: '0.8rem', background: 'rgba(52, 152, 219, 0.2)', color: '#3498db', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{m.tipologia}</span>
+                         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                            {m.giocatore && <span style={{ fontSize: '0.8rem', color: '#9fd9b6', fontWeight: 600 }}>{m.giocatore}</span>}
+                           {m.co_giocatore && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>& {m.co_giocatore}</span>}
                          </div>
+                       </div>
+                       {!mediaFilterPartita && (
                          <div style={{ fontSize: '0.75rem', color: '#6f9c81' }}>
-                           Partita: {(() => {
+                           {(() => {
                              const match = matches.find(x => x.id === m.partita_id);
-                             if (!match) return `ID ${m.partita_id}`;
-                             return `${new Date(match.data).toLocaleDateString('it-IT')}`;
+                             if (!match) return `Partita ID ${m.partita_id}`;
+                             return `${new Date(match.data).toLocaleDateString('it-IT')} - ${match.team_a_name} vs ${match.team_b_name}`;
                            })()}
                          </div>
-                      </div>
+                       )}
                     </div>
-                  ));
-                })()
-              )}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
-        )}
+          );
+        })()}
       </section>
+
+      {isAddMediaModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAddMediaModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Aggiungi Media</h3>
+              <button className="secondary-btn" style={{ padding: '0', background: 'transparent', border: 'none', color: '#9fd9b6', cursor: 'pointer' }} onClick={() => setIsAddMediaModalOpen(false)}><X size={20} /></button>
+            </div>
+            <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+              Aggiungi un video YouTube per la partita selezionata.
+            </p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Link YouTube *</label>
+              <input 
+                type="text" 
+                value={newMediaYoutubeUrl} 
+                onChange={e => setNewMediaYoutubeUrl(e.target.value)} 
+                placeholder="https://www.youtube.com/watch?v=..." 
+                className="modal-input" 
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Autore (Protagonista)</label>
+              <select className="modal-input" value={newMediaAutore} onChange={e => setNewMediaAutore(e.target.value)} style={{ width: '100%' }}>
+                <option value="">-- Nessun autore --</option>
+                {(() => {
+                  const sm = matches.find(m => m.id === Number(mediaFilterPartita));
+                  const players = sm ? [...(sm.team_a_players || []), ...(sm.team_b_players || [])] : [];
+                  return players.map(p => <option key={p} value={p}>{p}</option>);
+                })()}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Co-Autore (opzionale)</label>
+              <select className="modal-input" value={newMediaCoAutore} onChange={e => setNewMediaCoAutore(e.target.value)} style={{ width: '100%' }}>
+                <option value="">-- Nessun co-autore --</option>
+                {(() => {
+                  const sm = matches.find(m => m.id === Number(mediaFilterPartita));
+                  const players = sm ? [...(sm.team_a_players || []), ...(sm.team_b_players || [])] : [];
+                  return players.filter(p => p !== newMediaAutore).map(p => <option key={p} value={p}>{p}</option>);
+                })()}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Categoria Video *</label>
+              <select className="modal-input" value={newMediaTipologia} onChange={e => setNewMediaTipologia(e.target.value)} style={{ width: '100%' }}>
+                <option value="">-- Seleziona --</option>
+                <option value="Partita Completa">Partita Completa</option>
+                <option value="Giocata">Giocata</option>
+                <option value="Epic Fail">Epic Fail</option>
+                <option value="Golazo">Golazo</option>
+                <option value="Paratona">Paratona</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Password *</label>
+              <input 
+                type="password" 
+                value={newMediaPassword} 
+                onChange={e => setNewMediaPassword(e.target.value)} 
+                placeholder="Inserisci password..." 
+                className="modal-input" 
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+              <button className="secondary-btn" onClick={() => setIsAddMediaModalOpen(false)}>Annulla</button>
+              <button className="create-teams-btn" onClick={handleAddMedia} disabled={isSavingMedia}>{isSavingMedia ? 'Salvataggio...' : 'Salva'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {isUpdateModalOpen && (
           <div className="modal-overlay">

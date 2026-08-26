@@ -415,7 +415,7 @@ export default function Home() {
   
   // Media Archive state
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [isMediaArchiveOpen, setIsMediaArchiveOpen] = useState(false);
+  const [isMediaArchiveOpen, setIsMediaArchiveOpen] = useState(true);
   const [mediaFilterPartita, setMediaFilterPartita] = useState<string>('');
   const [mediaFilterGiocatore, setMediaFilterGiocatore] = useState<string>('');
   const [mediaFilterTipologia, setMediaFilterTipologia] = useState<string>('');
@@ -423,8 +423,8 @@ export default function Home() {
   // Add Media modal state
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [newMediaYoutubeUrl, setNewMediaYoutubeUrl] = useState('');
-  const [newMediaAutore, setNewMediaAutore] = useState('');
-  const [newMediaCoAutore, setNewMediaCoAutore] = useState('');
+  const [newMediaAutori, setNewMediaAutori] = useState<string[]>([]);
+  const [newMediaCoAutori, setNewMediaCoAutori] = useState<string[]>([]);
   const [newMediaTipologia, setNewMediaTipologia] = useState('');
   const [newMediaPassword, setNewMediaPassword] = useState('');
   const [isSavingMedia, setIsSavingMedia] = useState(false);
@@ -767,6 +767,9 @@ export default function Home() {
         }
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
+        if (savedMatch && !mediaFilterPartita) {
+          setMediaFilterPartita(String(savedMatch.id));
+        }
 
         if (sessionData) {
           // Validation Guard: Only apply session if it's complete and valid
@@ -1131,8 +1134,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           partita_id: Number(mediaFilterPartita),
-          giocatore: newMediaAutore || null,
-          co_giocatore: newMediaCoAutore || null,
+          giocatore: newMediaAutori.length > 0 ? newMediaAutori.join(', ') : null,
+          co_giocatore: newMediaCoAutori.length > 0 ? newMediaCoAutori.join(', ') : null,
           tipologia: newMediaTipologia,
           youtube_id: youtubeId,
           password: newMediaPassword
@@ -1143,7 +1146,7 @@ export default function Home() {
 
       showToast('Media aggiunto con successo!', 'success');
       setIsAddMediaModalOpen(false);
-      setNewMediaYoutubeUrl(''); setNewMediaAutore(''); setNewMediaCoAutore(''); setNewMediaTipologia(''); setNewMediaPassword('');
+      setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
 
       // Refresh media list
       const mediaRes = await fetch('/api/media', { cache: 'no-store' });
@@ -1654,9 +1657,24 @@ const formatResultTime = (timeStr?: string) => {
         </div>
       </header>
 
+      <nav style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', padding: '1rem 0', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+        {[
+          { id: 'giocatori', label: '👥 Giocatori' },
+          { id: 'cluster', label: '⚡ Cluster' },
+          { id: 'archivio', label: '🏆 Partite' },
+          { id: 'classifica', label: '🏅 Classifica' },
+          { id: 'mvp', label: '⭐ MVP' },
+          { id: 'media', label: '🎥 Media' }
+        ].map(item => (
+          <a key={item.id} href={`#${item.id}`} style={{ color: '#cfe8d8', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+
       {error && <div className="toast visible error" style={{position:'static', transform:'none', margin:'0 0 2rem 0'}}>{error}</div>}
 
-      <section>
+      <section id="giocatori">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
             <h2>👥 Giocatori</h2>
             <div style={{display:'flex', gap:'var(--space-2)'}}>
@@ -1964,7 +1982,7 @@ const formatResultTime = (timeStr?: string) => {
           );
       })()}
 
-      <section>
+      <section id="cluster">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <h2 style={{ margin: 0 }}>⚡ Cluster di Vincolo</h2>
           {clusters.length > 0 && (
@@ -2237,7 +2255,7 @@ const formatResultTime = (timeStr?: string) => {
         );
       })()}
 
-      <section className="archive-typography">
+      <section className="archive-typography" id="archivio">
         <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
         {matches.length === 0 ? (
           <p className="section-subtitle">Nessuna partita archiviata</p>
@@ -2482,7 +2500,7 @@ const formatResultTime = (timeStr?: string) => {
         </div>
       </section>
 
-      <section className="dashboard-card" style={{ marginTop: '2rem' }}>
+      <section className="dashboard-card" id="classifica" style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <h2 style={{ margin: 0 }}><Medal size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Classifica</h2>
           <button
@@ -2581,7 +2599,7 @@ const formatResultTime = (timeStr?: string) => {
         )}
       </section>
 
-      <section className="dashboard-card" style={{ marginTop: '2rem' }}>
+      <section className="dashboard-card" id="mvp" style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <h2 style={{ margin: 0 }}><Medal size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#FFD700'}} />Classifica MVP</h2>
         </div>
@@ -2631,7 +2649,7 @@ const formatResultTime = (timeStr?: string) => {
         )}
       </section>
 
-      <section className="dashboard-card" style={{ marginTop: '2rem' }}>
+      <section className="dashboard-card" id="media" style={{ marginTop: '2rem' }}>
         <div 
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem', cursor: 'pointer' }}
           onClick={() => {
@@ -2663,7 +2681,7 @@ const formatResultTime = (timeStr?: string) => {
                 style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 onClick={() => {
                   if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
-                  setNewMediaYoutubeUrl(''); setNewMediaAutore(''); setNewMediaCoAutore(''); setNewMediaTipologia(''); setNewMediaPassword('');
+                  setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
                   setIsAddMediaModalOpen(true);
                 }}
               >
@@ -2764,8 +2782,7 @@ const formatResultTime = (timeStr?: string) => {
                   
                   if (mediaFilterGiocatore) {
                     let playerMatches = false;
-                    
-                    if (m.giocatore === mediaFilterGiocatore || m.co_giocatore === mediaFilterGiocatore) {
+                    if (m.giocatore?.includes(mediaFilterGiocatore) || m.co_giocatore?.includes(mediaFilterGiocatore)) {
                       playerMatches = true;
                     } else {
                       const match = matches.find(x => x.id === m.partita_id);
@@ -2859,53 +2876,57 @@ const formatResultTime = (timeStr?: string) => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Autore/i (Protagonista o Squadra)</label>
-              <select className="modal-input" value={newMediaAutore} onChange={e => setNewMediaAutore(e.target.value)} style={{ width: '100%' }}>
-                <option value="">-- Nessun autore --</option>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Autore/i (Protagonisti)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {(() => {
                   const sm = matches.find(m => m.id === Number(mediaFilterPartita));
-                  if (!sm) return null;
-                  const teams = [sm.team_a_name, sm.team_b_name].filter(Boolean);
+                  if (!sm) return <span style={{fontSize:'0.8rem', color:'#6f9c81'}}>Seleziona una partita</span>;
                   const players = [...(sm.team_a_players || []), ...(sm.team_b_players || [])];
-                  return (
-                    <>
-                      <optgroup label="Squadre">
-                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
-                      </optgroup>
-                      <optgroup label="Giocatori">
-                        {players.map(p => <option key={p} value={p}>{p}</option>)}
-                      </optgroup>
-                    </>
-                  );
+                  if (players.length === 0) return <span style={{fontSize:'0.8rem', color:'#6f9c81'}}>Nessun giocatore in questa partita</span>;
+                  
+                  return players.map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#cfe8d8', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={newMediaAutori.includes(p)}
+                        onChange={(e) => {
+                          if (e.target.checked) setNewMediaAutori([...newMediaAutori, p]);
+                          else setNewMediaAutori(newMediaAutori.filter(a => a !== p));
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {p}
+                    </label>
+                  ));
                 })()}
-              </select>
+              </div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Co-Autore/i (opzionale)</label>
-              <select className="modal-input" value={newMediaCoAutore} onChange={e => setNewMediaCoAutore(e.target.value)} style={{ width: '100%' }}>
-                <option value="">-- Nessun co-autore --</option>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {(() => {
                   const sm = matches.find(m => m.id === Number(mediaFilterPartita));
-                  if (!sm) return null;
-                  const teams = [sm.team_a_name, sm.team_b_name].filter(Boolean).filter(t => t !== newMediaAutore);
-                  const players = [...(sm.team_a_players || []), ...(sm.team_b_players || [])].filter(p => p !== newMediaAutore);
-                  return (
-                    <>
-                      {teams.length > 0 && (
-                        <optgroup label="Squadre">
-                          {teams.map(t => <option key={t} value={t}>{t}</option>)}
-                        </optgroup>
-                      )}
-                      {players.length > 0 && (
-                        <optgroup label="Giocatori">
-                          {players.map(p => <option key={p} value={p}>{p}</option>)}
-                        </optgroup>
-                      )}
-                    </>
-                  );
+                  if (!sm) return <span style={{fontSize:'0.8rem', color:'#6f9c81'}}>Seleziona una partita</span>;
+                  const players = [...(sm.team_a_players || []), ...(sm.team_b_players || [])].filter(p => !newMediaAutori.includes(p));
+                  if (players.length === 0) return <span style={{fontSize:'0.8rem', color:'#6f9c81'}}>Nessun co-autore disponibile</span>;
+                  
+                  return players.map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#cfe8d8', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={newMediaCoAutori.includes(p)}
+                        onChange={(e) => {
+                          if (e.target.checked) setNewMediaCoAutori([...newMediaCoAutori, p]);
+                          else setNewMediaCoAutori(newMediaCoAutori.filter(a => a !== p));
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {p}
+                    </label>
+                  ));
                 })()}
-              </select>
+              </div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>

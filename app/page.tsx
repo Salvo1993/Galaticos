@@ -2853,6 +2853,16 @@ const formatResultTime = (timeStr?: string) => {
                   return acc;
                 }, {} as Record<string, MediaItem[]>);
 
+                const categoryOrder = ['Golazo', 'Epic Fail', 'Giocata'];
+                const sortedCategories = Object.keys(groupedMedia).sort((a, b) => {
+                  const idxA = categoryOrder.indexOf(a);
+                  const idxB = categoryOrder.indexOf(b);
+                  if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                  if (idxA === -1) return 1;
+                  if (idxB === -1) return -1;
+                  return idxA - idxB;
+                });
+
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     {partitaCompleta.length > 0 && (
@@ -2861,11 +2871,11 @@ const formatResultTime = (timeStr?: string) => {
                       </div>
                     )}
                     
-                    {Object.entries(groupedMedia).map(([tipologia, mediaList]) => (
+                    {sortedCategories.map(tipologia => (
                       <div key={tipologia} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#e8b339', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>{tipologia}</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {mediaList.map(m => renderMediaCard(m, false))}
+                          {groupedMedia[tipologia].map(m => renderMediaCard(m, false))}
                         </div>
                       </div>
                     ))}

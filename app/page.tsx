@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video } from 'lucide-react';
 
 // --- Types ---
 interface Player {
@@ -49,6 +49,15 @@ interface MatchResult {
   team_b_players: string[];
   Stadium: string | null;
   voti_giocatori?: Record<string, number>;
+}
+
+interface MediaItem {
+  id: number;
+  partita_id: number;
+  giocatore: string | null;
+  tipologia: string;
+  youtube_id: string;
+  created_at: string;
 }
 
 // --- Custom Components ---
@@ -318,6 +327,13 @@ export default function Home() {
   const [updateVoti, setUpdateVoti] = useState<Record<string, number>>({});
   const [touchedVoti, setTouchedVoti] = useState<Set<string>>(new Set());
   const [updatePassword, setUpdatePassword] = useState('');
+  
+  // Media Archive state
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [isMediaArchiveOpen, setIsMediaArchiveOpen] = useState(false);
+  const [mediaFilterPartita, setMediaFilterPartita] = useState<string>('');
+  const [mediaFilterGiocatore, setMediaFilterGiocatore] = useState<string>('');
+  const [mediaFilterTipologia, setMediaFilterTipologia] = useState<string>('');
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -623,13 +639,14 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes, campiRes] = await Promise.all([
+        const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes, campiRes, mediaRes] = await Promise.all([
           fetch('/api/giocatori'),
           fetch('/api/session'),
           fetch('/api/settings'),
           fetch('/api/risultati', { cache: 'no-store' }),
           fetch('/api/classifica', { cache: 'no-store' }),
-          fetch('/api/campi', { cache: 'no-store' })
+          fetch('/api/campi', { cache: 'no-store' }),
+          fetch('/api/media', { cache: 'no-store' })
         ]);
         
         const playersData = await playersRes.json();
@@ -638,11 +655,13 @@ export default function Home() {
         const matchesData = await matchesRes.json();
         const leaderboardData = await leaderboardRes.json();
         const campiData = await campiRes.json().catch(() => []);
+        const mediaData = await mediaRes.json().catch(() => []);
 
         if (playersData.error) throw new Error(playersData.error);
         setDbPlayers(playersData);
         setDbCampi(Array.isArray(campiData) ? campiData : []);
         setMatches(Array.isArray(matchesData) ? matchesData : []);
+        setMediaItems(Array.isArray(mediaData) ? mediaData : []);
         if (leaderboardData.success && leaderboardData.leaderboard) {
           setLeaderboard(leaderboardData.leaderboard);
         }
@@ -2470,6 +2489,121 @@ const formatResultTime = (timeStr?: string) => {
                   ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+
+      <section className="dashboard-card" style={{ marginTop: '2rem' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem', cursor: 'pointer' }}
+          onClick={() => {
+            const nextState = !isMediaArchiveOpen;
+            setIsMediaArchiveOpen(nextState);
+            if (nextState && !mediaFilterPartita) {
+               if (matches.length > 0) {
+                 setMediaFilterPartita(String(matches[0].id));
+               }
+            }
+          }}
+        >
+          <h2 style={{ margin: 0 }}><Video size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#3498db'}} />Archivio Media</h2>
+          <ChevronDown size={20} className={`match-chevron ${isMediaArchiveOpen ? 'rotated' : ''}`} />
+        </div>
+        
+        {isMediaArchiveOpen && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+              Esplora i video delle partite. Puoi filtrare per partita, giocatore o tipologia.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+               <select 
+                 className="modal-input" 
+                 value={mediaFilterPartita} 
+                 onChange={e => setMediaFilterPartita(e.target.value)}
+                 style={{ flex: 1, minWidth: '150px' }}
+               >
+                 <option value="">Tutte le Partite</option>
+                 {matches.map(m => (
+                   <option key={m.id} value={m.id}>
+                     {new Date(m.data).toLocaleDateString('it-IT')} - {m.team_a_name} vs {m.team_b_name}
+                   </option>
+                 ))}
+               </select>
+
+               <select 
+                 className="modal-input" 
+                 value={mediaFilterGiocatore} 
+                 onChange={e => setMediaFilterGiocatore(e.target.value)}
+                 style={{ flex: 1, minWidth: '150px' }}
+               >
+                 <option value="">Tutti i Giocatori</option>
+                 {dbPlayers.map(p => (
+                   <option key={p.Nome} value={p.Nome}>{p.Nome}</option>
+                 ))}
+               </select>
+
+               <select 
+                 className="modal-input" 
+                 value={mediaFilterTipologia} 
+                 onChange={e => setMediaFilterTipologia(e.target.value)}
+                 style={{ flex: 1, minWidth: '150px' }}
+               >
+                 <option value="">Tutte le Tipologie</option>
+                 <option value="Partita Completa">Partita Completa</option>
+                 <option value="Giocata">Giocata</option>
+                 <option value="Epic Fail">Epic Fail</option>
+                 <option value="Golazo">Golazo</option>
+                 <option value="Paratona">Paratona</option>
+               </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+              {mediaItems.length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun media presente.</div>
+              ) : (
+                (() => {
+                  const filteredMedia = mediaItems.filter(m => {
+                    if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
+                    if (mediaFilterGiocatore && m.giocatore !== mediaFilterGiocatore) return false;
+                    if (mediaFilterTipologia && m.tipologia !== mediaFilterTipologia) return false;
+                    return true;
+                  });
+
+                  if (filteredMedia.length === 0) {
+                     return <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun video corrisponde ai filtri.</div>;
+                  }
+
+                  return filteredMedia.map(m => (
+                    <div key={m.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                        <iframe 
+                          src={`https://www.youtube.com/embed/${m.youtube_id}`} 
+                          title="YouTube video player" 
+                          frameBorder="0" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allowFullScreen
+                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                        ></iframe>
+                      </div>
+                      <div style={{ padding: '0.8rem' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+                           <span style={{ fontSize: '0.8rem', background: 'rgba(52, 152, 219, 0.2)', color: '#3498db', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{m.tipologia}</span>
+                           {m.giocatore && <span style={{ fontSize: '0.8rem', color: '#9fd9b6', fontWeight: 600 }}>{m.giocatore}</span>}
+                         </div>
+                         <div style={{ fontSize: '0.75rem', color: '#6f9c81' }}>
+                           Partita: {(() => {
+                             const match = matches.find(x => x.id === m.partita_id);
+                             if (!match) return `ID ${m.partita_id}`;
+                             return `${new Date(match.data).toLocaleDateString('it-IT')}`;
+                           })()}
+                         </div>
+                      </div>
+                    </div>
+                  ));
+                })()
+              )}
+            </div>
           </div>
         )}
       </section>

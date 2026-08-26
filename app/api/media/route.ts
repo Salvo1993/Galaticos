@@ -10,7 +10,7 @@ export async function GET() {
       FROM public."Media"
       ORDER BY id DESC;
     `;
-    return NextResponse.json(result.rows);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Fetch Media Error:', error);
     // Return empty array if table doesn't exist yet to prevent UI crashes

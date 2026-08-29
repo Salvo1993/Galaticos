@@ -227,6 +227,104 @@ function SearchableDropdown({ value, options, onChange, placeholder }: Searchabl
   );
 }
 
+// --- Multi-Select Searchable Dropdown ---
+interface MultiSelectDropdownProps {
+  selectedValues: string[];
+  options: { label: string; value: string }[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+}
+
+function MultiSelectDropdown({ selectedValues, options, onChange, placeholder }: MultiSelectDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  const displayText = selectedValues.length === 0 
+    ? 'Tutti i Giocatori' 
+    : selectedValues.length === 1 
+      ? selectedValues[0] 
+      : `${selectedValues.length} Selezionati`;
+
+  return (
+    <div className="custom-dropdown" style={{ flex: 1, minWidth: '200px' }} ref={dropdownRef}>
+      <div 
+        className={`dropdown-trigger ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        tabIndex={0}
+      >
+        <span className={`selected-value`}>
+          {displayText}
+        </span>
+        <ChevronDown size={18} className={`chevron ${isOpen ? 'rotated' : ''}`} />
+      </div>
+      
+      {isOpen && (
+        <div className="dropdown-panel" style={{ zIndex: 1000, position: 'absolute', width: '100%' }}>
+          <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, background: 'var(--color-surface-2)', zIndex: 2 }}>
+             <input
+               type="text"
+               value={searchTerm}
+               onChange={e => setSearchTerm(e.target.value)}
+               placeholder="Cerca..."
+               style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none', fontSize: '0.85rem' }}
+               autoFocus
+               onClick={(e) => e.stopPropagation()}
+             />
+          </div>
+          <div className="dropdown-options" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+            <div 
+              className={`dropdown-option ${selectedValues.length === 0 ? 'selected' : ''}`}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  onChange([]);
+                  setIsOpen(false);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <input type="checkbox" checked={selectedValues.length === 0} readOnly style={{ pointerEvents: 'none' }} />
+              Tutti (Predefinito)
+            </div>
+            {filteredOptions.map((opt) => {
+              const isSelected = selectedValues.includes(opt.value);
+              return (
+                <div 
+                  key={opt.value}
+                  className={`dropdown-option ${isSelected ? 'selected' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isSelected) {
+                        onChange(selectedValues.filter(v => v !== opt.value));
+                    } else {
+                        onChange([...selectedValues, opt.value]);
+                    }
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <input type="checkbox" checked={isSelected} readOnly style={{ pointerEvents: 'none' }} />
+                  {opt.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- PES Morale Component (Arrows & Energy) ---
 const PesMorale = ({ condition }: { condition: 'excellent' | 'good' | 'normal' | 'poor' | 'terrible' | 'neutral' }) => {
   const getProps = () => {

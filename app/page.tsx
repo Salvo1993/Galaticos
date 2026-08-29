@@ -1399,10 +1399,7 @@ const formatResultTime = (timeStr?: string) => {
     // Cleanup clusters if a player is deselected or changed
     const oldName = selectedPlayers[index];
     if (oldName && oldName !== name) {
-        setClusters(prev => prev.map(c => ({
-            ...c,
-            members: c.members.filter(m => m !== oldName)
-        })));
+        setClusters([]);
     }
   };
 

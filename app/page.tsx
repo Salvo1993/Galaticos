@@ -3196,7 +3196,7 @@ const formatResultTime = (timeStr?: string) => {
                       <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                       {(statsSelectedPlayers.length > 0 
                         ? statsSelectedPlayers 
-                        : statsData.filter(p => p.presenze >= (trendChartData.length / 2)).map(p => p.name)
+                        : statsData.filter(p => p.partiteGiocate >= (trendChartData.length / 2)).map(p => p.name)
                       ).map((playerName, idx) => (
                         <Line 
                           key={playerName}

@@ -3116,18 +3116,21 @@ const formatResultTime = (timeStr?: string) => {
                         itemStyle={{ color: '#cfe8d8' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      {(statsSelectedPlayers.length > 0 ? statsSelectedPlayers : statsData.map(p => p.name)).map((playerName, idx) => (
+                      {(statsSelectedPlayers.length > 0 
+                        ? statsSelectedPlayers 
+                        : statsData.filter(p => p.presenze >= (trendChartData.length / 2)).map(p => p.name)
+                      ).map((playerName, idx) => (
                         <Line 
                           key={playerName}
                           type="monotone" 
                           dataKey={playerName} 
                           name={playerName} 
                           stroke={["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#34495e", "#ff7979", "#badc58"][idx % 10]} 
-                          strokeWidth={statsSelectedPlayers.length > 0 ? 2 : 1} 
+                          strokeWidth={2} 
                           dot={statsSelectedPlayers.length > 0 ? { r: 3 } : false} 
                           activeDot={{ r: 5 }} 
                           connectNulls={true}
-                          opacity={statsSelectedPlayers.length === 0 ? 0.6 : 1}
+                          opacity={1}
                         />
                       ))}
                     </LineChart>

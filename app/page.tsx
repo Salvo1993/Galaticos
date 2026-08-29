@@ -431,7 +431,7 @@ export default function Home() {
   const [isSavingMedia, setIsSavingMedia] = useState(false);
   
   // Stats state
-  const [statsSelectedPlayer, setStatsSelectedPlayer] = useState<string>('');
+  const [statsSelectedPlayers, setStatsSelectedPlayers] = useState<string[]>([]);
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -707,11 +707,23 @@ export default function Home() {
     return Object.values(data).sort((a, b) => b.golFattiSquadra - a.golFattiSquadra);
   }, [matches]);
 
-  useEffect(() => {
-    if (statsData.length > 0 && !statsSelectedPlayer) {
-      setStatsSelectedPlayer(statsData[0].name);
-    }
-  }, [statsData, statsSelectedPlayer]);
+  const trendChartData = useMemo(() => {
+    const sortedMatches = [...matches].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    
+    return sortedMatches.filter(m => m.risultato && m.risultato !== '0-0').map(m => {
+        const matchDate = new Date(m.data);
+        const shortDate = `${matchDate.getDate().toString().padStart(2, '0')}/${(matchDate.getMonth()+1).toString().padStart(2, '0')}`;
+        
+        const dataPoint: any = { data: shortDate, matchId: m.id };
+        
+        if (m.voti_giocatori) {
+            Object.entries(m.voti_giocatori).forEach(([playerName, voto]) => {
+                dataPoint[playerName] = voto;
+            });
+        }
+        return dataPoint;
+    });
+  }, [matches]);
 
   const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
     if (team === 'A') {
@@ -2973,28 +2985,55 @@ const formatResultTime = (timeStr?: string) => {
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#cfe8d8' }}>Andamento Media Voto</h3>
-                <SearchableDropdown 
-                  value={statsSelectedPlayer} 
-                  onChange={setStatsSelectedPlayer}
-                  placeholder="Seleziona Giocatore"
+                <MultiSelectDropdown 
+                  selectedValues={statsSelectedPlayers} 
+                  onChange={setStatsSelectedPlayers}
+                  placeholder="Seleziona Giocatori"
                   options={statsData.map(p => ({ value: p.name, label: p.name }))}
                 />
               </div>
               
               <div style={{ width: '100%', height: 300, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '1rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={statsData.find(p => p.name === statsSelectedPlayer)?.votiTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis dataKey="data" stroke="#9fd9b6" fontSize={12} tickMargin={10} />
-                    <YAxis domain={[4, 10]} stroke="#9fd9b6" fontSize={12} />
-                    <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
-                      itemStyle={{ color: '#e8b339' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    <Line type="monotone" dataKey="voto" name="Voto Partita" stroke="#3498db" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="mediaCumulativa" name="Media Cumulativa" stroke="#e8b339" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                  </LineChart>
+                  {statsSelectedPlayers.length === 1 ? (
+                    <LineChart data={statsData.find(p => p.name === statsSelectedPlayers[0])?.votiTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis dataKey="data" stroke="#9fd9b6" fontSize={12} tickMargin={10} />
+                      <YAxis domain={[4, 10]} stroke="#9fd9b6" fontSize={12} />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
+                        itemStyle={{ color: '#e8b339' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                      <Line type="monotone" dataKey="voto" name={`Voto ${statsSelectedPlayers[0]}`} stroke="#3498db" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="mediaCumulativa" name="Media Cumulativa" stroke="#e8b339" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    </LineChart>
+                  ) : (
+                    <LineChart data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis dataKey="data" stroke="#9fd9b6" fontSize={12} tickMargin={10} />
+                      <YAxis domain={[4, 10]} stroke="#9fd9b6" fontSize={12} />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
+                        itemStyle={{ color: '#cfe8d8' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                      {(statsSelectedPlayers.length > 0 ? statsSelectedPlayers : statsData.map(p => p.name)).map((playerName, idx) => (
+                        <Line 
+                          key={playerName}
+                          type="monotone" 
+                          dataKey={playerName} 
+                          name={playerName} 
+                          stroke={["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#34495e", "#ff7979", "#badc58"][idx % 10]} 
+                          strokeWidth={statsSelectedPlayers.length > 0 ? 2 : 1} 
+                          dot={statsSelectedPlayers.length > 0 ? { r: 3 } : false} 
+                          activeDot={{ r: 5 }} 
+                          connectNulls={true}
+                          opacity={statsSelectedPlayers.length === 0 ? 0.6 : 1}
+                        />
+                      ))}
+                    </LineChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>

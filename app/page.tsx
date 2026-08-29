@@ -2498,12 +2498,15 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                 </div>
 
-                <div className="results-actions">
+                <div className="results-actions" style={{ flexWrap: 'wrap' }}>
                   <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
                   <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>
-                  <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving}>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                  <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving} style={{ width: '100%', maxWidth: '400px' }}>
                       {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
                   </button>
                 </div>

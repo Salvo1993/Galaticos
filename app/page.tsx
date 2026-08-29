@@ -2961,7 +2961,9 @@ const formatResultTime = (timeStr?: string) => {
       </section>
 
       <section className="dashboard-card" id="stats" style={{ marginTop: '2rem' }}>
-        <h2 style={{ margin: 0 }}><BarChart2 size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Statistiche</h2>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <h2 style={{ margin: 0 }}><BarChart2 size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Statistiche</h2>
+        </div>
         <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
           Statistiche generali e andamento voti.
         </p>

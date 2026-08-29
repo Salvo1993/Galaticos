@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2 } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
@@ -2420,14 +2420,92 @@ const formatResultTime = (timeStr?: string) => {
             ))}
           </div>
           
-          <div className="results-actions">
-            <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
-            <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia</button>
-            <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>
-            <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving}>
-                {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
-            </button>
-          </div>
+          {(() => {
+            const getTeamStats = (teamPlayers: string[]) => {
+              let sumMediaVoto = 0;
+              let sumGolFattiAvg = 0;
+              let sumGolSubitiAvg = 0;
+              let totalMvp = 0;
+              let validVotoCount = 0;
+              let validGolCount = 0;
+
+              teamPlayers.forEach(pName => {
+                const s = statsData.find(x => x.name === pName);
+                if (s && s.partiteGiocate > 0) {
+                  const numVoti = s.votiTrend.length;
+                  if (numVoti > 0) {
+                     sumMediaVoto += (s.sommaVoti / numVoti);
+                     validVotoCount++;
+                  }
+                  sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
+                  sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
+                  validGolCount++;
+                }
+
+                const l = leaderboard.find(x => x.nome === pName);
+                if (l && l.mvp_count) {
+                   totalMvp += l.mvp_count;
+                }
+              });
+
+              return {
+                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : '0.00',
+                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : '0.00', 
+                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : '0.00',
+                mvp: totalMvp
+              };
+            };
+
+            const statsA = getTeamStats(results.teamA);
+            const statsB = getTeamStats(results.teamB);
+
+            const copyStats = () => {
+              const text = `📊 *PREVISIONE MATCH*\n\n` +
+                `*${teamAName.toUpperCase()}*\n` +
+                `Media Voto: ${statsA.mediaVoto}\n` +
+                `Gol Fatti: ${statsA.golFatti}\n` +
+                `Gol Subiti: ${statsA.golSubiti}\n` +
+                `MVP Totali: ${statsA.mvp}\n\n` +
+                `*${teamBName.toUpperCase()}*\n` +
+                `Media Voto: ${statsB.mediaVoto}\n` +
+                `Gol Fatti: ${statsB.golFatti}\n` +
+                `Gol Subiti: ${statsB.golSubiti}\n` +
+                `MVP Totali: ${statsB.mvp}`;
+              navigator.clipboard.writeText(text);
+              alert('Statistiche copiate negli appunti!');
+            };
+
+            return (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #5de4ff', fontSize: '0.85rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#5de4ff', textAlign: 'center' }}>Stats {teamAName}</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Media Voto:</span> <strong>{statsA.mediaVoto}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti (Exp):</span> <strong>{statsA.golFatti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti (Exp):</span> <strong>{statsA.golSubiti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>MVP Totali:</span> <strong>{statsA.mvp}</strong></div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #ffcc00', fontSize: '0.85rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#ffcc00', textAlign: 'center' }}>Stats {teamBName}</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Media Voto:</span> <strong>{statsB.mediaVoto}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti (Exp):</span> <strong>{statsB.golFatti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti (Exp):</span> <strong>{statsB.golSubiti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>MVP Totali:</span> <strong>{statsB.mvp}</strong></div>
+                  </div>
+                </div>
+
+                <div className="results-actions">
+                  <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
+                  <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
+                  <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
+                  <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>
+                  <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving}>
+                      {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
         </section>
         );
       })()}

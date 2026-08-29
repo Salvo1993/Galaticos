@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
 interface Player {
@@ -428,6 +429,9 @@ export default function Home() {
   const [newMediaTipologia, setNewMediaTipologia] = useState('');
   const [newMediaPassword, setNewMediaPassword] = useState('');
   const [isSavingMedia, setIsSavingMedia] = useState(false);
+  
+  // Stats state
+  const [statsSelectedPlayer, setStatsSelectedPlayer] = useState<string>('');
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -652,6 +656,62 @@ export default function Home() {
 
     return { affinity, breakup, isDraw };
   }, [matches]);
+
+  const statsData = useMemo(() => {
+    const data: Record<string, {
+        name: string,
+        partiteGiocate: number,
+        golFattiSquadra: number,
+        golSubitiSquadra: number,
+        sommaVoti: number,
+        votiTrend: { matchId: number, data: string, voto: number, mediaCumulativa: number }[]
+    }> = {};
+
+    // Sort matches by date to ensure correct chronological trend
+    const sortedMatches = [...matches].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+
+    sortedMatches.forEach(m => {
+        if (!m.risultato || m.risultato === '0-0') return;
+        const [scoreA, scoreB] = m.risultato.split('-').map(s => parseInt(s.trim(), 10) || 0);
+        
+        const processPlayer = (playerName: string, teamGoalsScored: number, teamGoalsConceded: number) => {
+            if (!data[playerName]) {
+                data[playerName] = { name: playerName, partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiTrend: [] };
+            }
+            data[playerName].partiteGiocate += 1;
+            data[playerName].golFattiSquadra += teamGoalsScored;
+            data[playerName].golSubitiSquadra += teamGoalsConceded;
+            
+            if (m.voti_giocatori && m.voti_giocatori[playerName] !== undefined) {
+                const voto = m.voti_giocatori[playerName];
+                data[playerName].sommaVoti += voto;
+                const matchDate = new Date(m.data);
+                const shortDate = `${matchDate.getDate().toString().padStart(2, '0')}/${(matchDate.getMonth()+1).toString().padStart(2, '0')}`;
+                
+                const currentMatchesWithVotes = data[playerName].votiTrend.length + 1;
+                const mediaCumulativa = Number((data[playerName].sommaVoti / currentMatchesWithVotes).toFixed(2));
+                
+                data[playerName].votiTrend.push({ 
+                  matchId: m.id, 
+                  data: shortDate, 
+                  voto,
+                  mediaCumulativa
+                });
+            }
+        };
+
+        m.team_a_players?.forEach(p => processPlayer(p, scoreA, scoreB));
+        m.team_b_players?.forEach(p => processPlayer(p, scoreB, scoreA));
+    });
+    
+    return Object.values(data).sort((a, b) => b.golFattiSquadra - a.golFattiSquadra);
+  }, [matches]);
+
+  useEffect(() => {
+    if (statsData.length > 0 && !statsSelectedPlayer) {
+      setStatsSelectedPlayer(statsData[0].name);
+    }
+  }, [statsData, statsSelectedPlayer]);
 
   const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
     if (team === 'A') {
@@ -1673,6 +1733,7 @@ const formatResultTime = (timeStr?: string) => {
           { id: 'archivio', label: '🏆 Partite' },
           { id: 'classifica', label: '🏅 Classifica' },
           { id: 'mvp', label: '⭐ MVP' },
+          { id: 'stats', label: '📊 Stats' },
           { id: 'media', label: '🎥 Media' }
         ].map(item => (
           <a key={item.id} href={`#${item.id}`} style={{ color: '#cfe8d8', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -2900,6 +2961,68 @@ const formatResultTime = (timeStr?: string) => {
           </div>
           );
         })()}
+      </section>
+
+      <section className="dashboard-card" id="stats" style={{ marginTop: '2rem' }}>
+        <h2 style={{ margin: 0 }}><BarChart2 size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Statistiche</h2>
+        <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+          Statistiche generali e andamento voti.
+        </p>
+
+        {statsData.length > 0 ? (
+          <>
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#cfe8d8' }}>Andamento Media Voto</h3>
+                <SearchableDropdown 
+                  value={statsSelectedPlayer} 
+                  onChange={setStatsSelectedPlayer}
+                  placeholder="Seleziona Giocatore"
+                  options={statsData.map(p => ({ value: p.name, label: p.name }))}
+                />
+              </div>
+              
+              <div style={{ width: '100%', height: 300, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '1rem' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={statsData.find(p => p.name === statsSelectedPlayer)?.votiTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="data" stroke="#9fd9b6" fontSize={12} tickMargin={10} />
+                    <YAxis domain={[4, 10]} stroke="#9fd9b6" fontSize={12} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
+                      itemStyle={{ color: '#e8b339' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <Line type="monotone" dataKey="voto" name="Voto Partita" stroke="#3498db" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="mediaCumulativa" name="Media Cumulativa" stroke="#e8b339" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: '#cfe8d8' }}>Gol Segnati e Subiti (di Squadra)</h3>
+              <div style={{ width: '100%', height: Math.max(400, statsData.length * 45), background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '1rem 0' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={statsData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={false} />
+                    <XAxis type="number" stroke="#9fd9b6" fontSize={12} />
+                    <YAxis dataKey="name" type="category" stroke="#9fd9b6" fontSize={12} width={80} tick={{fill: '#cfe8d8'}} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
+                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <Bar dataKey="golFattiSquadra" name="Gol Segnati" fill="#2ecc71" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="golSubitiSquadra" name="Gol Subiti" fill="#e74c3c" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Nessun dato statistico disponibile.</div>
+        )}
       </section>
 
       {isAddMediaModalOpen && (

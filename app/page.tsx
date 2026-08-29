@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
@@ -2477,19 +2477,23 @@ const formatResultTime = (timeStr?: string) => {
 
             return (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem' }}>
+                  <Info size={14} />
+                  <span>I valori sono calcolati tramite la media delle statistiche storiche individuali.</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #5de4ff', fontSize: '0.85rem' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', color: '#5de4ff', textAlign: 'center' }}>Stats {teamAName}</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Media Voto:</span> <strong>{statsA.mediaVoto}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti (Exp):</span> <strong>{statsA.golFatti}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti (Exp):</span> <strong>{statsA.golSubiti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti:</span> <strong>{statsA.golFatti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti:</span> <strong>{statsA.golSubiti}</strong></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>MVP Totali:</span> <strong>{statsA.mvp}</strong></div>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #ffcc00', fontSize: '0.85rem' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', color: '#ffcc00', textAlign: 'center' }}>Stats {teamBName}</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Media Voto:</span> <strong>{statsB.mediaVoto}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti (Exp):</span> <strong>{statsB.golFatti}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti (Exp):</span> <strong>{statsB.golSubiti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Fatti:</span> <strong>{statsB.golFatti}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Gol Subiti:</span> <strong>{statsB.golSubiti}</strong></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>MVP Totali:</span> <strong>{statsB.mvp}</strong></div>
                   </div>
                 </div>

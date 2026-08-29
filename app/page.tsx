@@ -1793,6 +1793,22 @@ const formatResultTime = (timeStr?: string) => {
   };
 
   // --- Render ---
+  if (loading) {
+    return (
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '1.5rem' }}>
+        <div style={{
+          width: '48px', height: '48px',
+          border: '4px solid rgba(255,255,255,0.1)',
+          borderTopColor: '#5de4ff',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <p style={{ color: '#cfe8d8', fontSize: '1rem', fontWeight: 600 }}>Caricamento dati...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <header style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

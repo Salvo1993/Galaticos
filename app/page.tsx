@@ -2514,6 +2514,225 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                 </div>
 
+                {/* --- PREVISIONE MATCH --- */}
+                {(() => {
+                  // Algoritmo di previsione basato su stats individuali + sinergia storica
+                  const validMatches = matches.filter(m => m.risultato && m.risultato !== '0-0');
+                  
+                  // Calcola la sinergia storica per una squadra
+                  const getTeamSynergy = (teamPlayers: string[]) => {
+                    let weightedWins = 0;
+                    let weightedDraws = 0;
+                    let weightedLosses = 0;
+                    let weightedGolFatti = 0;
+                    let weightedGolSubiti = 0;
+                    let totalWeight = 0;
+                    const matchDetails: { overlap: number, result: string, weight: number }[] = [];
+
+                    validMatches.forEach(m => {
+                      const mDate = new Date(m.data);
+                      const isInterrupted = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
+                      if (isInterrupted) return;
+
+                      const teamAPlayers = m.team_a_players || [];
+                      const teamBPlayers = m.team_b_players || [];
+                      const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+
+                      // Cerca overlap con team_a e team_b della partita storica
+                      const overlapA = teamPlayers.filter(p => teamAPlayers.includes(p)).length;
+                      const overlapB = teamPlayers.filter(p => teamBPlayers.includes(p)).length;
+
+                      // Prendi il lato con più overlap (almeno 2 giocatori in comune)
+                      if (overlapA >= 2 || overlapB >= 2) {
+                        const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
+                        const isOnSideA = overlapA >= overlapB;
+                        
+                        // Peso: (overlap/5)^2 per dare molta più importanza a 5/5 rispetto a 2/5
+                        // 5/5 = 1.0, 4/5 = 0.64, 3/5 = 0.36, 2/5 = 0.16
+                        const weight = Math.pow(bestOverlap / 5, 2);
+                        
+                        const golFatti = isOnSideA ? scoreA : scoreB;
+                        const golSubiti = isOnSideA ? scoreB : scoreA;
+                        const won = golFatti > golSubiti;
+                        const draw = golFatti === golSubiti;
+
+                        if (won) weightedWins += weight;
+                        else if (draw) weightedDraws += weight;
+                        else weightedLosses += weight;
+                        
+                        weightedGolFatti += golFatti * weight;
+                        weightedGolSubiti += golSubiti * weight;
+                        totalWeight += weight;
+                        
+                        matchDetails.push({ overlap: bestOverlap, result: `${golFatti}-${golSubiti}`, weight });
+                      }
+                    });
+
+                    return {
+                      winRate: totalWeight > 0 ? weightedWins / totalWeight : 0,
+                      drawRate: totalWeight > 0 ? weightedDraws / totalWeight : 0,
+                      lossRate: totalWeight > 0 ? weightedLosses / totalWeight : 0,
+                      avgGolFatti: totalWeight > 0 ? weightedGolFatti / totalWeight : 0,
+                      avgGolSubiti: totalWeight > 0 ? weightedGolSubiti / totalWeight : 0,
+                      totalWeight,
+                      matchCount: matchDetails.length,
+                      matchDetails
+                    };
+                  };
+
+                  const synergyA = getTeamSynergy(results.teamA);
+                  const synergyB = getTeamSynergy(results.teamB);
+
+                  // Combina stats individuali (60%) con sinergia storica (40%)
+                  const individualWeight = 0.6;
+                  const synergyWeight = 0.4;
+
+                  const getCompositeScore = (
+                    individualStats: { mediaVoto: string; golFatti: string; golSubiti: string; mvp: number },
+                    synergy: typeof synergyA
+                  ) => {
+                    const indMediaVoto = parseFloat(individualStats.mediaVoto);
+                    const indGolFatti = parseFloat(individualStats.golFatti);
+                    const indGolSubiti = parseFloat(individualStats.golSubiti);
+                    
+                    // Normalizza media voto su scala 0-1 (range 4-10)
+                    const normVoto = (indMediaVoto - 4) / 6;
+                    // Differenza gol normalizzata
+                    const normGolDiff = (indGolFatti - indGolSubiti) / Math.max(indGolFatti + indGolSubiti, 1);
+                    // MVP bonus (max ~0.1)
+                    const mvpBonus = Math.min(individualStats.mvp * 0.02, 0.1);
+                    
+                    const individualScore = normVoto * 0.5 + normGolDiff * 0.35 + mvpBonus;
+                    
+                    // Score da sinergia
+                    const synergyScore = synergy.totalWeight > 0 
+                      ? synergy.winRate * 0.6 + synergy.drawRate * 0.2 - synergy.lossRate * 0.2 
+                      : 0.5; // neutro se nessuna sinergia
+
+                    // Se non ci sono dati di sinergia, usa solo individuali
+                    const effectiveSynergyWeight = synergy.totalWeight > 0 ? synergyWeight : 0;
+                    const effectiveIndividualWeight = 1 - effectiveSynergyWeight;
+                    
+                    return individualScore * effectiveIndividualWeight + synergyScore * effectiveSynergyWeight;
+                  };
+
+                  const compositeA = getCompositeScore(statsA, synergyA);
+                  const compositeB = getCompositeScore(statsB, synergyB);
+
+                  // Calcola probabilità vittoria/pareggio/sconfitta
+                  const diff = compositeA - compositeB;
+                  // Sigmoid per convertire la differenza in probabilità
+                  const sigmoid = (x: number) => 1 / (1 + Math.exp(-x * 8));
+                  const rawWinA = sigmoid(diff);
+                  const rawWinB = 1 - rawWinA;
+                  
+                  // Riserva spazio per il pareggio (più le squadre sono equilibrate, più alto il pareggio)
+                  const drawBase = 0.15;
+                  const drawBonus = Math.max(0, 0.25 - Math.abs(diff) * 2);
+                  const drawPct = Math.min(drawBase + drawBonus, 0.40);
+                  
+                  const winAPct = rawWinA * (1 - drawPct);
+                  const winBPct = rawWinB * (1 - drawPct);
+
+                  const pctA = Math.round(winAPct * 100);
+                  const pctX = Math.round(drawPct * 100);
+                  const pctB = Math.round(winBPct * 100);
+                  
+                  // Risultato predetto
+                  const predGolA = synergyA.totalWeight > 0 
+                    ? (parseFloat(statsA.golFatti) * individualWeight + synergyA.avgGolFatti * synergyWeight)
+                    : parseFloat(statsA.golFatti);
+                  const predGolB = synergyB.totalWeight > 0 
+                    ? (parseFloat(statsB.golFatti) * individualWeight + synergyB.avgGolFatti * synergyWeight)
+                    : parseFloat(statsB.golFatti);
+
+                  const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
+
+                  return (
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
+                      borderRadius: '10px', 
+                      padding: '1.2rem', 
+                      marginTop: '1rem',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 1rem 0', 
+                        textAlign: 'center', 
+                        fontSize: '1rem',
+                        background: 'linear-gradient(90deg, #5de4ff, #ffcc00)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontWeight: 800
+                      }}>
+                        🔮 PREVISIONE MATCH
+                      </h4>
+                      
+                      {/* Barra probabilità */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px', fontWeight: 700 }}>
+                          <span style={{ color: '#5de4ff' }}>1 ({pctA}%)</span>
+                          <span style={{ color: '#aaa' }}>X ({pctX}%)</span>
+                          <span style={{ color: '#ffcc00' }}>2 ({pctB}%)</span>
+                        </div>
+                        <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', gap: '2px' }}>
+                          <div style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #1e90ff, #5de4ff)', borderRadius: '5px 0 0 5px', transition: 'width 0.5s ease' }} />
+                          <div style={{ width: `${pctX}%`, background: '#666', transition: 'width 0.5s ease' }} />
+                          <div style={{ width: `${pctB}%`, background: 'linear-gradient(90deg, #ffcc00, #ff9500)', borderRadius: '0 5px 5px 0', transition: 'width 0.5s ease' }} />
+                        </div>
+                      </div>
+
+                      {/* Risultato predetto */}
+                      <div style={{ textAlign: 'center', marginBottom: '0.8rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '4px' }}>Risultato stimato</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '2px' }}>
+                          <span style={{ color: '#5de4ff' }}>{Math.round(predGolA)}</span>
+                          <span style={{ color: '#666', margin: '0 8px' }}>-</span>
+                          <span style={{ color: '#ffcc00' }}>{Math.round(predGolB)}</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '2px' }}>
+                          {favorite === 'A' ? `${teamAName} favorito` : favorite === 'B' ? `${teamBName} favorito` : 'Match equilibrato'}
+                        </div>
+                      </div>
+
+                      {/* Dettagli sinergia */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
+                        <div style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center' }}>
+                          <div style={{ color: '#5de4ff', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamAName}</div>
+                          {synergyA.matchCount > 0 ? (
+                            <>
+                              <div style={{ color: '#cfe8d8' }}>{synergyA.matchCount} partite simili</div>
+                              <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
+                                V {Math.round(synergyA.winRate*100)}% · P {Math.round(synergyA.drawRate*100)}% · S {Math.round(synergyA.lossRate*100)}%
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ color: '#888' }}>Nessun dato</div>
+                          )}
+                        </div>
+                        <div style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center' }}>
+                          <div style={{ color: '#ffcc00', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamBName}</div>
+                          {synergyB.matchCount > 0 ? (
+                            <>
+                              <div style={{ color: '#cfe8d8' }}>{synergyB.matchCount} partite simili</div>
+                              <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
+                                V {Math.round(synergyB.winRate*100)}% · P {Math.round(synergyB.drawRate*100)}% · S {Math.round(synergyB.lossRate*100)}%
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ color: '#888' }}>Nessun dato</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.8rem' }}>
+                        <Info size={12} />
+                        <span>Algoritmo: 60% stats individuali + 40% sinergia storica. Peso sinergia: (overlap/5)²</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
                   <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>

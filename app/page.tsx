@@ -2529,7 +2529,7 @@ const formatResultTime = (timeStr?: string) => {
                     let weightedGolFatti = 0;
                     let weightedGolSubiti = 0;
                     let totalWeight = 0;
-                    const matchDetails: { overlap: number, result: string, weight: number, date: string, players: string[] }[] = [];
+                    const matchDetails: { overlap: number, result: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
 
                     validMatches.forEach(m => {
                       const mDate = new Date(m.data);
@@ -2572,7 +2572,10 @@ const formatResultTime = (timeStr?: string) => {
                           result: `${golFatti}-${golSubiti}`, 
                           weight,
                           date: mDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
-                          players: commonPlayers
+                          players: commonPlayers,
+                          teamNameA: m.team_a_name || 'Squadra A',
+                          teamNameB: m.team_b_name || 'Squadra B',
+                          isOnSideA
                         });
                       }
                     });
@@ -2722,7 +2725,15 @@ const formatResultTime = (timeStr?: string) => {
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyA.matchDetails.map((md, idx) => (
                                     <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
-                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{md.date} <span style={{ color: '#5de4ff', float: 'right' }}>{md.overlap}/5 (Ris: {md.result})</span></div>
+                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>
+                                          {md.date} 
+                                          <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
+                                            <strong style={{ color: md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameB}</strong>
+                                          </span>
+                                        </span>
+                                        <span style={{ color: '#5de4ff' }}>{md.overlap}/5 (Ris: {md.result})</span>
+                                      </div>
                                       <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
                                     </div>
                                   ))}
@@ -2748,7 +2759,15 @@ const formatResultTime = (timeStr?: string) => {
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyB.matchDetails.map((md, idx) => (
                                     <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
-                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{md.date} <span style={{ color: '#ffcc00', float: 'right' }}>{md.overlap}/5 (Ris: {md.result})</span></div>
+                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>
+                                          {md.date} 
+                                          <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
+                                            <strong style={{ color: md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameB}</strong>
+                                          </span>
+                                        </span>
+                                        <span style={{ color: '#ffcc00' }}>{md.overlap}/5 (Ris: {md.result})</span>
+                                      </div>
                                       <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
                                     </div>
                                   ))}

@@ -530,6 +530,8 @@ export default function Home() {
   
   // Stats state
   const [statsSelectedPlayers, setStatsSelectedPlayers] = useState<string[]>([]);
+  const [showSynergyA, setShowSynergyA] = useState(false);
+  const [showSynergyB, setShowSynergyB] = useState(false);
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -2670,15 +2672,16 @@ const formatResultTime = (timeStr?: string) => {
                       
                       {/* Barra probabilità */}
                       <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px', fontWeight: 700 }}>
-                          <span style={{ color: '#5de4ff' }}>1 ({pctA}%)</span>
-                          <span style={{ color: '#aaa' }}>X ({pctX}%)</span>
-                          <span style={{ color: '#ffcc00' }}>2 ({pctB}%)</span>
-                        </div>
-                        <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', gap: '2px' }}>
-                          <div style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #1e90ff, #5de4ff)', borderRadius: '5px 0 0 5px', transition: 'width 0.5s ease' }} />
-                          <div style={{ width: `${pctX}%`, background: '#666', transition: 'width 0.5s ease' }} />
-                          <div style={{ width: `${pctB}%`, background: 'linear-gradient(90deg, #ffcc00, #ff9500)', borderRadius: '0 5px 5px 0', transition: 'width 0.5s ease' }} />
+                        <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'visible', gap: '2px', position: 'relative', marginTop: '20px' }}>
+                          <div style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #1e90ff, #5de4ff)', borderRadius: '5px 0 0 5px', transition: 'width 0.5s ease', position: 'relative' }}>
+                            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#5de4ff', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>1 ({pctA}%)</span>
+                          </div>
+                          <div style={{ width: `${pctX}%`, background: '#666', transition: 'width 0.5s ease', position: 'relative' }}>
+                            {pctX > 0 && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#aaa', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>X ({pctX}%)</span>}
+                          </div>
+                          <div style={{ width: `${pctB}%`, background: 'linear-gradient(90deg, #ffcc00, #ff9500)', borderRadius: '0 5px 5px 0', transition: 'width 0.5s ease', position: 'relative' }}>
+                            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#ffcc00', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>2 ({pctB}%)</span>
+                          </div>
                         </div>
                       </div>
 
@@ -2697,7 +2700,10 @@ const formatResultTime = (timeStr?: string) => {
 
                       {/* Dettagli sinergia */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                        <div style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center' }}>
+                        <div 
+                          style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
+                          onClick={() => setShowSynergyA(!showSynergyA)}
+                        >
                           <div style={{ color: '#5de4ff', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamAName}</div>
                           {synergyA.matchCount > 0 ? (
                             <>
@@ -2705,12 +2711,22 @@ const formatResultTime = (timeStr?: string) => {
                               <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
                                 V {Math.round(synergyA.winRate*100)}% · P {Math.round(synergyA.drawRate*100)}% · S {Math.round(synergyA.lossRate*100)}%
                               </div>
+                              {showSynergyA && (
+                                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
+                                  {synergyA.matchDetails.map((md, idx) => (
+                                    <div key={idx} style={{ marginBottom: '2px' }}>• {md.overlap}/5 in comune (Ris: {md.result})</div>
+                                  ))}
+                                </div>
+                              )}
                             </>
                           ) : (
                             <div style={{ color: '#888' }}>Nessun dato</div>
                           )}
                         </div>
-                        <div style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center' }}>
+                        <div 
+                          style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
+                          onClick={() => setShowSynergyB(!showSynergyB)}
+                        >
                           <div style={{ color: '#ffcc00', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamBName}</div>
                           {synergyB.matchCount > 0 ? (
                             <>
@@ -2718,6 +2734,13 @@ const formatResultTime = (timeStr?: string) => {
                               <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
                                 V {Math.round(synergyB.winRate*100)}% · P {Math.round(synergyB.drawRate*100)}% · S {Math.round(synergyB.lossRate*100)}%
                               </div>
+                              {showSynergyB && (
+                                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
+                                  {synergyB.matchDetails.map((md, idx) => (
+                                    <div key={idx} style={{ marginBottom: '2px' }}>• {md.overlap}/5 in comune (Ris: {md.result})</div>
+                                  ))}
+                                </div>
+                              )}
                             </>
                           ) : (
                             <div style={{ color: '#888' }}>Nessun dato</div>

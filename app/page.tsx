@@ -2529,7 +2529,7 @@ const formatResultTime = (timeStr?: string) => {
                     let weightedGolFatti = 0;
                     let weightedGolSubiti = 0;
                     let totalWeight = 0;
-                    const matchDetails: { overlap: number, result: string, weight: number }[] = [];
+                    const matchDetails: { overlap: number, result: string, weight: number, date: string, players: string[] }[] = [];
 
                     validMatches.forEach(m => {
                       const mDate = new Date(m.data);
@@ -2548,6 +2548,7 @@ const formatResultTime = (timeStr?: string) => {
                       if (overlapA >= 2 || overlapB >= 2) {
                         const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
                         const isOnSideA = overlapA >= overlapB;
+                        const commonPlayers = teamPlayers.filter(p => (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
                         
                         // Peso: (overlap/5)^2 per dare molta più importanza a 5/5 rispetto a 2/5
                         // 5/5 = 1.0, 4/5 = 0.64, 3/5 = 0.36, 2/5 = 0.16
@@ -2566,7 +2567,13 @@ const formatResultTime = (timeStr?: string) => {
                         weightedGolSubiti += golSubiti * weight;
                         totalWeight += weight;
                         
-                        matchDetails.push({ overlap: bestOverlap, result: `${golFatti}-${golSubiti}`, weight });
+                        matchDetails.push({ 
+                          overlap: bestOverlap, 
+                          result: `${golFatti}-${golSubiti}`, 
+                          weight,
+                          date: mDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
+                          players: commonPlayers
+                        });
                       }
                     });
 
@@ -2714,7 +2721,10 @@ const formatResultTime = (timeStr?: string) => {
                               {showSynergyA && (
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyA.matchDetails.map((md, idx) => (
-                                    <div key={idx} style={{ marginBottom: '2px' }}>• {md.overlap}/5 in comune (Ris: {md.result})</div>
+                                    <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{md.date} <span style={{ color: '#5de4ff', float: 'right' }}>{md.overlap}/5 (Ris: {md.result})</span></div>
+                                      <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
+                                    </div>
                                   ))}
                                 </div>
                               )}
@@ -2737,7 +2747,10 @@ const formatResultTime = (timeStr?: string) => {
                               {showSynergyB && (
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyB.matchDetails.map((md, idx) => (
-                                    <div key={idx} style={{ marginBottom: '2px' }}>• {md.overlap}/5 in comune (Ris: {md.result})</div>
+                                    <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{md.date} <span style={{ color: '#ffcc00', float: 'right' }}>{md.overlap}/5 (Ris: {md.result})</span></div>
+                                      <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
+                                    </div>
                                   ))}
                                 </div>
                               )}

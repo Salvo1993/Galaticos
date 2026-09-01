@@ -970,7 +970,9 @@ export default function Home() {
 
     return { 
       preds, 
-      accuracy: totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100 
+      accuracy: totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100,
+      correctCount,
+      totalCount
     };
   }, [matches]);
 
@@ -2946,7 +2948,7 @@ const formatResultTime = (timeStr?: string) => {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', color: '#69f0ae', marginTop: '1rem', fontWeight: 600 }}>
-                         <span>🔮 Precisione Storica Algoritmo: {historicalPredictions.accuracy}%</span>
+                         <span>🔮 Precisione Storica Algoritmo: {historicalPredictions.accuracy}% ({historicalPredictions.correctCount} indovinate su {historicalPredictions.totalCount})</span>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.6rem' }}>

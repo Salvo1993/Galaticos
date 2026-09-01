@@ -49,7 +49,7 @@ interface MatchResult {
   team_a_players: string[];
   team_b_players: string[];
   Stadium: string | null;
-  voti_giocatori?: Record<string, number>;
+  voti_giocatori?: Record<string, number | 's.v.'>;
 }
 
 interface MediaItem {
@@ -508,7 +508,7 @@ export default function Home() {
   const [updateScoreB, setUpdateScoreB] = useState('');
   const [updateScorersA, setUpdateScorersA] = useState<Record<string, number>>({});
   const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
-  const [updateVoti, setUpdateVoti] = useState<Record<string, number>>({});
+  const [updateVoti, setUpdateVoti] = useState<Record<string, number | 's.v.'>>({});
   const [touchedVoti, setTouchedVoti] = useState<Set<string>>(new Set());
   const [updatePassword, setUpdatePassword] = useState('');
   
@@ -692,10 +692,12 @@ export default function Home() {
     };
 
     // Helper to select N players from a team based on votes (highest or lowest)
-    const selectByVote = (team: string[], votiObj: Record<string, number>, count: number, highest: boolean, baseSeed: number): string[] => {
-      const playersWithVotes = team.map(p => ({
+    const selectByVote = (team: string[], votiObj: Record<string, number | 's.v.'>, count: number, highest: boolean, baseSeed: number): string[] => {
+      const playersWithVotes = team
+        .filter(p => votiObj[p] !== 's.v.')
+        .map(p => ({
         name: p,
-        vote: votiObj[p] !== undefined ? votiObj[p] : 6 // Default 6 if missing
+        vote: typeof votiObj[p] === 'number' ? votiObj[p] as number : 6 // Default 6 if missing
       }));
 
       // Group players by votes
@@ -846,9 +848,16 @@ export default function Home() {
   const handleUpdateVoteModal = (player: string, delta: number) => {
     setTouchedVoti(prev => new Set(prev).add(player));
     setUpdateVoti(prev => {
-      const current = prev[player] !== undefined ? prev[player] : 6;
+      let current = prev[player];
+      if (current === 's.v.' || typeof current === 'string') current = 6;
+      else if (current === undefined) current = 6;
       return { ...prev, [player]: current + delta };
     });
+  };
+
+  const handleSetVoteSV = (player: string) => {
+    setTouchedVoti(prev => new Set(prev).add(player));
+    setUpdateVoti(prev => ({ ...prev, [player]: 's.v.' }));
   };
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
@@ -1365,8 +1374,10 @@ export default function Home() {
   return formatter.format(d);
 };
 
-const getVoteColor = (v?: number) => {
+const getVoteColor = (v?: number | string) => {
+  if (v === 's.v.') return '#88929b';
   if (v === undefined || v === null) return '#88929b';
+  if (typeof v === 'string') return '#88929b';
   if (v < 5) return '#e57373';
   if (v < 6) return '#f39c12';
   if (v < 7) return '#88929b';
@@ -1489,16 +1500,18 @@ const formatResultTime = (timeStr?: string) => {
 
     const vote = lastMatchPlayed.voti_giocatori?.[playerName];
     
-    if (vote === undefined || vote === null) {
+    if (vote === undefined || vote === null || vote === 's.v.') {
       return { condition: 'neutral', title: 'Senza voto' };
     }
     
     let condition: 'excellent' | 'good' | 'normal' | 'poor' | 'terrible' = 'normal';
-    if (vote >= 7.5) { condition = 'excellent'; }
-    else if (vote >= 6.5) { condition = 'good'; }
-    else if (vote >= 6) { condition = 'normal'; }
-    else if (vote >= 5) { condition = 'poor'; }
-    else { condition = 'terrible'; }
+    if (typeof vote === 'number') {
+      if (vote >= 7.5) { condition = 'excellent'; }
+      else if (vote >= 6.5) { condition = 'good'; }
+      else if (vote >= 6) { condition = 'normal'; }
+      else if (vote >= 5) { condition = 'poor'; }
+      else { condition = 'terrible'; }
+    }
 
     return { condition, title: `Ultimo voto: ${vote}` };
   };
@@ -3704,6 +3717,7 @@ const formatResultTime = (timeStr?: string) => {
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
+                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: vote === 's.v.' ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: vote === 's.v.' ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>
@@ -3737,6 +3751,7 @@ const formatResultTime = (timeStr?: string) => {
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
+                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: vote === 's.v.' ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: vote === 's.v.' ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>

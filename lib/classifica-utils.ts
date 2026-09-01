@@ -72,7 +72,7 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
     let maxVote = 0;
     const allPlayersInMatch = [...playersA, ...playersB];
     allPlayersInMatch.forEach(p => {
-      if (voti[p] !== undefined && voti[p] > maxVote) {
+      if (voti[p] !== undefined && typeof voti[p] === 'number' && voti[p] > maxVote) {
         maxVote = voti[p];
       }
     });
@@ -85,7 +85,7 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
       
-      if (voti[p] !== undefined) {
+      if (voti[p] !== undefined && typeof voti[p] === 'number') {
          stats[p].somma_voti += voti[p];
          stats[p].partite_voto += 1;
       }
@@ -101,7 +101,7 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
       
-      if (voti[p] !== undefined) {
+      if (voti[p] !== undefined && typeof voti[p] === 'number') {
          stats[p].somma_voti += voti[p];
          stats[p].partite_voto += 1;
       }

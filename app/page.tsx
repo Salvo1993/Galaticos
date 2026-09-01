@@ -786,19 +786,21 @@ export default function Home() {
             
             if (m.voti_giocatori && m.voti_giocatori[playerName] !== undefined) {
                 const voto = m.voti_giocatori[playerName];
-                data[playerName].sommaVoti += voto;
-                const matchDate = new Date(m.data);
-                const shortDate = `${matchDate.getDate().toString().padStart(2, '0')}/${(matchDate.getMonth()+1).toString().padStart(2, '0')}`;
-                
-                const currentMatchesWithVotes = data[playerName].votiTrend.length + 1;
-                const mediaCumulativa = Number((data[playerName].sommaVoti / currentMatchesWithVotes).toFixed(2));
-                
-                data[playerName].votiTrend.push({ 
-                  matchId: m.id, 
-                  data: shortDate, 
-                  voto,
-                  mediaCumulativa
-                });
+                if (typeof voto === 'number') {
+                    data[playerName].sommaVoti += voto;
+                    const matchDate = new Date(m.data);
+                    const shortDate = `${matchDate.getDate().toString().padStart(2, '0')}/${(matchDate.getMonth()+1).toString().padStart(2, '0')}`;
+                    
+                    const currentMatchesWithVotes = data[playerName].votiTrend.length + 1;
+                    const mediaCumulativa = Number((data[playerName].sommaVoti / currentMatchesWithVotes).toFixed(2));
+                    
+                    data[playerName].votiTrend.push({ 
+                      matchId: m.id, 
+                      data: shortDate, 
+                      voto,
+                      mediaCumulativa
+                    });
+                }
             }
         };
 
@@ -820,7 +822,9 @@ export default function Home() {
         
         if (m.voti_giocatori) {
             Object.entries(m.voti_giocatori).forEach(([playerName, voto]) => {
-                dataPoint[playerName] = voto;
+                if (typeof voto === 'number') {
+                    dataPoint[playerName] = voto;
+                }
             });
         }
         return dataPoint;

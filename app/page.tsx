@@ -2834,7 +2834,7 @@ const formatResultTime = (timeStr?: string) => {
                       border: '1px solid rgba(255,255,255,0.1)'
                     }}>
                       <h4 style={{ 
-                        margin: '0 0 0.5rem 0', 
+                        margin: '0 0 1rem 0', 
                         textAlign: 'center', 
                         fontSize: '1rem',
                         background: 'linear-gradient(90deg, #5de4ff, #ffcc00)',
@@ -2844,9 +2844,6 @@ const formatResultTime = (timeStr?: string) => {
                       }}>
                         🔮 PREVISIONE MATCH
                       </h4>
-                      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#69f0ae', marginBottom: '1rem' }}>
-                         Precisione Storica Algoritmo: {historicalPredictions.accuracy}%
-                      </div>
                       
                       {/* Barra probabilità */}
                       <div style={{ marginBottom: '1rem' }}>
@@ -2948,7 +2945,11 @@ const formatResultTime = (timeStr?: string) => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', color: '#69f0ae', marginTop: '1rem', fontWeight: 600 }}>
+                         <span>🔮 Precisione Storica Algoritmo: {historicalPredictions.accuracy}%</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.6rem' }}>
                         <Info size={12} />
                         <span>Algoritmo: 60% stats individuali + 40% sinergia storica. Peso sinergia: (overlap/5)²</span>
                       </div>

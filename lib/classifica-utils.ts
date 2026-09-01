@@ -85,7 +85,7 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
       
-      if (voti[p] !== undefined && typeof voti[p] === 'number') {
+      if (voti[p] !== undefined && typeof voti[p] === 'number' && voti[p] > 0) {
          stats[p].somma_voti += voti[p];
          stats[p].partite_voto += 1;
       }
@@ -101,7 +101,7 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
       
-      if (voti[p] !== undefined && typeof voti[p] === 'number') {
+      if (voti[p] !== undefined && typeof voti[p] === 'number' && voti[p] > 0) {
          stats[p].somma_voti += voti[p];
          stats[p].partite_voto += 1;
       }

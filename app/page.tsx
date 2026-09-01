@@ -694,7 +694,7 @@ export default function Home() {
     // Helper to select N players from a team based on votes (highest or lowest)
     const selectByVote = (team: string[], votiObj: Record<string, number | 's.v.'>, count: number, highest: boolean, baseSeed: number): string[] => {
       const playersWithVotes = team
-        .filter(p => votiObj[p] !== 's.v.')
+        .filter(p => votiObj[p] !== 's.v.' && votiObj[p] !== 0)
         .map(p => ({
         name: p,
         vote: typeof votiObj[p] === 'number' ? votiObj[p] as number : 6 // Default 6 if missing
@@ -786,7 +786,7 @@ export default function Home() {
             
             if (m.voti_giocatori && m.voti_giocatori[playerName] !== undefined) {
                 const voto = m.voti_giocatori[playerName];
-                if (typeof voto === 'number') {
+                if (typeof voto === 'number' && voto > 0) {
                     data[playerName].sommaVoti += voto;
                     const matchDate = new Date(m.data);
                     const shortDate = `${matchDate.getDate().toString().padStart(2, '0')}/${(matchDate.getMonth()+1).toString().padStart(2, '0')}`;
@@ -822,13 +822,156 @@ export default function Home() {
         
         if (m.voti_giocatori) {
             Object.entries(m.voti_giocatori).forEach(([playerName, voto]) => {
-                if (typeof voto === 'number') {
+                if (typeof voto === 'number' && voto > 0) {
                     dataPoint[playerName] = voto;
                 }
             });
         }
         return dataPoint;
     });
+  }, [matches]);
+
+  const historicalPredictions = useMemo(() => {
+    const validMatches = [...matches].filter(m => m.risultato && m.risultato !== '0-0').sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean }> = {};
+    let correctCount = 0;
+    let totalCount = 0;
+
+    validMatches.forEach((match, index) => {
+       if (index === 0) return; // Non abbastanza dati storici per la prima partita
+       
+       const pastMatches = validMatches.slice(0, index);
+       
+       const data: Record<string, any> = {};
+       const mvps: Record<string, number> = {};
+
+       pastMatches.forEach(m => {
+           const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+           
+           let matchMaxVote = 0;
+           let matchMVPs: string[] = [];
+           if (m.voti_giocatori) {
+               Object.entries(m.voti_giocatori).forEach(([p, voto]) => {
+                   if (typeof voto === 'number' && voto > matchMaxVote) {
+                       matchMaxVote = voto;
+                       matchMVPs = [p];
+                   } else if (typeof voto === 'number' && voto === matchMaxVote) {
+                       matchMVPs.push(p);
+                   }
+               });
+           }
+           matchMVPs.forEach(p => { mvps[p] = (mvps[p] || 0) + 1; });
+
+           const processP = (p: string, gF: number, gS: number) => {
+               if (!data[p]) data[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0 };
+               data[p].partiteGiocate++;
+               data[p].golFattiSquadra += gF;
+               data[p].golSubitiSquadra += gS;
+               if (m.voti_giocatori && typeof m.voti_giocatori[p] === 'number' && m.voti_giocatori[p] > 0) {
+                   data[p].sommaVoti += m.voti_giocatori[p];
+                   data[p].votiCount++;
+               }
+           };
+           m.team_a_players?.forEach(p => processP(p, sA, sB));
+           m.team_b_players?.forEach(p => processP(p, sB, sA));
+       });
+
+       const getTeamStats = (teamPlayers: string[]) => {
+          let sumMediaVoto = 0, sumGolFattiAvg = 0, sumGolSubitiAvg = 0, totalMvp = 0, validVoto = 0, validGol = 0;
+          teamPlayers.forEach(p => {
+             const s = data[p];
+             if (s && s.partiteGiocate > 0) {
+                if (s.votiCount > 0) { sumMediaVoto += (s.sommaVoti / s.votiCount); validVoto++; }
+                sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
+                sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
+                validGol++;
+             }
+             if (mvps[p]) totalMvp += mvps[p];
+          });
+          return {
+             mediaVoto: validVoto > 0 ? sumMediaVoto / validVoto : 6,
+             golFatti: validGol > 0 ? sumGolFattiAvg / validGol : 0,
+             golSubiti: validGol > 0 ? sumGolSubitiAvg / validGol : 0,
+             mvp: totalMvp
+          };
+       };
+
+       const getSynergy = (teamPlayers: string[]) => {
+          let wWins=0, wDraws=0, wLosses=0, wGF=0, wGS=0, tW=0;
+          pastMatches.forEach(m => {
+             const teamAP = m.team_a_players || [];
+             const teamBP = m.team_b_players || [];
+             const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+             const overlapA = teamPlayers.filter(p => teamAP.includes(p)).length;
+             const overlapB = teamPlayers.filter(p => teamBP.includes(p)).length;
+             if (overlapA >= 2 || overlapB >= 2) {
+                const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
+                const isOnSideA = overlapA >= overlapB;
+                const weight = Math.pow(bestOverlap / 5, 2);
+                const gF = isOnSideA ? sA : sB;
+                const gS = isOnSideA ? sB : sA;
+                if (gF > gS) wWins += weight;
+                else if (gF === gS) wDraws += weight;
+                else wLosses += weight;
+                tW += weight;
+             }
+          });
+          return {
+             winRate: tW > 0 ? wWins / tW : 0,
+             drawRate: tW > 0 ? wDraws / tW : 0,
+             lossRate: tW > 0 ? wLosses / tW : 0,
+             totalWeight: tW,
+             avgGolFatti: tW > 0 ? wGF / tW : 0,
+             avgGolSubiti: tW > 0 ? wGS / tW : 0
+          };
+       };
+
+       const statsA = getTeamStats(match.team_a_players || []);
+       const statsB = getTeamStats(match.team_b_players || []);
+       const synA = getSynergy(match.team_a_players || []);
+       const synB = getSynergy(match.team_b_players || []);
+
+       const getComposite = (st: any, syn: any) => {
+          const normVoto = (st.mediaVoto - 4) / 6;
+          const normGolDiff = (st.golFatti - st.golSubiti) / Math.max(st.golFatti + st.golSubiti, 1);
+          const mvpBonus = Math.min(st.mvp * 0.02, 0.1);
+          const indScore = normVoto * 0.5 + normGolDiff * 0.35 + mvpBonus;
+          const synScore = syn.totalWeight > 0 ? syn.winRate * 0.6 + syn.drawRate * 0.2 - syn.lossRate * 0.2 : 0.5;
+          const wSyn = syn.totalWeight > 0 ? 0.4 : 0;
+          const wInd = 1 - wSyn;
+          return indScore * wInd + synScore * wSyn;
+       };
+
+       const compA = getComposite(statsA, synA);
+       const compB = getComposite(statsB, synB);
+       const diff = compA - compB;
+       const sigmoid = (x: number) => 1 / (1 + Math.exp(-x * 8));
+       const rawA = sigmoid(diff);
+       const rawB = 1 - rawA;
+       const drawBase = 0.15;
+       const drawBonus = Math.max(0, 0.25 - Math.abs(diff) * 2);
+       const drawPct = Math.min(drawBase + drawBonus, 0.40);
+       
+       const winAPct = rawA * (1 - drawPct);
+       const winBPct = rawB * (1 - drawPct);
+       const pctA = Math.round(winAPct * 100);
+       const pctB = Math.round(winBPct * 100);
+       
+       const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
+       
+       const [actA, actB] = (match.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+       const actual = actA > actB ? 'A' : actB > actA ? 'B' : 'X';
+       
+       preds[match.id] = { favorite, correct: favorite === actual };
+       
+       if (favorite === actual) correctCount++;
+       totalCount++;
+    });
+
+    return { 
+      preds, 
+      accuracy: totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100 
+    };
   }, [matches]);
 
   const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
@@ -853,9 +996,14 @@ export default function Home() {
     setTouchedVoti(prev => new Set(prev).add(player));
     setUpdateVoti(prev => {
       let current = prev[player];
-      if (current === 's.v.' || typeof current === 'string') current = 6;
+      if (current === 's.v.' || current === 0 || typeof current === 'string') current = 6;
       else if (current === undefined) current = 6;
-      return { ...prev, [player]: current + delta };
+      
+      let nextVote = Number(current) + delta;
+      if (nextVote > 10) nextVote = 10;
+      if (nextVote <= 0) return { ...prev, [player]: 's.v.' };
+      
+      return { ...prev, [player]: nextVote };
     });
   };
 
@@ -1379,7 +1527,7 @@ export default function Home() {
 };
 
 const getVoteColor = (v?: number | string) => {
-  if (v === 's.v.') return '#88929b';
+  if (v === 's.v.' || v === 0) return '#88929b';
   if (v === undefined || v === null) return '#88929b';
   if (typeof v === 'string') return '#88929b';
   if (v < 5) return '#e57373';
@@ -1504,7 +1652,7 @@ const formatResultTime = (timeStr?: string) => {
 
     const vote = lastMatchPlayed.voti_giocatori?.[playerName];
     
-    if (vote === undefined || vote === null || vote === 's.v.') {
+    if (vote === undefined || vote === null || vote === 's.v.' || vote === 0) {
       return { condition: 'neutral', title: 'Senza voto' };
     }
     
@@ -2686,7 +2834,7 @@ const formatResultTime = (timeStr?: string) => {
                       border: '1px solid rgba(255,255,255,0.1)'
                     }}>
                       <h4 style={{ 
-                        margin: '0 0 1rem 0', 
+                        margin: '0 0 0.5rem 0', 
                         textAlign: 'center', 
                         fontSize: '1rem',
                         background: 'linear-gradient(90deg, #5de4ff, #ffcc00)',
@@ -2696,6 +2844,9 @@ const formatResultTime = (timeStr?: string) => {
                       }}>
                         🔮 PREVISIONE MATCH
                       </h4>
+                      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#69f0ae', marginBottom: '1rem' }}>
+                         Precisione Storica Algoritmo: {historicalPredictions.accuracy}%
+                      </div>
                       
                       {/* Barra probabilità */}
                       <div style={{ marginBottom: '1rem' }}>
@@ -2953,6 +3104,11 @@ const formatResultTime = (timeStr?: string) => {
                           </ul>
                         </div>
                       </div>
+                      {historicalPredictions.preds[m.id]?.correct && (
+                        <div style={{ textAlign: 'center', color: '#69f0ae', fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0 1rem 0', padding: '0.5rem', background: 'rgba(105, 240, 174, 0.1)', borderRadius: '6px' }}>
+                          ✨ Partita indovinata dall'algoritmo
+                        </div>
+                      )}
                       <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
                         <button
                           type="button"
@@ -3719,9 +3875,9 @@ const formatResultTime = (timeStr?: string) => {
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote}</span>
+                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: vote === 's.v.' ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: vote === 's.v.' ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
+                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>
@@ -3753,9 +3909,9 @@ const formatResultTime = (timeStr?: string) => {
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote}</span>
+                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: vote === 's.v.' ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: vote === 's.v.' ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
+                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>

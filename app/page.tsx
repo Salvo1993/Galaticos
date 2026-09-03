@@ -2560,7 +2560,7 @@ const formatResultTime = (timeStr?: string) => {
                     const isSwapSource = activeSwapSource?.name === name;
                     const morale = getPlayerMorale(name);
                     
-                    let positions = [];
+                    let positions: { top: string; left: string }[] = [];
                     if (t.list.length === 5) {
                       positions = [
                         { top: '87%', left: '50%' }, // GK

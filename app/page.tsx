@@ -460,6 +460,7 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
   const [dbCampi, setDbCampi] = useState<{id: number, nome: string, posizione_url: string | null}[]>([]);
+  const [matchFormat, setMatchFormat] = useState<number>(5);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [isClustersExpanded, setIsClustersExpanded] = useState(false);
@@ -1117,14 +1118,17 @@ export default function Home() {
 
         if (sessionData) {
           // Validation Guard: Only apply session if it's complete and valid
+          const sessionLen = Array.isArray(sessionData.selected_players) ? sessionData.selected_players.length : 10;
+          const format = sessionLen / 2;
           const isValidSession = 
             Array.isArray(sessionData.selected_players) && 
-            sessionData.selected_players.length === 10 &&
+            [10, 12, 14, 16].includes(sessionData.selected_players.length) &&
             sessionData.selected_players.every((p: string) => p !== '') &&
-            Array.isArray(sessionData.team_a_players) && sessionData.team_a_players.length === 5 &&
-            Array.isArray(sessionData.team_b_players) && sessionData.team_b_players.length === 5;
+            Array.isArray(sessionData.team_a_players) && sessionData.team_a_players.length === format &&
+            Array.isArray(sessionData.team_b_players) && sessionData.team_b_players.length === format;
 
           if (isValidSession) {
+            setMatchFormat(format);
             setSelectedPlayers(sessionData.selected_players);
             setClusters(sessionData.clusters || []);
             
@@ -1589,7 +1593,7 @@ const formatResultTime = (timeStr?: string) => {
 
   const clearState = () => {
     if (confirm('Sei sicuro di voler pulire tutte le selezioni correnti?')) {
-      setSelectedPlayers(Array(10).fill(''));
+      setSelectedPlayers(Array(matchFormat * 2).fill(''));
       setClusters([]);
       setResults(null);
       setTeamAName('Falchi 🦅');
@@ -1708,7 +1712,7 @@ const formatResultTime = (timeStr?: string) => {
   const generateTeams = async () => {
     // Validation
     if (selectedPlayers.some(p => !p)) {
-      showToast('Seleziona tutti e 10 i nomi prima di continuare', 'error');
+      showToast(`Seleziona tutti e ${matchFormat * 2} i nomi prima di continuare`, 'error');
       return;
     }
 
@@ -1749,18 +1753,18 @@ const formatResultTime = (timeStr?: string) => {
         const assignedTeam = assignments.get(player);
         
         if (assignedTeam) {
-            if (assignedTeam === 'teamA' && teamA.length < 5) teamA.push(player);
-            else if (assignedTeam === 'teamB' && teamB.length < 5) teamB.push(player);
+            if (assignedTeam === 'teamA' && teamA.length < matchFormat) teamA.push(player);
+            else if (assignedTeam === 'teamB' && teamB.length < matchFormat) teamB.push(player);
             else throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
         } else {
             // Normal assignment
-            if (teamA.length <= teamB.length && teamA.length < 5) teamA.push(player);
-            else if (teamB.length < 5) teamB.push(player);
+            if (teamA.length <= teamB.length && teamA.length < matchFormat) teamA.push(player);
+            else if (teamB.length < matchFormat) teamB.push(player);
             else throw new Error('Impossibile completare le squadre');
         }
       }
 
-      if (teamA.length !== 5 || teamB.length !== 5) throw new Error('Errore nella generazione');
+      if (teamA.length !== matchFormat || teamB.length !== matchFormat) throw new Error('Errore nella generazione');
 
       const newResults = { teamA, teamB };
       setResults(newResults);
@@ -2419,6 +2423,22 @@ const formatResultTime = (timeStr?: string) => {
           ))}
           {dbCampi.length === 0 && <option value="Campi Sole">Campi Sole</option>}
         </select>
+        <select 
+          value={matchFormat}
+          onChange={(e) => {
+             const format = parseInt(e.target.value, 10);
+             setMatchFormat(format);
+             setSelectedPlayers(Array(format * 2).fill(''));
+             setClusters([]);
+             setResults(null);
+          }}
+          style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', fontSize: '0.9rem', width: '90px', outline: 'none', textAlign: 'center' }}
+        >
+          <option value={5}>5vs5</option>
+          <option value={6}>6vs6</option>
+          <option value={7}>7vs7</option>
+          <option value={8}>8vs8</option>
+        </select>
         <button 
           onClick={() => {
             setCampoModalMode('add');
@@ -2540,14 +2560,46 @@ const formatResultTime = (timeStr?: string) => {
                     const isSwapSource = activeSwapSource?.name === name;
                     const morale = getPlayerMorale(name);
                     
-                    // Fixed 1-2-1 layout positions
-                    const positions = [
-                      { top: '87%', left: '50%' }, // GK
-                      { top: '65%', left: '50%' }, // CB
-                      { top: '42%', left: '20%' }, // LM
-                      { top: '42%', left: '80%' }, // RM
-                      { top: '15%', left: '50%' }  // CF
-                    ];
+                    let positions = [];
+                    if (t.list.length === 5) {
+                      positions = [
+                        { top: '87%', left: '50%' }, // GK
+                        { top: '65%', left: '50%' }, // CB
+                        { top: '42%', left: '20%' }, // LM
+                        { top: '42%', left: '80%' }, // RM
+                        { top: '15%', left: '50%' }  // CF
+                      ];
+                    } else if (t.list.length === 6) {
+                      positions = [
+                        { top: '87%', left: '50%' }, // GK
+                        { top: '65%', left: '30%' }, // CB (L)
+                        { top: '65%', left: '70%' }, // CB (R)
+                        { top: '42%', left: '20%' }, // LM
+                        { top: '42%', left: '80%' }, // RM
+                        { top: '15%', left: '50%' }  // CF
+                      ];
+                    } else if (t.list.length === 7) {
+                      positions = [
+                        { top: '87%', left: '50%' }, // GK
+                        { top: '65%', left: '20%' }, // LB
+                        { top: '65%', left: '50%' }, // CB
+                        { top: '65%', left: '80%' }, // RB
+                        { top: '42%', left: '30%' }, // CM
+                        { top: '42%', left: '70%' }, // CM
+                        { top: '15%', left: '50%' }  // CF
+                      ];
+                    } else if (t.list.length === 8) {
+                      positions = [
+                        { top: '87%', left: '50%' }, // GK
+                        { top: '65%', left: '20%' }, // LB
+                        { top: '65%', left: '50%' }, // CB
+                        { top: '65%', left: '80%' }, // RB
+                        { top: '42%', left: '20%' }, // LM
+                        { top: '42%', left: '80%' }, // RM
+                        { top: '15%', left: '35%' }, // CF (L)
+                        { top: '15%', left: '65%' }  // CF (R)
+                      ];
+                    }
                     const pos = positions[idx] || { top: '50%', left: '50%' };
 
                     return (

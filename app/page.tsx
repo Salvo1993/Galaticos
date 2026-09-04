@@ -2016,16 +2016,30 @@ const formatResultTime = (timeStr?: string) => {
         </div>
         <div className="header-top" style={{ padding: '0 10px' }}>
           <div className="logo-section">
-            <div className="match-info">
+            <div className="match-info" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Calendar size={14} className="calendar-icon" />
+              <span className="match-label-input" style={{ cursor: 'pointer' }}>
+                {matchLabel || "Seleziona data e ora..."}
+              </span>
               <input 
-                type="text" 
-                className="match-label-input"
-                value={matchLabel}
-                onChange={(e) => setMatchLabel(e.target.value)}
-                onBlur={() => saveSettings(matchLabel)}
-                placeholder="Data e ora partita..."
-                spellCheck={false}
+                type="datetime-local" 
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  const date = new Date(e.target.value);
+                  const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                  const months = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+                  
+                  const dayName = days[date.getDay()];
+                  const dayNum = String(date.getDate()).padStart(2, '0');
+                  const monthName = months[date.getMonth()];
+                  const hours = String(date.getHours()).padStart(2, '0');
+                  const mins = String(date.getMinutes()).padStart(2, '0');
+                  
+                  const formatted = `${dayName} ${dayNum} ${monthName} - Ore ${hours}:${mins}`;
+                  setMatchLabel(formatted);
+                  saveSettings(formatted);
+                }}
               />
             </div>
           </div>

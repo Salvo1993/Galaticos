@@ -2016,42 +2016,65 @@ const formatResultTime = (timeStr?: string) => {
         </div>
         <div className="header-top" style={{ padding: '0 10px' }}>
           <div className="logo-section">
-            <div 
-              className="match-info" 
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-              onClick={(e) => {
-                 const input = e.currentTarget.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-                 if (input && typeof input.showPicker === 'function') {
-                    try { input.showPicker(); } catch (err) { input.focus(); }
-                 } else if (input) {
-                    input.focus();
-                 }
-              }}
-            >
-              <Calendar size={14} className="calendar-icon" />
-              <span className="match-label-input" style={{ cursor: 'pointer', zIndex: 1, pointerEvents: 'none' }}>
-                {matchLabel || "Seleziona data e ora..."}
-              </span>
-              <input 
-                type="datetime-local" 
-                step="3600"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
-                onChange={(e) => {
-                  if (!e.target.value) return;
-                  const date = new Date(e.target.value);
-                  const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-                  const months = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-                  
-                  const dayName = days[date.getDay()];
-                  const dayNum = String(date.getDate()).padStart(2, '0');
-                  const monthName = months[date.getMonth()];
-                  const hours = String(date.getHours()).padStart(2, '0');
-                  
-                  const formatted = `${dayName} ${dayNum} ${monthName} - Ore ${hours}`;
-                  setMatchLabel(formatted);
-                  saveSettings(formatted);
+            <div className="match-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div 
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={(e) => {
+                   const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                   if (input && typeof input.showPicker === 'function') {
+                      try { input.showPicker(); } catch (err) { input.focus(); }
+                   } else if (input) {
+                      input.focus();
+                   }
                 }}
-              />
+              >
+                <Calendar size={14} className="calendar-icon" />
+                <span className="match-label-input" style={{ cursor: 'pointer', zIndex: 1, pointerEvents: 'none', paddingRight: '2px' }}>
+                  {matchLabel.split(' - ')[0] || "Seleziona data..."}
+                </span>
+                <input 
+                  type="date" 
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    const date = new Date(e.target.value);
+                    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                    const months = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+                    
+                    const dayName = days[date.getDay()];
+                    const dayNum = String(date.getDate()).padStart(2, '0');
+                    const monthName = months[date.getMonth()];
+                    
+                    const currentHour = matchLabel.match(/Ore (\d+)/)?.[1] || "21";
+                    
+                    const formatted = `${dayName} ${dayNum} ${monthName} - Ore ${currentHour}`;
+                    setMatchLabel(formatted);
+                    saveSettings(formatted);
+                  }}
+                />
+              </div>
+              
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>- Ore</span>
+              
+              <select 
+                value={matchLabel.match(/Ore (\d+)/)?.[1] || "21"}
+                onChange={(e) => {
+                   const newHour = e.target.value;
+                   let newLabel = matchLabel;
+                   if (newLabel.includes('- Ore')) {
+                       newLabel = newLabel.replace(/- Ore \d+(:\d+)?/, `- Ore ${newHour}`);
+                   } else {
+                       newLabel = `${newLabel} - Ore ${newHour}`;
+                   }
+                   setMatchLabel(newLabel);
+                   saveSettings(newLabel);
+                }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px' }}
+              >
+                {[17, 18, 19, 20, 21, 22, 23].map(h => (
+                   <option key={h} value={h} style={{ color: 'black' }}>{h}</option>
+                ))}
+              </select>
             </div>
           </div>
           <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>

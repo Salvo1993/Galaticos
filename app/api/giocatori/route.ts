@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { Nome, Ruolo, stats } = await req.json();
+    const { Nome, Ruolo, stats, mergeTarget } = await req.json();
     const sanitizedNome = Nome?.trim();
     const sanitizedRuolo = Ruolo?.trim();
 
@@ -64,6 +64,59 @@ export async function POST(req: Request) {
         ${origine}
       )
     `;
+
+    if (mergeTarget && mergeTarget.trim()) {
+      const target = mergeTarget.trim();
+
+      const matches = await sql`SELECT id, team_a_players, team_b_players, marcatori_a, marcatori_b, voti_giocatori FROM public."Risultati"`;
+
+      for (const match of matches) {
+        let updated = false;
+
+        let tap = match.team_a_players;
+        let tbp = match.team_b_players;
+        let ma = match.marcatori_a;
+        let mb = match.marcatori_b;
+        let vg = match.voti_giocatori;
+
+        if (Array.isArray(tap) && tap.includes(target)) {
+          tap = tap.map((p: string) => p === target ? sanitizedNome : p);
+          updated = true;
+        }
+        if (Array.isArray(tbp) && tbp.includes(target)) {
+          tbp = tbp.map((p: string) => p === target ? sanitizedNome : p);
+          updated = true;
+        }
+        if (ma && typeof ma === 'string' && ma.includes(target)) {
+          ma = ma.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(',');
+          updated = true;
+        }
+        if (mb && typeof mb === 'string' && mb.includes(target)) {
+          mb = mb.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(',');
+          updated = true;
+        }
+        if (vg && vg[target] !== undefined) {
+          vg[sanitizedNome] = vg[target];
+          delete vg[target];
+          updated = true;
+        }
+
+        if (updated) {
+          await sql`
+            UPDATE public."Risultati"
+            SET team_a_players = ${JSON.stringify(tap)}::jsonb,
+                team_b_players = ${JSON.stringify(tbp)}::jsonb,
+                marcatori_a = ${ma},
+                marcatori_b = ${mb},
+                voti_giocatori = ${vg ? JSON.stringify(vg) : null}::jsonb
+            WHERE id = ${match.id}
+          `;
+        }
+      }
+
+      await sql`UPDATE public."Media" SET giocatore = ${sanitizedNome} WHERE giocatore = ${target}`;
+      await sql`UPDATE public."Media" SET co_giocatore = ${sanitizedNome} WHERE co_giocatore = ${target}`;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

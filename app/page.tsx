@@ -486,6 +486,7 @@ export default function Home() {
   const [teamBName, setTeamBName] = useState('Aquile 🦆');
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [mergeTargetName, setMergeTargetName] = useState<string>('');
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPlayerOldName, setEditingPlayerOldName] = useState('');
@@ -1195,7 +1196,8 @@ export default function Home() {
         body: JSON.stringify({ 
             Nome: newPlayerName.trim(),
             Ruolo: newPlayerStats.Ruolo?.trim(),
-            stats: { ...newPlayerStats, Nome: newPlayerName.trim() }
+            stats: { ...newPlayerStats, Nome: newPlayerName.trim() },
+            mergeTarget: mergeTargetName.trim()
         })
       });
       const data = await res.json();
@@ -1216,6 +1218,7 @@ export default function Home() {
       setNewPlayerName('');
       setNewPlayerImage(null);
       setNewPlayerStats({});
+      setMergeTargetName('');
       setIsAddModalOpen(false);
       await fetchPlayers();
     } catch (err: any) {
@@ -2350,6 +2353,24 @@ const formatResultTime = (timeStr?: string) => {
                             {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                         </div>
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                           Fondi con storico (Merge) 
+                           <span title="Se questo giocatore aveva partecipato in passato come Ospite (es. 'Amico Riccardo'), seleziona qui il suo vecchio nome temporaneo. Tutte le partite e le statistiche associate a quel nome verranno trasferite a questo nuovo profilo." style={{ cursor: 'help', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>i</span>
+                        </label>
+                        <select 
+                            value={mergeTargetName} 
+                            onChange={(e) => setMergeTargetName(e.target.value)}
+                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Nessuno (Nuovo Giocatore)</option>
+                            {Array.from(new Set(matches.flatMap(m => [...(m.team_a_players || []), ...(m.team_b_players || [])])))
+                                 .filter(name => !dbPlayers.some(p => p.Nome === name) && name !== 'Ospite' && name !== '')
+                                 .sort()
+                                 .map(name => <option key={name} value={name}>{name}</option>)}
+                        </select>
                     </div>
 
                     <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Statistiche Fisiche e Tecniche</h4>

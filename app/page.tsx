@@ -2016,14 +2016,25 @@ const formatResultTime = (timeStr?: string) => {
         </div>
         <div className="header-top" style={{ padding: '0 10px' }}>
           <div className="logo-section">
-            <div className="match-info" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <div 
+              className="match-info" 
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              onClick={(e) => {
+                 const input = e.currentTarget.querySelector('input[type="datetime-local"]') as HTMLInputElement;
+                 if (input && typeof input.showPicker === 'function') {
+                    try { input.showPicker(); } catch (err) { input.focus(); }
+                 } else if (input) {
+                    input.focus();
+                 }
+              }}
+            >
               <Calendar size={14} className="calendar-icon" />
-              <span className="match-label-input" style={{ cursor: 'pointer' }}>
+              <span className="match-label-input" style={{ cursor: 'pointer', zIndex: 1, pointerEvents: 'none' }}>
                 {matchLabel || "Seleziona data e ora..."}
               </span>
               <input 
                 type="datetime-local" 
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                 onChange={(e) => {
                   if (!e.target.value) return;
                   const date = new Date(e.target.value);

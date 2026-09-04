@@ -2034,6 +2034,7 @@ const formatResultTime = (timeStr?: string) => {
               </span>
               <input 
                 type="datetime-local" 
+                step="3600"
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                 onChange={(e) => {
                   if (!e.target.value) return;
@@ -2045,9 +2046,8 @@ const formatResultTime = (timeStr?: string) => {
                   const dayNum = String(date.getDate()).padStart(2, '0');
                   const monthName = months[date.getMonth()];
                   const hours = String(date.getHours()).padStart(2, '0');
-                  const mins = String(date.getMinutes()).padStart(2, '0');
                   
-                  const formatted = `${dayName} ${dayNum} ${monthName} - Ore ${hours}:${mins}`;
+                  const formatted = `${dayName} ${dayNum} ${monthName} - Ore ${hours}`;
                   setMatchLabel(formatted);
                   saveSettings(formatted);
                 }}

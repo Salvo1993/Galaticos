@@ -124,6 +124,19 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
              />
           </div>
           <div className="dropdown-options">
+            <div 
+              className="dropdown-option"
+              style={{ fontWeight: 'bold', color: '#ffeb3b', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => {
+                const guestName = window.prompt("Inserisci il nome dell'ospite (es. Amico Riccardo):");
+                if (guestName && guestName.trim()) {
+                  onChange(guestName.trim());
+                  setIsOpen(false);
+                }
+              }}
+            >
+              + Aggiungi Ospite
+            </div>
             {filteredOptions.map((opt) => (
               <div 
                 key={opt.Nome}
@@ -134,7 +147,7 @@ function CustomDropdown({ value, options, onChange, placeholder, loading, index 
               </div>
             ))}
             {filteredOptions.length === 0 && (
-              <div className="dropdown-no-options">Nessun giocatore trovato</div>
+              <div className="dropdown-no-options">Nessun giocatore trovato (a parte Ospite)</div>
             )}
           </div>
         </div>

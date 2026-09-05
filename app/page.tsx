@@ -2057,7 +2057,7 @@ const formatResultTime = (timeStr?: string) => {
                 />
               </div>
               
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>- Ore</span>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>- Ore</span>
               
               <select 
                 value={matchLabel.match(/Ore (\d+)/)?.[1] || "21"}
@@ -2072,7 +2072,7 @@ const formatResultTime = (timeStr?: string) => {
                    setMatchLabel(newLabel);
                    saveSettings(newLabel);
                 }}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', outline: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', padding: '0 2px' }}
               >
                 {[17, 18, 19, 20, 21, 22, 23].map(h => (
                    <option key={h} value={h} style={{ color: 'black' }}>{h}</option>

@@ -3844,7 +3844,7 @@ const formatResultTime = (timeStr?: string) => {
                   <BarChart data={statsData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={false} />
                     <XAxis type="number" stroke="#9fd9b6" fontSize={12} />
-                    <YAxis dataKey="name" type="category" stroke="#9fd9b6" fontSize={12} width={80} tick={{fill: '#cfe8d8'}} />
+                    <YAxis dataKey="name" type="category" stroke="#9fd9b6" fontSize={12} width={90} tick={{fill: '#cfe8d8'}} tickFormatter={(t) => typeof t === 'string' && t.length > 12 ? t.slice(0, 12) + '...' : t} />
                     <RechartsTooltip 
                       contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
                       cursor={{fill: 'rgba(255,255,255,0.05)'}}

@@ -50,6 +50,7 @@ interface MatchResult {
   team_b_players: string[];
   Stadium: string | null;
   voti_giocatori?: Record<string, number | 's.v.'>;
+  mvps?: string[];
 }
 
 interface MediaItem {
@@ -524,6 +525,7 @@ export default function Home() {
   const [updateScorersA, setUpdateScorersA] = useState<Record<string, number>>({});
   const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
   const [updateVoti, setUpdateVoti] = useState<Record<string, number | 's.v.'>>({});
+  const [updateMVPs, setUpdateMVPs] = useState<string[]>([]);
   const [touchedVoti, setTouchedVoti] = useState<Set<string>>(new Set());
   const [updatePassword, setUpdatePassword] = useState('');
   
@@ -869,12 +871,16 @@ export default function Home() {
                Object.entries(m.voti_giocatori).forEach(([p, voto]) => {
                    if (typeof voto === 'number' && voto > matchMaxVote) {
                        matchMaxVote = voto;
-                       matchMVPs = [p];
-                   } else if (typeof voto === 'number' && voto === matchMaxVote) {
-                       matchMVPs.push(p);
                    }
                });
            }
+           
+           if (m.mvps && m.mvps.length > 0) {
+               matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+           } else if (matchMaxVote > 0 && m.voti_giocatori) {
+               matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === matchMaxVote);
+           }
+           
            matchMVPs.forEach(p => { mvps[p] = (mvps[p] || 0) + 1; });
 
            const processP = (p: string, gF: number, gS: number) => {
@@ -1027,6 +1033,10 @@ export default function Home() {
   const handleSetVoteSV = (player: string) => {
     setTouchedVoti(prev => new Set(prev).add(player));
     setUpdateVoti(prev => ({ ...prev, [player]: 's.v.' }));
+  };
+
+  const handleToggleMVP = (player: string) => {
+    setUpdateMVPs(prev => prev.includes(player) ? prev.filter(p => p !== player) : [...prev, player]);
   };
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
@@ -1417,6 +1427,7 @@ export default function Home() {
           marcatori_a: strScorersA,
           marcatori_b: strScorersB,
           voti_giocatori: updateVoti,
+          mvps: updateMVPs,
           password: updatePassword
         })
       });
@@ -3271,6 +3282,7 @@ const formatResultTime = (timeStr?: string) => {
                             setUpdateScorersA(parseScorers(m.marcatori_a));
                             setUpdateScorersB(parseScorers(m.marcatori_b));
                             setUpdateVoti(m.voti_giocatori || {});
+                            setUpdateMVPs(Array.isArray(m.mvps) ? m.mvps : (typeof m.mvps === 'string' ? JSON.parse(m.mvps) : []));
                             setTouchedVoti(new Set());
                             setUpdatePassword('');
                             setIsUpdateModalOpen(true);
@@ -4016,6 +4028,7 @@ const formatResultTime = (timeStr?: string) => {
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
+                                   <button type="button" onClick={() => handleToggleMVP(player)} style={{ background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.1)', border: 'none', color: updateMVPs.includes(player) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>MVP</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>
@@ -4050,6 +4063,7 @@ const formatResultTime = (timeStr?: string) => {
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
+                                   <button type="button" onClick={() => handleToggleMVP(player)} style={{ background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.1)', border: 'none', color: updateMVPs.includes(player) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>MVP</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>

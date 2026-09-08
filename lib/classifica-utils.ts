@@ -76,7 +76,13 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
         maxVote = voti[p];
       }
     });
-    const mvpsInMatch = maxVote > 0 ? allPlayersInMatch.filter(p => voti[p] === maxVote) : [];
+
+    let mvpsInMatch: string[] = [];
+    if (m.mvps) {
+      mvpsInMatch = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+    } else if (maxVote > 0) {
+      mvpsInMatch = allPlayersInMatch.filter(p => voti[p] === maxVote);
+    }
 
     playersA.forEach((p: string) => {
       if (!stats[p]) stats[p] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0 };

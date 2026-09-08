@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     if (mergeTarget && mergeTarget.trim()) {
       const target = mergeTarget.trim();
 
-      const matches = await sql`SELECT id, team_a_players, team_b_players, marcatori_a, marcatori_b, voti_giocatori FROM public."Risultati"`;
+      const matches = await sql`SELECT id, team_a_players, team_b_players, marcatori_a, marcatori_b, voti_giocatori, mvps FROM public."Risultati"`;
 
       for (const match of matches) {
         let updated = false;
@@ -101,6 +101,12 @@ export async function POST(req: Request) {
           updated = true;
         }
 
+        let matchMvps = match.mvps;
+        if (Array.isArray(matchMvps) && matchMvps.includes(target)) {
+          matchMvps = matchMvps.map((p: string) => p === target ? sanitizedNome : p);
+          updated = true;
+        }
+
         if (updated) {
           await sql`
             UPDATE public."Risultati"
@@ -108,7 +114,8 @@ export async function POST(req: Request) {
                 team_b_players = ${JSON.stringify(tbp)}::jsonb,
                 marcatori_a = ${ma},
                 marcatori_b = ${mb},
-                voti_giocatori = ${vg ? JSON.stringify(vg) : null}::jsonb
+                voti_giocatori = ${vg ? JSON.stringify(vg) : null}::jsonb,
+                mvps = ${matchMvps ? JSON.stringify(matchMvps) : '[]'}::jsonb
             WHERE id = ${match.id}
           `;
         }

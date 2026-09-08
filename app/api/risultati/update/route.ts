@@ -4,7 +4,7 @@ import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
-    const { id, risultato, marcatori_a, marcatori_b, voti_giocatori, password } = await req.json();
+    const { id, risultato, marcatori_a, marcatori_b, voti_giocatori, mvps, password } = await req.json();
 
     if (password !== 'ramborambo') {
       return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
@@ -55,7 +55,8 @@ export async function POST(req: Request) {
       SET risultato = ${risultato}, 
           marcatori_a = ${JSON.stringify(marcatori_a)}::jsonb, 
           marcatori_b = ${JSON.stringify(marcatori_b)}::jsonb,
-          voti_giocatori = ${JSON.stringify(voti)}::jsonb
+          voti_giocatori = ${JSON.stringify(voti)}::jsonb,
+          mvps = ${mvps !== undefined ? JSON.stringify(mvps) : (m.mvps ? JSON.stringify(m.mvps) : '[]')}::jsonb
       WHERE id = ${id}
       RETURNING *;
     `;

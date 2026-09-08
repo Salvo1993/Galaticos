@@ -9,27 +9,41 @@ const months: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
+    // Parse match_label per ottenere la chiave univoca (data + ora)
+    const bodyData = await req.json();
     const { 
         team_a_name, team_b_name, 
         teamAPlayers, teamBPlayers,
-        stadium
-    } = await req.json();
+        stadium, matchLabel: inputMatchLabel
+    } = bodyData;
 
     if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
       return NextResponse.json({ error: 'Dati squadra mancanti o invalidi' }, { status: 400 });
     }
 
-    // Parse match_label per ottenere la chiave univoca (data + ora)
-    const settings = await sql`SELECT match_label FROM public."SiteSettings" WHERE id = 1`;
-    const matchLabel = settings[0]?.match_label || 'Venerdì 19 giugno - Ore 21';
+    let matchLabel = inputMatchLabel;
+    if (!matchLabel) {
+      const settings = await sql`SELECT match_label FROM public."SiteSettings" WHERE id = 1`;
+      matchLabel = settings[0]?.match_label || 'Venerdì 19 giugno - Ore 21';
+    }
     const parts = matchLabel.split('-').map((p: string) => p.trim());
-    const datePart = parts[0].split(' ');
-    const day = datePart[1];
-    const monthName = datePart[2].toLowerCase();
+    const datePart = (parts[0] || '').split(' ');
+    const day = datePart[1] || '01';
+    const monthName = (datePart[2] || '').toLowerCase();
     const month = months[monthName] || '01';
     const dateStr = `2026-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    const timePart = parts[1].toLowerCase().replace('ore', '').trim();
-    const timeStr = `${timePart.padStart(2, '0')}:00`;
+    const timePart = (parts[1] || '').toLowerCase().replace('ore', '').trim();
+    const timeStr = `${(timePart || '21').padStart(2, '0')}:00`;
+
+    // Controlla se la data è passata o se esiste già un risultato per questa data e ora
+    const todayStr = new Date().toISOString().split('T')[0];
+    const existingMatch = await sql`
+      SELECT id FROM public."Risultati" WHERE data = ${dateStr} AND ora = ${timeStr}
+    `;
+
+    if (dateStr < todayStr || existingMatch.length > 0) {
+      return NextResponse.json({ error: 'Aggiornare la data, quella attuale è passata!' }, { status: 400 });
+    }
 
     // Operazione Atomica usando sql.transaction
     await sql.transaction([

@@ -1849,9 +1849,10 @@ const formatResultTime = (timeStr?: string) => {
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB, stadium: selectedStadium })
+        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB, stadium: selectedStadium, matchLabel })
       });
-      if (!res.ok) throw new Error('Errore nel salvataggio');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore nel salvataggio');
       showToast('Formazione salvata!', 'success');
       setIsSaveFormationModalOpen(false);
       setSaveFormationPassword('');

@@ -2229,7 +2229,8 @@ const formatResultTime = (timeStr?: string) => {
       )}
 
       {isEditModalOpen && (() => {
-          const uniqueRoles = Array.from(new Set(dbPlayers.map(p => p.Ruolo).filter(Boolean)));
+          const baseRoles = ['Portiere', 'Difensore', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
+          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean)]));
           const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
           const textFields = ['Skill', 'piede'] as const;
 
@@ -2328,7 +2329,8 @@ const formatResultTime = (timeStr?: string) => {
       })()}
 
       {isAddModalOpen && (() => {
-          const uniqueRoles = Array.from(new Set(dbPlayers.map(p => p.Ruolo).filter(Boolean)));
+          const baseRoles = ['Portiere', 'Difensore', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
+          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean)]));
           const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
           const textFields = ['Skill', 'piede'] as const;
 

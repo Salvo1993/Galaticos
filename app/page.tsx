@@ -4028,7 +4028,6 @@ const formatResultTime = (timeStr?: string) => {
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
-                                   <button type="button" onClick={() => handleToggleMVP(player)} style={{ background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.1)', border: 'none', color: updateMVPs.includes(player) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>MVP</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>
@@ -4063,7 +4062,6 @@ const formatResultTime = (timeStr?: string) => {
                                    <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
-                                   <button type="button" onClick={() => handleToggleMVP(player)} style={{ background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.1)', border: 'none', color: updateMVPs.includes(player) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>MVP</button>
                                  </div>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Gol</span>
@@ -4075,6 +4073,37 @@ const formatResultTime = (timeStr?: string) => {
                             </div>
                           );
                         })}
+                      </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.8rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
+                        Scegli MVP della partita
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {[...(updatingMatch?.team_a_players || []), ...(updatingMatch?.team_b_players || [])].map(player => (
+                          <div 
+                            key={`mvp-${player}`}
+                            onClick={() => handleToggleMVP(player)}
+                            style={{ 
+                              padding: '0.4rem 0.8rem', 
+                              borderRadius: '20px', 
+                              fontSize: '0.8rem', 
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.05)',
+                              color: updateMVPs.includes(player) ? '#0a1922' : '#cfe8d8',
+                              border: updateMVPs.includes(player) ? '1px solid #ffd700' : '1px solid rgba(255,255,255,0.1)',
+                              userSelect: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <span>{player}</span>
+                            {updateMVPs.includes(player) && <span>🏅</span>}
+                          </div>
+                        ))}
                       </div>
                   </div>
 

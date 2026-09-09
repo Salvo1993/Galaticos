@@ -4019,9 +4019,9 @@ const formatResultTime = (timeStr?: string) => {
                           const count = updateScorersA[player] || 0;
                           const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
                           return (
-                            <div key={player} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 0.8rem', borderRadius: '8px' }}>
-                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
+                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '0.8rem' }}>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
@@ -4053,9 +4053,9 @@ const formatResultTime = (timeStr?: string) => {
                           const count = updateScorersB[player] || 0;
                           const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
                           return (
-                            <div key={player} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 0.8rem', borderRadius: '8px' }}>
-                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
+                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '0.8rem' }}>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                    <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
                                    <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>

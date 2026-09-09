@@ -3215,9 +3215,17 @@ const formatResultTime = (timeStr?: string) => {
                                 <li key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <span>{name}</span>
                                   {m.risultato && m.risultato !== '0-0' && (() => {
-                                    const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
-                                    const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
-                                    const isMvp = vote !== undefined && vote === maxV && maxV > 0;
+                                    let matchMVPs: string[] = [];
+                                    if (m.mvps && m.mvps.length > 0) {
+                                      matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+                                    } else {
+                                      const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
+                                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
+                                      if (maxV > 0 && m.voti_giocatori) {
+                                        matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === maxV);
+                                      }
+                                    }
+                                    const isMvp = matchMVPs.includes(name);
                                     return (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
                                         {isMvp && <span title="MVP" style={{ display: 'flex' }}><Medal size={14} style={{ color: '#FFD700' }} /></span>}
@@ -3239,9 +3247,17 @@ const formatResultTime = (timeStr?: string) => {
                                 <li key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <span>{name}</span>
                                   {m.risultato && m.risultato !== '0-0' && (() => {
-                                    const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
-                                    const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
-                                    const isMvp = vote !== undefined && vote === maxV && maxV > 0;
+                                    let matchMVPs: string[] = [];
+                                    if (m.mvps && m.mvps.length > 0) {
+                                      matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+                                    } else {
+                                      const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
+                                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
+                                      if (maxV > 0 && m.voti_giocatori) {
+                                        matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === maxV);
+                                      }
+                                    }
+                                    const isMvp = matchMVPs.includes(name);
                                     return (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
                                         {isMvp && <span title="MVP" style={{ display: 'flex' }}><Medal size={14} style={{ color: '#FFD700' }} /></span>}

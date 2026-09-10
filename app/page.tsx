@@ -1042,33 +1042,7 @@ export default function Home() {
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
-  const toggleShirtAssignment = async (matchId: number) => {
-    const pwd = window.prompt("Inserisci password per salvare il cambio maglia:");
-    if (pwd !== 'ramborambo') {
-        showToast('Password non valida o operazione annullata', 'error');
-        return;
-    }
-
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-    const currentVal = match.maglia_chiara || 'A';
-    const newVal = currentVal === 'A' ? 'B' : 'A';
-
-    setMatches(prev => prev.map(m => m.id === matchId ? {...m, maglia_chiara: newVal} : m));
-
-    try {
-        const res = await fetch('/api/risultati/update-maglia', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id: matchId, maglia_chiara: newVal, password: pwd })
-        });
-        if (!res.ok) throw new Error('Errore nel salvataggio maglia');
-        showToast('Maglie invertite con successo!', 'success');
-    } catch (err) {
-        setMatches(prev => prev.map(m => m.id === matchId ? {...m, maglia_chiara: currentVal} : m));
-        showToast('Errore nel cambio maglie', 'error');
-    }
-  };
+  
 
   const resultsRef = useRef<HTMLDivElement>(null);
   const pitchesRef = useRef<HTMLDivElement>(null);
@@ -3155,7 +3129,19 @@ const formatResultTime = (timeStr?: string) => {
                               body: JSON.stringify({ password: pwd, maglia_chiara: newVal })
                           });
                           if (!res.ok) throw new Error();
-                          showToast('Maglie invertite e salvate in bozza!', 'success');
+
+                          const latestMatch = matches.length > 0 ? matches[0] : null;
+                          const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
+                          if (isSameAsLatest && latestMatch && latestMatch.maglia_chiara !== newVal) {
+                              await fetch('/api/risultati/update-maglia', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ password: pwd, matchId: latestMatch.id, lightTeam: newVal })
+                              });
+                              setMatches(matches.map(m => m.id === latestMatch.id ? { ...m, maglia_chiara: newVal } : m));
+                          }
+
+                          showToast('Maglie invertite con successo!', 'success');
                       } catch {
                           setUserOverrideMaglia(currentLightTeam as 'A'|'B');
                           showToast('Errore nel salvataggio maglie', 'error');
@@ -3223,7 +3209,7 @@ const formatResultTime = (timeStr?: string) => {
                     <div className="match-score-area">
                       <div className="match-team match-team-a">
                         <span className="match-team-name">{m.team_a_name}</span>
-                        <span className="match-tag" onClick={(e) => { e.stopPropagation(); toggleShirtAssignment(m.id); }}>
+                        <span className="match-tag">
                             {isLightOnA ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}
                         </span>
                       </div>
@@ -3236,7 +3222,7 @@ const formatResultTime = (timeStr?: string) => {
 
                       <div className="match-team match-team-b">
                         <span className="match-team-name">{m.team_b_name}</span>
-                        <span className="match-tag" onClick={(e) => { e.stopPropagation(); toggleShirtAssignment(m.id); }}>
+                        <span className="match-tag">
                             {isLightOnA ? 'MAGLIE SCURE' : 'MAGLIE CHIARE'}
                         </span>
                       </div>
@@ -3329,17 +3315,6 @@ const formatResultTime = (timeStr?: string) => {
                         </div>
                       )}
                       <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                        <button
-                          type="button"
-                          className="swap-shirts-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleShirtAssignment(m.id);
-                          }}
-                        >
-                          <ArrowLeftRight size={14} />
-                          <span>Cambio maglie</span>
-                        </button>
                         <button
                           type="button"
                           className="swap-shirts-btn"

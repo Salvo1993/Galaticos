@@ -3032,7 +3032,7 @@ const formatResultTime = (timeStr?: string) => {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
                         <div 
                           style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
-                          onClick={() => setShowSynergyA(!showSynergyA)}
+                          onClick={() => { const s = !showSynergyA; setShowSynergyA(s); setShowSynergyB(s); }}
                         >
                           <div style={{ color: '#5de4ff', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamAName}</div>
                           {synergyA.matchCount > 0 ? (
@@ -3041,6 +3041,9 @@ const formatResultTime = (timeStr?: string) => {
                               <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
                                 V {Math.round(synergyA.winRate*100)}% · P {Math.round(synergyA.drawRate*100)}% · S {Math.round(synergyA.lossRate*100)}%
                               </div>
+                              {!showSynergyA && (
+                                <div style={{ fontSize: '0.65rem', color: '#5de4ff', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
+                              )}
                               {showSynergyA && (
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyA.matchDetails.map((md, idx) => (
@@ -3066,7 +3069,7 @@ const formatResultTime = (timeStr?: string) => {
                         </div>
                         <div 
                           style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
-                          onClick={() => setShowSynergyB(!showSynergyB)}
+                          onClick={() => { const s = !showSynergyB; setShowSynergyA(s); setShowSynergyB(s); }}
                         >
                           <div style={{ color: '#ffcc00', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamBName}</div>
                           {synergyB.matchCount > 0 ? (
@@ -3075,6 +3078,9 @@ const formatResultTime = (timeStr?: string) => {
                               <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
                                 V {Math.round(synergyB.winRate*100)}% · P {Math.round(synergyB.drawRate*100)}% · S {Math.round(synergyB.lossRate*100)}%
                               </div>
+                              {!showSynergyB && (
+                                <div style={{ fontSize: '0.65rem', color: '#ffcc00', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
+                              )}
                               {showSynergyB && (
                                 <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
                                   {synergyB.matchDetails.map((md, idx) => (

@@ -30,14 +30,13 @@ export async function POST(req: Request) {
     const timePart = (parts[1] || '').toLowerCase().replace('ore', '').trim();
     const timeStr = `${(timePart || '21').padStart(2, '0')}:00`;
 
-    // Controlla se la data è passata o se esiste già un risultato per questa data e ora
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Controlla se la partita è già stata giocata
     const existingMatch = await sql`
-      SELECT id FROM public."Risultati" WHERE data = ${dateStr} AND ora = ${timeStr}
+      SELECT id, risultato FROM public."Risultati" WHERE data = ${dateStr} AND ora = ${timeStr}
     `;
 
-    if (dateStr < todayStr || existingMatch.length > 0) {
-      return NextResponse.json({ error: 'Aggiornare la data, quella attuale è passata!' }, { status: 400 });
+    if (existingMatch.length > 0 && existingMatch[0].risultato && existingMatch[0].risultato !== '0-0') {
+      return NextResponse.json({ error: 'Questa partita è già stata giocata definitivamente, impossibile sovrascrivere le formazioni.' }, { status: 400 });
     }
 
     // Operazione Atomica usando sql.transaction

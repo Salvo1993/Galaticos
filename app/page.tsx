@@ -511,7 +511,7 @@ export default function Home() {
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
   const [editingStadiumId, setEditingStadiumId] = useState<number | null>(null);
   const [stadiumInput, setStadiumInput] = useState('');
-  const [lightShirtTeamByMatch, setLightShirtTeamByMatch] = useState<Record<number, 'A' | 'B'>>({});
+  const [userOverrideMaglia, setUserOverrideMaglia] = useState<'A'|'B'|null>(null);
   const [selectedPlayerForCard, setSelectedPlayerForCard] = useState<string | null>(null);
   
   // Swap state
@@ -1759,6 +1759,7 @@ const formatResultTime = (timeStr?: string) => {
   };
 
   const generateTeams = async () => {
+    setUserOverrideMaglia(null);
     // Validation
     if (selectedPlayers.some(p => !p)) {
       showToast(`Seleziona tutti e ${matchFormat * 2} i nomi prima di continuare`, 'error');
@@ -1855,7 +1856,8 @@ const formatResultTime = (timeStr?: string) => {
     }
 
     const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
-    const currentLightTeam = isSameAsLatest ? (lightShirtTeamByMatch[latestMatch.id] ?? 'A') : 'A';
+    const defaultLightTeam = isSameAsLatest ? (latestMatch.maglia_chiara || 'A') : 'A';
+    const currentLightTeam = userOverrideMaglia || defaultLightTeam;
     
     const getShirtInfo = (team: 'A'|'B') => currentLightTeam === team ? `${e_white} *Maglie Chiare*` : `${e_black} *Maglie Scure*`;
 
@@ -1878,11 +1880,16 @@ const formatResultTime = (timeStr?: string) => {
       return;
     }
     setIsSaving(true);
+    const latestMatch = matches.length > 0 ? matches[0] : null;
+    const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
+    const defaultLightTeam = isSameAsLatest ? (latestMatch.maglia_chiara || 'A') : 'A';
+    const currentLightTeam = userOverrideMaglia || defaultLightTeam;
+
     try {
       const res = await fetch('/api/salva-formazione', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB, stadium: selectedStadium, matchLabel })
+        body: JSON.stringify({ team_a_name: teamAName, team_b_name: teamBName, teamAPlayers: results.teamA, teamBPlayers: results.teamB, stadium: selectedStadium, matchLabel, maglia_chiara: currentLightTeam })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Errore nel salvataggio');
@@ -2576,7 +2583,8 @@ const formatResultTime = (timeStr?: string) => {
       {results && (() => {
         const latestMatch = matches.length > 0 ? matches[0] : null;
         const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
-        const currentLightTeam = isSameAsLatest ? (lightShirtTeamByMatch[latestMatch.id] ?? 'A') : 'A';
+        const defaultLightTeam = isSameAsLatest ? (latestMatch.maglia_chiara || 'A') : 'A';
+        const currentLightTeam = userOverrideMaglia || defaultLightTeam;
         
         return (
         <section className="results-section" ref={resultsRef} style={{display:'block'}}>
@@ -3131,6 +3139,7 @@ const formatResultTime = (timeStr?: string) => {
 
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
                   <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
+                  <button className="secondary-btn" onClick={() => setUserOverrideMaglia(currentLightTeam === 'A' ? 'B' : 'A')}><ArrowLeftRight size={18} /> Cambia Maglie</button>
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
                   <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>

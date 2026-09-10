@@ -10,12 +10,7 @@ const months: Record<string, string> = {
 export async function POST(req: Request) {
   try {
     // Parse match_label per ottenere la chiave univoca (data + ora)
-    const bodyData = await req.json();
-    const { 
-        team_a_name, team_b_name, 
-        teamAPlayers, teamBPlayers,
-        stadium, matchLabel: inputMatchLabel
-    } = bodyData;
+    const { team_a_name, team_b_name, teamAPlayers, teamBPlayers, stadium, matchLabel: inputMatchLabel, maglia_chiara } = await req.json();
 
     if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
       return NextResponse.json({ error: 'Dati squadra mancanti o invalidi' }, { status: 400 });
@@ -72,14 +67,15 @@ export async function POST(req: Request) {
 
         // B) Upsert Risultati (basato su vincolo unico data+ora)
         sql`
-          INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players, "Stadium")
-          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb, ${stadium || 'Campi Sole'})
+          INSERT INTO public."Risultati" (data, ora, team_a_name, team_b_name, team_a_players, team_b_players, "Stadium", maglia_chiara)
+          VALUES (${dateStr}, ${timeStr}, ${team_a_name}, ${team_b_name}, ${JSON.stringify(teamAPlayers)}::jsonb, ${JSON.stringify(teamBPlayers)}::jsonb, ${stadium || 'Campi Sole'}, ${maglia_chiara || 'A'})
           ON CONFLICT (data, ora) DO UPDATE SET
             team_a_name = EXCLUDED.team_a_name,
             team_b_name = EXCLUDED.team_b_name,
             team_a_players = EXCLUDED.team_a_players,
             team_b_players = EXCLUDED.team_b_players,
-            "Stadium" = EXCLUDED."Stadium";
+            "Stadium" = EXCLUDED."Stadium",
+            maglia_chiara = EXCLUDED.maglia_chiara;
         `
     ]);
 

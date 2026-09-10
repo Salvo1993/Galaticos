@@ -51,6 +51,7 @@ interface MatchResult {
   Stadium: string | null;
   voti_giocatori?: Record<string, number | 's.v.'>;
   mvps?: string[];
+  maglia_chiara?: string;
 }
 
 interface MediaItem {
@@ -1041,11 +1042,32 @@ export default function Home() {
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
-  const toggleShirtAssignment = (matchId: number) => {
-    setLightShirtTeamByMatch(prev => ({
-      ...prev,
-      [matchId]: (prev[matchId] ?? 'A') === 'A' ? 'B' : 'A'
-    }));
+  const toggleShirtAssignment = async (matchId: number) => {
+    const pwd = window.prompt("Inserisci password per salvare il cambio maglia:");
+    if (pwd !== 'ramborambo') {
+        showToast('Password non valida o operazione annullata', 'error');
+        return;
+    }
+
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+    const currentVal = match.maglia_chiara || 'A';
+    const newVal = currentVal === 'A' ? 'B' : 'A';
+
+    setMatches(prev => prev.map(m => m.id === matchId ? {...m, maglia_chiara: newVal} : m));
+
+    try {
+        const res = await fetch('/api/risultati/update-maglia', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: matchId, maglia_chiara: newVal, password: pwd })
+        });
+        if (!res.ok) throw new Error('Errore nel salvataggio maglia');
+        showToast('Maglie invertite con successo!', 'success');
+    } catch (err) {
+        setMatches(prev => prev.map(m => m.id === matchId ? {...m, maglia_chiara: currentVal} : m));
+        showToast('Errore nel cambio maglie', 'error');
+    }
   };
 
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -3135,7 +3157,7 @@ const formatResultTime = (timeStr?: string) => {
             {matches.map(m => {
               const isExpanded = expandedMatchId === m.id;
               const isEditing = editingStadiumId === m.id;
-              const isLightOnA = (lightShirtTeamByMatch[m.id] ?? 'A') === 'A';
+              const isLightOnA = (m.maglia_chiara || 'A') === 'A';
               const scorersA = normalizeScorers(m.marcatori_a);
               const scorersB = normalizeScorers(m.marcatori_b);
               const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => s.trim());

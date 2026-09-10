@@ -1175,6 +1175,7 @@ export default function Home() {
 
           if (isValidSession) {
             setMatchFormat(format);
+            if (sessionData.maglia_chiara) setUserOverrideMaglia(sessionData.maglia_chiara);
             setSelectedPlayers(sessionData.selected_players);
             setClusters(sessionData.clusters || []);
             
@@ -3139,7 +3140,27 @@ const formatResultTime = (timeStr?: string) => {
 
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
                   <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
-                  <button className="secondary-btn" onClick={() => setUserOverrideMaglia(currentLightTeam === 'A' ? 'B' : 'A')}><ArrowLeftRight size={18} /> Cambia Maglie</button>
+                  <button className="secondary-btn" onClick={async () => {
+                      const pwd = window.prompt("Inserisci password per salvare il cambio maglie in bozza:");
+                      if (pwd !== 'ramborambo') {
+                          showToast('Password errata o operazione annullata', 'error');
+                          return;
+                      }
+                      const newVal = currentLightTeam === 'A' ? 'B' : 'A';
+                      setUserOverrideMaglia(newVal);
+                      try {
+                          const res = await fetch('/api/session/update-maglia', {
+                              method: 'POST',
+                              headers: {'Content-Type': 'application/json'},
+                              body: JSON.stringify({ password: pwd, maglia_chiara: newVal })
+                          });
+                          if (!res.ok) throw new Error();
+                          showToast('Maglie invertite e salvate in bozza!', 'success');
+                      } catch {
+                          setUserOverrideMaglia(currentLightTeam as 'A'|'B');
+                          showToast('Errore nel salvataggio maglie', 'error');
+                      }
+                  }}><ArrowLeftRight size={18} /> Cambia Maglie</button>
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
                   <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>

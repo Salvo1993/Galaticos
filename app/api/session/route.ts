@@ -21,12 +21,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players } = body;
+    const { selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, maglia_chiara } = body;
 
     // Use UPSERT with fixed ID 1 for singleton session
     await sql`
       INSERT INTO public."LatestSession" (
-        id, selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, updated_at
+        id, selected_players, clusters, team_a_name, team_b_name, team_a_players, team_b_players, maglia_chiara, updated_at
       )
       VALUES (
         1,
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
         ${team_b_name || 'Aquile 🦆'}, 
         ${JSON.stringify(team_a_players || [])}, 
         ${JSON.stringify(team_b_players || [])}, 
+        ${maglia_chiara || 'A'},
         NOW()
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
         team_b_name = EXCLUDED.team_b_name,
         team_a_players = EXCLUDED.team_a_players,
         team_b_players = EXCLUDED.team_b_players,
+        maglia_chiara = EXCLUDED.maglia_chiara,
         updated_at = NOW();
     `;
     return NextResponse.json({ success: true });

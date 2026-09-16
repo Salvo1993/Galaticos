@@ -2969,16 +2969,35 @@ const formatResultTime = (timeStr?: string) => {
                   const pctA = Math.round(winAPct * 100);
                   const pctX = Math.round(drawPct * 100);
                   const pctB = Math.round(winBPct * 100);
-                  
-                  // Risultato predetto
-                  const predGolA = synergyA.totalWeight > 0 
-                    ? (parseFloat(statsA.golFatti) * individualWeight + synergyA.avgGolFatti * synergyWeight)
-                    : parseFloat(statsA.golFatti);
-                  const predGolB = synergyB.totalWeight > 0 
-                    ? (parseFloat(statsB.golFatti) * individualWeight + synergyB.avgGolFatti * synergyWeight)
-                    : parseFloat(statsB.golFatti);
-
                   const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
+                  
+                  // Risultato predetto strettamente calcolato rispetto al composite score
+                  const baseAvg = Math.max((parseFloat(statsA.golFatti) + parseFloat(statsB.golFatti)) / 2, 7);
+                  const scartoGol = diff * 15;
+                  
+                  let finalPredA = baseAvg + (scartoGol / 2);
+                  let finalPredB = baseAvg - (scartoGol / 2);
+                  
+                  if (favorite === 'A' && finalPredA <= finalPredB) finalPredA = finalPredB + 1.2;
+                  if (favorite === 'B' && finalPredB <= finalPredA) finalPredB = finalPredA + 1.2;
+                  if (favorite === 'X') {
+                      finalPredA = (finalPredA + finalPredB) / 2;
+                      finalPredB = finalPredA;
+                  }
+
+                  const predGolA = Math.round(finalPredA);
+                  const predGolB = Math.round(finalPredB);
+
+                  const totalStorico = synergyA.matchCount + synergyB.matchCount;
+                  let reliabilityText = 'Bassa';
+                  let reliabilityColor = '#ff4444';
+                  if (totalStorico >= 4) {
+                      reliabilityText = 'Alta';
+                      reliabilityColor = '#69f0ae';
+                  } else if (totalStorico >= 2) {
+                      reliabilityText = 'Media';
+                      reliabilityColor = '#ffcc00';
+                  }
 
                   return (
                     <div style={{ 
@@ -2999,6 +3018,10 @@ const formatResultTime = (timeStr?: string) => {
                       }}>
                         🔮 PREVISIONE MATCH
                       </h4>
+                      
+                      <div style={{ textAlign: 'center', fontSize: '0.75rem', marginBottom: '1.5rem', color: '#aaa', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
+                        Affidabilità Previsione: <strong style={{ color: reliabilityColor }}>{reliabilityText}</strong> <span style={{ opacity: 0.7 }}>(basata su {totalStorico} incroci storici)</span>
+                      </div>
                       
                       {/* Barra probabilità */}
                       <div style={{ marginBottom: '1rem' }}>

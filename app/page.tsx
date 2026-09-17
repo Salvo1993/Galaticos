@@ -3462,9 +3462,24 @@ const formatResultTime = (timeStr?: string) => {
             {isLoadingLeaderboard ? 'Aggiornamento...' : 'Aggiorna Classifica'}
           </button>
         </div>
-        <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
+        <p className="section-subtitle" style={{ marginBottom: '1rem' }}>
           Classifica individuale calcolata sui risultati delle partite in archivio.
         </p>
+
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem' }}>
+           <button 
+             onClick={() => setSortConfig({ key: 'punti_assoluti', direction: 'desc' })}
+             style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #34d680', background: sortConfig?.key !== 'forma_punti' ? '#34d680' : 'transparent', color: sortConfig?.key !== 'forma_punti' ? '#0d1511' : '#34d680', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+           >
+             Generale
+           </button>
+           <button 
+             onClick={() => setSortConfig({ key: 'forma_punti', direction: 'desc' })}
+             style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #34d680', background: sortConfig?.key === 'forma_punti' ? '#34d680' : 'transparent', color: sortConfig?.key === 'forma_punti' ? '#0d1511' : '#34d680', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+           >
+             Stato di Forma
+           </button>
+        </div>
 
         {isLoadingLeaderboard ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#6f9c81' }}>Caricamento classifica...</div>
@@ -3543,13 +3558,29 @@ const formatResultTime = (timeStr?: string) => {
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.gol_fatti}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#6f9c81', fontSize: '0.8rem' }}>{getRoleAbbr(playerRole)}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px' }}>
-                        {(row.forma || '').split('-').map((letter: string, idx: number) => {
-                           if (!letter) return null;
-                           const bColor = letter === 'V' ? '#81c784' : letter === 'N' ? '#e0e0e0' : '#e57373';
-                           return (
-                             <span key={idx} style={{ color: bColor, margin: '0 2px' }}>{letter}</span>
-                           );
-                        })}
+                        {(() => {
+                           let details: any[] = [];
+                           try {
+                             if (row.forma_dettagli) {
+                               details = typeof row.forma_dettagli === 'string' ? JSON.parse(row.forma_dettagli) : row.forma_dettagli;
+                             }
+                           } catch (e) {}
+
+                           return (row.forma || '').split('-').map((letter: string, idx: number) => {
+                             if (!letter) return null;
+                             const bColor = letter === 'V' ? '#81c784' : letter === 'N' ? '#e0e0e0' : '#e57373';
+                             
+                             let hoverText = "Nessun dettaglio";
+                             if (details[idx]) {
+                               const d = details[idx];
+                               hoverText = `${d.data} - Risultato: ${d.risultato}`;
+                             }
+
+                             return (
+                               <span key={idx} title={hoverText} style={{ color: bColor, margin: '0 2px', cursor: 'help' }}>{letter}</span>
+                             );
+                           });
+                        })()}
                       </td>
                     </tr>
                   );

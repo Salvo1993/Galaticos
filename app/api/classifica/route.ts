@@ -20,7 +20,7 @@ export async function GET(req: Request) {
       try {
         const rows = await sql`
           SELECT * FROM (
-            SELECT DISTINCT ON (nome) nome, pt_partita, partite_giocate, punti_assoluti, gol_fatti, vittorie, pareggi, sconfitte, media_voto, mvp_count, forma, forma_punti
+            SELECT DISTINCT ON (nome) nome, pt_partita, partite_giocate, punti_assoluti, gol_fatti, vittorie, pareggi, sconfitte, media_voto, mvp_count, forma, forma_punti, forma_dettagli
             FROM public."classifica"
           ) AS unique_classifica
           ORDER BY punti_assoluti DESC, pt_partita DESC, media_voto DESC, gol_fatti DESC, nome ASC

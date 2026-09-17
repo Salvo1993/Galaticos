@@ -11,6 +11,8 @@ export interface LeaderboardEntry {
   pt_partita: number;
   media_voto: number;
   mvp_count: number;
+  forma: string;
+  forma_punti: number;
 }
 
 const parseScorersStr = (scorersInput: any): Record<string, number> => {
@@ -45,9 +47,10 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
     WHERE risultato IS NOT NULL
       AND risultato != ''
       AND risultato != '0-0'
+    ORDER BY data DESC, id DESC
   `;
 
-  const stats: Record<string, { partite_giocate: number; punti_assoluti: number; gol_fatti: number; vittorie: number; pareggi: number; sconfitte: number; somma_voti: number; partite_voto: number; mvp_count: number }> = {};
+  const stats: Record<string, { partite_giocate: number; punti_assoluti: number; gol_fatti: number; vittorie: number; pareggi: number; sconfitte: number; somma_voti: number; partite_voto: number; mvp_count: number; forma_storico: string[]; forma_punti: number }> = {};
 
   matches.forEach((m: any) => {
     const [scoreAStr, scoreBStr] = m.risultato.split('-');
@@ -85,11 +88,17 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
     }
 
     playersA.forEach((p: string) => {
-      if (!stats[p]) stats[p] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0 };
+      if (!stats[p]) stats[p] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0, forma_storico: [], forma_punti: 0 };
       stats[p].partite_giocate += 1;
       if (teamAWin) { stats[p].punti_assoluti += 3; stats[p].vittorie += 1; }
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
+
+      if (stats[p].forma_storico.length < 5) {
+        if (teamAWin) { stats[p].forma_storico.unshift('V'); stats[p].forma_punti += 3; }
+        else if (draw) { stats[p].forma_storico.unshift('N'); stats[p].forma_punti += 1; }
+        else { stats[p].forma_storico.unshift('P'); }
+      }
       
       if (voti[p] !== undefined && typeof voti[p] === 'number' && voti[p] > 0) {
          stats[p].somma_voti += voti[p];
@@ -101,11 +110,17 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
     });
 
     playersB.forEach((p: string) => {
-      if (!stats[p]) stats[p] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0 };
+      if (!stats[p]) stats[p] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0, forma_storico: [], forma_punti: 0 };
       stats[p].partite_giocate += 1;
       if (teamBWin) { stats[p].punti_assoluti += 3; stats[p].vittorie += 1; }
       else if (draw) { stats[p].punti_assoluti += 1; stats[p].pareggi += 1; }
       else { stats[p].sconfitte += 1; }
+
+      if (stats[p].forma_storico.length < 5) {
+        if (teamBWin) { stats[p].forma_storico.unshift('V'); stats[p].forma_punti += 3; }
+        else if (draw) { stats[p].forma_storico.unshift('N'); stats[p].forma_punti += 1; }
+        else { stats[p].forma_storico.unshift('P'); }
+      }
       
       if (voti[p] !== undefined && typeof voti[p] === 'number' && voti[p] > 0) {
          stats[p].somma_voti += voti[p];
@@ -120,12 +135,12 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
     const scorersB = parseScorersStr(m.marcatori_b);
 
     Object.entries(scorersA).forEach(([name, count]) => {
-      if (!stats[name]) stats[name] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0 };
+      if (!stats[name]) stats[name] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0, forma_storico: [], forma_punti: 0 };
       stats[name].gol_fatti += count as number;
     });
 
     Object.entries(scorersB).forEach(([name, count]) => {
-      if (!stats[name]) stats[name] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0 };
+      if (!stats[name]) stats[name] = { partite_giocate: 0, punti_assoluti: 0, gol_fatti: 0, vittorie: 0, pareggi: 0, sconfitte: 0, somma_voti: 0, partite_voto: 0, mvp_count: 0, forma_storico: [], forma_punti: 0 };
       stats[name].gol_fatti += count as number;
     });
   });
@@ -139,7 +154,8 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
       const media_voto = data.partite_voto > 0
         ? parseFloat((data.somma_voti / data.partite_voto).toFixed(2))
         : 0;
-      return { nome, ...data, pt_partita, media_voto };
+      const forma = data.forma_storico.join('-');
+      return { nome, ...data, pt_partita, media_voto, forma };
     });
 
   // Ordina: punti_assoluti DESC, pt_partita DESC, media_voto DESC, gol_fatti DESC, nome ASC
@@ -158,14 +174,16 @@ export async function recalculateAndSaveClassifica(sql: NeonQueryFunction<false,
 
   await sql`ALTER TABLE public."classifica" ADD COLUMN IF NOT EXISTS media_voto REAL DEFAULT 0`;
   await sql`ALTER TABLE public."classifica" ADD COLUMN IF NOT EXISTS mvp_count INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE public."classifica" ADD COLUMN IF NOT EXISTS forma VARCHAR(20) DEFAULT ''`;
+  await sql`ALTER TABLE public."classifica" ADD COLUMN IF NOT EXISTS forma_punti INTEGER DEFAULT 0`;
 
   // Aggiorna la tabella classifica nel DB
   await sql`DELETE FROM public."classifica"`;
 
   for (const p of leaderboard) {
     await sql`
-      INSERT INTO public."classifica" (nome, pt_partita, partite_giocate, punti_assoluti, gol_fatti, vittorie, pareggi, sconfitte, media_voto, mvp_count)
-      VALUES (${p.nome}, ${p.pt_partita}, ${p.partite_giocate}, ${p.punti_assoluti}, ${p.gol_fatti}, ${p.vittorie}, ${p.pareggi}, ${p.sconfitte}, ${p.media_voto}, ${p.mvp_count})
+      INSERT INTO public."classifica" (nome, pt_partita, partite_giocate, punti_assoluti, gol_fatti, vittorie, pareggi, sconfitte, media_voto, mvp_count, forma, forma_punti)
+      VALUES (${p.nome}, ${p.pt_partita}, ${p.partite_giocate}, ${p.punti_assoluti}, ${p.gol_fatti}, ${p.vittorie}, ${p.pareggi}, ${p.sconfitte}, ${p.media_voto}, ${p.mvp_count}, ${p.forma}, ${p.forma_punti})
     `;
   }
 

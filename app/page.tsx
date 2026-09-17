@@ -3509,6 +3509,9 @@ const formatResultTime = (timeStr?: string) => {
                   <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('ruolo')}>
                     Ruolo {sortConfig?.key === 'ruolo' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                   </th>
+                  <th style={{ padding: '0.8rem', textAlign: 'center', color: '#9fd9b6', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('forma_punti')}>
+                    Forma {sortConfig?.key === 'forma_punti' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -3539,6 +3542,15 @@ const formatResultTime = (timeStr?: string) => {
                       </td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.gol_fatti}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#6f9c81', fontSize: '0.8rem' }}>{getRoleAbbr(playerRole)}</td>
+                      <td style={{ padding: '0.8rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1px' }}>
+                        {(row.forma || '').split('-').map((letter: string, idx: number) => {
+                           if (!letter) return null;
+                           const bColor = letter === 'V' ? '#81c784' : letter === 'N' ? '#e0e0e0' : '#e57373';
+                           return (
+                             <span key={idx} style={{ color: bColor, margin: '0 2px' }}>{letter}</span>
+                           );
+                        })}
+                      </td>
                     </tr>
                   );
                 })}

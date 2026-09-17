@@ -3532,6 +3532,24 @@ const formatResultTime = (timeStr?: string) => {
               <tbody>
                 {sortedLeaderboard.map((row, index) => {
                   const playerRole = dbPlayers.find(p => p.Nome === row.nome)?.Ruolo;
+                  const isFormMode = sortConfig?.key === 'forma_punti';
+                  
+                  let dispPunti = row.punti_assoluti;
+                  let dispGiocate = row.partite_giocate;
+                  let dispV = row.vittorie ?? 0;
+                  let dispP = row.pareggi ?? 0;
+                  let dispS = row.sconfitte ?? 0;
+                  let dispPtPartita = typeof row.pt_partita === 'number' ? row.pt_partita : parseFloat(row.pt_partita || '0');
+
+                  if (isFormMode && row.forma) {
+                    const letters = row.forma.split('-').filter(Boolean);
+                    dispPunti = row.forma_punti || 0;
+                    dispGiocate = letters.length;
+                    dispV = letters.filter((l: string) => l === 'V').length;
+                    dispP = letters.filter((l: string) => l === 'N').length;
+                    dispS = letters.filter((l: string) => l === 'P').length;
+                    dispPtPartita = dispGiocate > 0 ? dispPunti / dispGiocate : 0;
+                  }
 
                   return (
                     <tr key={row.nome} style={{ borderBottom: index < sortedLeaderboard.length - 1 ? '1px solid rgba(52, 214, 128, 0.08)' : 'none', background: index % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.2)' }}>
@@ -3540,12 +3558,12 @@ const formatResultTime = (timeStr?: string) => {
                       </td>
                       <td style={{ padding: '0.8rem', textAlign: 'left', color: '#cfe8d8', fontWeight: 600 }}>{row.nome}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e8b339', fontWeight: 'bold' }}>
-                        {row.punti_assoluti}
+                        {dispPunti}
                       </td>
-                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.partite_giocate}</td>
-                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#81c784' }}>{row.vittorie ?? 0}</td>
-                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e0e0e0' }}>{row.pareggi ?? 0}</td>
-                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e57373' }}>{row.sconfitte ?? 0}</td>
+                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{dispGiocate}</td>
+                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#81c784' }}>{dispV}</td>
+                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e0e0e0' }}>{dispP}</td>
+                      <td style={{ padding: '0.8rem', textAlign: 'center', color: '#e57373' }}>{dispS}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#f39c12', fontWeight: 'bold' }}>
                         {row.media_voto && row.media_voto > 0 ? row.media_voto.toFixed(2) : '-'}
                       </td>
@@ -3553,7 +3571,7 @@ const formatResultTime = (timeStr?: string) => {
                         {(row.mvp_count || 0) > 0 ? row.mvp_count : '-'}
                       </td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>
-                        {typeof row.pt_partita === 'number' ? row.pt_partita.toFixed(2) : parseFloat(row.pt_partita || '0').toFixed(2)}
+                        {dispPtPartita.toFixed(2)}
                       </td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#cfe8d8' }}>{row.gol_fatti}</td>
                       <td style={{ padding: '0.8rem', textAlign: 'center', color: '#6f9c81', fontSize: '0.8rem' }}>{getRoleAbbr(playerRole)}</td>

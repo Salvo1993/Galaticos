@@ -2991,10 +2991,10 @@ const formatResultTime = (timeStr?: string) => {
                   const totalStorico = synergyA.matchCount + synergyB.matchCount;
                   let reliabilityText = 'Bassa';
                   let reliabilityColor = '#ff4444';
-                  if (totalStorico >= 4) {
+                  if (totalStorico >= 16) {
                       reliabilityText = 'Alta';
                       reliabilityColor = '#69f0ae';
-                  } else if (totalStorico >= 2) {
+                  } else if (totalStorico >= 5) {
                       reliabilityText = 'Media';
                       reliabilityColor = '#ffcc00';
                   }

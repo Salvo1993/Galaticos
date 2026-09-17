@@ -57,6 +57,71 @@ export async function POST(req: Request) {
       WHERE "Nome" = ${sanitizedOld}
     `;
 
+    if (sanitizedOld.toLowerCase() !== sanitizedNew.toLowerCase()) {
+      const target = sanitizedOld;
+      const matches = await sql`SELECT id, team_a_players, team_b_players, marcatori_a, marcatori_b, voti_giocatori, mvps FROM public."Risultati"`;
+
+      for (const match of matches) {
+        let updated = false;
+
+        let tap = match.team_a_players;
+        let tbp = match.team_b_players;
+        let ma = match.marcatori_a;
+        let mb = match.marcatori_b;
+        let vg = match.voti_giocatori;
+
+        if (Array.isArray(tap) && tap.includes(target)) {
+          tap = tap.map((p: string) => p === target ? sanitizedNew : p);
+          updated = true;
+        }
+        if (Array.isArray(tbp) && tbp.includes(target)) {
+          tbp = tbp.map((p: string) => p === target ? sanitizedNew : p);
+          updated = true;
+        }
+        if (ma && typeof ma === 'string' && ma.includes(target)) {
+          ma = ma.split(',').map((s: string) => {
+             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\\]\\]/g, '\\$&')}(\\s*\\(\\d+\\))?$`);
+             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNew) : s.trim();
+          }).join(', ');
+          updated = true;
+        }
+        if (mb && typeof mb === 'string' && mb.includes(target)) {
+          mb = mb.split(',').map((s: string) => {
+             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\\]\\]/g, '\\$&')}(\\s*\\(\\d+\\))?$`);
+             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNew) : s.trim();
+          }).join(', ');
+          updated = true;
+        }
+        if (vg && vg[target] !== undefined) {
+          vg[sanitizedNew] = vg[target];
+          delete vg[target];
+          updated = true;
+        }
+
+        let matchMvps = match.mvps;
+        if (Array.isArray(matchMvps) && matchMvps.includes(target)) {
+          matchMvps = matchMvps.map((p: string) => p === target ? sanitizedNew : p);
+          updated = true;
+        }
+
+        if (updated) {
+          await sql`
+            UPDATE public."Risultati"
+            SET team_a_players = ${JSON.stringify(tap)}::jsonb,
+                team_b_players = ${JSON.stringify(tbp)}::jsonb,
+                marcatori_a = ${ma ? JSON.stringify(ma) : null}::jsonb,
+                marcatori_b = ${mb ? JSON.stringify(mb) : null}::jsonb,
+                voti_giocatori = ${vg ? JSON.stringify(vg) : null}::jsonb,
+                mvps = ${matchMvps ? JSON.stringify(matchMvps) : '[]'}::jsonb
+            WHERE id = ${match.id}
+          `;
+        }
+      }
+
+      await sql`UPDATE public."Media" SET giocatore = ${sanitizedNew} WHERE giocatore = ${target}`;
+      await sql`UPDATE public."Media" SET co_giocatore = ${sanitizedNew} WHERE co_giocatore = ${target}`;
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Update Error:', error);

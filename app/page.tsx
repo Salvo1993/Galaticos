@@ -1061,7 +1061,7 @@ export default function Home() {
   // --- Data Fetch ---
   const fetchPlayers = async () => {
     try {
-      const res = await fetch('/api/giocatori');
+      const res = await fetch(`/api/giocatori?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setDbPlayers(data);
@@ -1090,9 +1090,9 @@ export default function Home() {
     const init = async () => {
       try {
         const [playersRes, sessionRes, settingsRes, matchesRes, leaderboardRes, campiRes, mediaRes] = await Promise.all([
-          fetch('/api/giocatori'),
-          fetch('/api/session'),
-          fetch('/api/settings'),
+          fetch(`/api/giocatori?t=${Date.now()}`, { cache: 'no-store' }),
+          fetch(`/api/session?t=${Date.now()}`, { cache: 'no-store' }),
+          fetch(`/api/settings?t=${Date.now()}`, { cache: 'no-store' }),
           fetch('/api/risultati', { cache: 'no-store' }),
           fetch('/api/classifica', { cache: 'no-store' }),
           fetch('/api/campi', { cache: 'no-store' }),
@@ -2073,7 +2073,7 @@ const formatResultTime = (timeStr?: string) => {
                 />
               </div>
               
-              <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>- Ore</span>
+              <span className="match-label-input" style={{ fontSize: '0.85rem', width: 'auto', display: 'inline', padding: '0 2px' }}>- Ore</span>
               
               <select 
                 value={matchLabel.match(/Ore (\d+)/)?.[1] || "21"}
@@ -2088,7 +2088,8 @@ const formatResultTime = (timeStr?: string) => {
                    setMatchLabel(newLabel);
                    saveSettings(newLabel);
                 }}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', outline: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', padding: '0 2px' }}
+                className="match-label-input"
+                style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '0', display: 'inline', width: 'auto' }}
               >
                 {[17, 18, 19, 20, 21, 22, 23].map(h => (
                    <option key={h} value={h} style={{ color: 'black' }}>{h}</option>

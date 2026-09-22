@@ -88,11 +88,17 @@ export async function POST(req: Request) {
           updated = true;
         }
         if (ma && typeof ma === 'string' && ma.includes(target)) {
-          ma = ma.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(',');
+          ma = ma.split(',').map((s: string) => {
+             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\(\\d+\\))?$`);
+             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNome) : s.trim();
+          }).join(', ');
           updated = true;
         }
         if (mb && typeof mb === 'string' && mb.includes(target)) {
-          mb = mb.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(',');
+          mb = mb.split(',').map((s: string) => {
+             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\(\\d+\\))?$`);
+             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNome) : s.trim();
+          }).join(', ');
           updated = true;
         }
         if (vg && vg[target] !== undefined) {
@@ -112,8 +118,8 @@ export async function POST(req: Request) {
             UPDATE public."Risultati"
             SET team_a_players = ${JSON.stringify(tap)}::jsonb,
                 team_b_players = ${JSON.stringify(tbp)}::jsonb,
-                marcatori_a = ${ma},
-                marcatori_b = ${mb},
+                marcatori_a = ${ma ? JSON.stringify(ma) : null}::jsonb,
+                marcatori_b = ${mb ? JSON.stringify(mb) : null}::jsonb,
                 voti_giocatori = ${vg ? JSON.stringify(vg) : null}::jsonb,
                 mvps = ${matchMvps ? JSON.stringify(matchMvps) : '[]'}::jsonb
             WHERE id = ${match.id}

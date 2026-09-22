@@ -120,6 +120,56 @@ export async function POST(req: Request) {
 
       await sql`UPDATE public."Media" SET giocatore = ${sanitizedNew} WHERE giocatore = ${target}`;
       await sql`UPDATE public."Media" SET co_giocatore = ${sanitizedNew} WHERE co_giocatore = ${target}`;
+
+      // Update LatestSession
+      const sessions = await sql`SELECT * FROM public."LatestSession" WHERE id = 1 LIMIT 1`;
+      if (sessions.length > 0) {
+        const session = sessions[0];
+        let sessionUpdated = false;
+
+        let sp = session.selected_players;
+        let c = session.clusters;
+        let t_a = session.team_a_players;
+        let t_b = session.team_b_players;
+
+        if (Array.isArray(sp) && sp.includes(target)) {
+          sp = sp.map((p: string) => p === target ? sanitizedNew : p);
+          sessionUpdated = true;
+        }
+
+        if (Array.isArray(c)) {
+          let cUpdated = false;
+          c = c.map((cluster: any) => {
+            if (Array.isArray(cluster.members) && cluster.members.includes(target)) {
+              cUpdated = true;
+              return { ...cluster, members: cluster.members.map((m: string) => m === target ? sanitizedNew : m) };
+            }
+            return cluster;
+          });
+          if (cUpdated) sessionUpdated = true;
+        }
+
+        if (Array.isArray(t_a) && t_a.includes(target)) {
+          t_a = t_a.map((p: string) => p === target ? sanitizedNew : p);
+          sessionUpdated = true;
+        }
+
+        if (Array.isArray(t_b) && t_b.includes(target)) {
+          t_b = t_b.map((p: string) => p === target ? sanitizedNew : p);
+          sessionUpdated = true;
+        }
+
+        if (sessionUpdated) {
+          await sql`
+            UPDATE public."LatestSession"
+            SET selected_players = ${JSON.stringify(sp)}::jsonb,
+                clusters = ${JSON.stringify(c)}::jsonb,
+                team_a_players = ${JSON.stringify(t_a)}::jsonb,
+                team_b_players = ${JSON.stringify(t_b)}::jsonb
+            WHERE id = 1
+          `;
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

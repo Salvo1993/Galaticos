@@ -591,6 +591,7 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  const [showGuests, setShowGuests] = useState(false);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -618,6 +619,10 @@ export default function Home() {
 
   const sortedLeaderboard = useMemo(() => {
     let sortableItems = [...leaderboard];
+    if (!showGuests) {
+       sortableItems = sortableItems.filter(item => dbPlayers.some(p => p.Nome === item.nome));
+    }
+    
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         let valA = a[sortConfig.key];
@@ -640,7 +645,7 @@ export default function Home() {
       });
     }
     return sortableItems;
-  }, [leaderboard, sortConfig, dbPlayers]);
+  }, [leaderboard, sortConfig, showGuests, dbPlayers]);
 
   const parseScorers = (scorersInput: any) => {
     if (!scorersInput) return {};
@@ -687,8 +692,13 @@ export default function Home() {
     const isDraw = scoreA === scoreB;
     const isWinnerA = scoreA > scoreB;
 
-    const teamAPlayers = lastMatch.team_a_players || [];
-    const teamBPlayers = lastMatch.team_b_players || [];
+    let teamAPlayers = lastMatch.team_a_players || [];
+    let teamBPlayers = lastMatch.team_b_players || [];
+
+    if (!showGuests) {
+      teamAPlayers = teamAPlayers.filter((p: string) => dbPlayers.some(dbp => dbp.Nome === p));
+      teamBPlayers = teamBPlayers.filter((p: string) => dbPlayers.some(dbp => dbp.Nome === p));
+    }
 
     const voti = lastMatch.voti_giocatori || {};
 
@@ -775,7 +785,7 @@ export default function Home() {
     }
 
     return { affinity, breakup, isDraw };
-  }, [matches]);
+  }, [matches, showGuests, dbPlayers]);
 
   const statsData = useMemo(() => {
     const data: Record<string, {
@@ -795,6 +805,7 @@ export default function Home() {
         const [scoreA, scoreB] = m.risultato.split('-').map(s => parseInt(s.trim(), 10) || 0);
         
         const processPlayer = (playerName: string, teamGoalsScored: number, teamGoalsConceded: number) => {
+            if (!showGuests && !dbPlayers.some(p => p.Nome === playerName)) return;
             if (!data[playerName]) {
                 data[playerName] = { name: playerName, partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiTrend: [] };
             }
@@ -827,7 +838,7 @@ export default function Home() {
     });
     
     return Object.values(data).sort((a, b) => b.golFattiSquadra - a.golFattiSquadra);
-  }, [matches]);
+  }, [matches, showGuests, dbPlayers]);
 
   const trendChartData = useMemo(() => {
     const sortedMatches = [...matches].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
@@ -3467,7 +3478,7 @@ const formatResultTime = (timeStr?: string) => {
           Classifica individuale calcolata sui risultati delle partite in archivio.
         </p>
 
-        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem' }}>
+         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
            <button 
              onClick={() => setSortConfig({ key: 'punti_assoluti', direction: 'desc' })}
              style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #34d680', background: sortConfig?.key !== 'forma_punti' ? '#34d680' : 'transparent', color: sortConfig?.key !== 'forma_punti' ? '#0d1511' : '#34d680', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
@@ -3479,6 +3490,12 @@ const formatResultTime = (timeStr?: string) => {
              style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #34d680', background: sortConfig?.key === 'forma_punti' ? '#34d680' : 'transparent', color: sortConfig?.key === 'forma_punti' ? '#0d1511' : '#34d680', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
            >
              Stato di Forma
+           </button>
+           <button 
+             onClick={() => setShowGuests(!showGuests)}
+             style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #6f9c81', background: showGuests ? 'transparent' : 'rgba(111, 156, 129, 0.15)', color: '#6f9c81', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', marginLeft: 'auto' }}
+           >
+             {showGuests ? '- Nascondi Guest' : '+ Guest'}
            </button>
         </div>
 

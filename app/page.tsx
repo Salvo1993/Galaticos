@@ -4172,7 +4172,8 @@ const formatResultTime = (timeStr?: string) => {
                         {updatingMatch?.team_a_players?.map(player => {
                           const mode = goalMode[player] || 'G';
                           const playerKey = mode === 'G' ? player : `${player} (AG)`;
-                          const count = updateScorersA[playerKey] || 0;
+                          const targetTeam = mode === 'G' ? 'A' : 'B';
+                          const count = (targetTeam === 'A' ? updateScorersA : updateScorersB)[playerKey] || 0;
                           const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
                           return (
                             <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
@@ -4191,9 +4192,9 @@ const formatResultTime = (timeStr?: string) => {
                                      <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'AG'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #ff6b6b', background: mode === 'AG' ? '#ff6b6b' : 'transparent', color: mode === 'AG' ? '#0a1922' : '#ff6b6b', cursor: 'pointer' }}>AG</button>
                                    </div>
                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                     <button type="button" onClick={() => handleUpdateGoal('A', playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
+                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
                                      <span style={{ width: '16px', textAlign: 'center', fontWeight: 'bold', color: count > 0 ? (mode === 'G' ? '#34d680' : '#ff6b6b') : '#cfe8d8' }}>{count}</span>
-                                     <button type="button" onClick={() => handleUpdateGoal('A', playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
+                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    </div>
                                  </div>
                                </div>
@@ -4213,7 +4214,8 @@ const formatResultTime = (timeStr?: string) => {
                         {updatingMatch?.team_b_players?.map(player => {
                           const mode = goalMode[player] || 'G';
                           const playerKey = mode === 'G' ? player : `${player} (AG)`;
-                          const count = updateScorersB[playerKey] || 0;
+                          const targetTeam = mode === 'G' ? 'B' : 'A';
+                          const count = (targetTeam === 'B' ? updateScorersB : updateScorersA)[playerKey] || 0;
                           const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
                           return (
                             <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
@@ -4232,9 +4234,9 @@ const formatResultTime = (timeStr?: string) => {
                                      <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'AG'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #ff6b6b', background: mode === 'AG' ? '#ff6b6b' : 'transparent', color: mode === 'AG' ? '#0a1922' : '#ff6b6b', cursor: 'pointer' }}>AG</button>
                                    </div>
                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                     <button type="button" onClick={() => handleUpdateGoal('B', playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
+                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
                                      <span style={{ width: '16px', textAlign: 'center', fontWeight: 'bold', color: count > 0 ? (mode === 'G' ? '#34d680' : '#ff6b6b') : '#cfe8d8' }}>{count}</span>
-                                     <button type="button" onClick={() => handleUpdateGoal('B', playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
+                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
                                    </div>
                                  </div>
                                </div>

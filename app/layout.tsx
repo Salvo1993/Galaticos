@@ -1,4 +1,5 @@
 import './globals.css';
+import { AuthProvider } from './components/AuthProvider';
 import type { Metadata, Viewport } from 'next';
 
 export const viewport: Viewport = {
@@ -23,7 +24,11 @@ export default function RootLayout({
       <head>
         <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSession, signIn, signOut } from "next-auth/react";
 import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -1054,7 +1055,9 @@ export default function Home() {
 
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
-  
+  const { data: session } = useSession();
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim());
+  const isAdmin = session?.user?.email ? adminEmails.includes(session.user.email) : false;
 
   const resultsRef = useRef<HTMLDivElement>(null);
   const pitchesRef = useRef<HTMLDivElement>(null);
@@ -2153,9 +2156,27 @@ const formatResultTime = (timeStr?: string) => {
               </select>
             </div>
           </div>
-          <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {session ? (
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.1)', padding: '0.3rem 0.6rem', borderRadius: '20px' }}>
+                 <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#4285F4', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                   {session.user?.email?.[0].toUpperCase()}
+                 </div>
+                 <span style={{ fontSize: '0.75rem', color: '#cfe8d8', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                   {session.user?.name || session.user?.email}
+                 </span>
+                 <button onClick={() => signOut()} style={{ background: 'none', border: 'none', color: '#e57373', cursor: 'pointer', fontSize: '0.75rem', padding: 0, fontWeight: 600 }}>Esci</button>
+               </div>
+            ) : (
+               <button onClick={() => signIn('google')} style={{ background: '#4285F4', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+                 Accedi
+               </button>
+            )}
+            <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -2177,7 +2198,9 @@ const formatResultTime = (timeStr?: string) => {
 
       {error && <div className="toast visible error" style={{position:'static', transform:'none', margin:'0 0 2rem 0'}}>{error}</div>}
 
-      <section id="giocatori">
+      {isAdmin && (
+        <>
+          <section id="giocatori">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
             <h2>👥 Giocatori</h2>
             <div style={{display:'flex', gap:'var(--space-2)'}}>
@@ -2611,6 +2634,8 @@ const formatResultTime = (timeStr?: string) => {
           <Plus size={16} />
         </button>
       </div>
+      </>
+      )}
 
       {results && (() => {
         const latestMatch = matches.length > 0 ? matches[0] : null;
@@ -3199,9 +3224,12 @@ const formatResultTime = (timeStr?: string) => {
                 })()}
 
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
-                  <button className="secondary-btn" onClick={() => generateTeams(true)}><RotateCcw size={18} /> Rimescola</button>
-                  <button className="secondary-btn" onClick={async () => {
-                      const pwd = window.prompt("Inserisci password per salvare il cambio maglie in bozza:");
+                  {isAdmin && (
+                    <button className="secondary-btn" onClick={() => generateTeams(true)}><RotateCcw size={18} /> Rimescola</button>
+                  )}
+                  {isAdmin && (
+                    <button className="secondary-btn" onClick={async () => {
+                        const pwd = window.prompt("Inserisci password per salvare il cambio maglie in bozza:");
                       if (pwd !== 'ramborambo') {
                           showToast('Password errata o operazione annullata', 'error');
                           return;
@@ -3233,16 +3261,19 @@ const formatResultTime = (timeStr?: string) => {
                           showToast('Errore nel salvataggio maglie', 'error');
                       }
                   }}><ArrowLeftRight size={18} /> Cambia Maglie</button>
+                  )}
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
                   <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-                  <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving} style={{ width: '100%', maxWidth: '400px' }}>
-                      {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                    <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving} style={{ width: '100%', maxWidth: '400px' }}>
+                        {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
+                    </button>
+                  </div>
+                )}
               </>
             );
           })()}
@@ -3400,6 +3431,7 @@ const formatResultTime = (timeStr?: string) => {
                           ✨ Partita indovinata dall'algoritmo
                         </div>
                       )}
+                      {isAdmin && (
                       <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
                         <button
                           type="button"
@@ -3437,6 +3469,7 @@ const formatResultTime = (timeStr?: string) => {
                           <span>Elimina Partita</span>
                         </button>
                       </div>
+                      )}
                     </div>
                   )}
                 </div>

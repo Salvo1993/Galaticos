@@ -1209,11 +1209,7 @@ export default function Home() {
         return;
     }
 
-    const pwd = window.prompt("Inserisci la password per aggiungere il giocatore:");
-    if (pwd !== 'ramborambo') {
-        showToast("Password non valida", "error");
-        return;
-    }
+
 
     try {
       const res = await fetch('/api/giocatori', {
@@ -1257,10 +1253,7 @@ export default function Home() {
         showToast("Nome campo obbligatorio", "error");
         return;
     }
-    if (campoPassword !== 'ramborambo') {
-        showToast("Password errata", "error");
-        return;
-    }
+    const campoPassword = 'ramborambo';
 
     try {
       const payload: any = { 
@@ -1299,10 +1292,7 @@ export default function Home() {
 
   const handleDeleteCampo = async () => {
     if (!selectedCampoIdToManage) return;
-    if (campoPassword !== 'ramborambo') {
-        showToast("Password errata", "error");
-        return;
-    }
+    const campoPassword = 'ramborambo';
     if (!confirm("Sei sicuro di voler eliminare questo campo?")) return;
 
     try {
@@ -1337,11 +1327,7 @@ export default function Home() {
       return;
     }
 
-    const pwd = window.prompt("Inserisci la password per salvare la modifica:");
-    if (pwd !== 'ramborambo') {
-        showToast("Password non valida", "error");
-        return;
-    }
+    const pwd = 'ramborambo';
 
     setIsSaving(true);
     try {
@@ -1392,11 +1378,7 @@ export default function Home() {
   const handleDeletePlayers = async () => {
     if (selectedToDelete.size === 0) return;
     
-    const pwd = window.prompt('Inserisci la password per confermare l\'eliminazione:');
-    if (pwd !== 'ramborambo') {
-      showToast('Password non valida', 'error');
-      return;
-    }
+    const pwd = 'ramborambo';
 
     setIsSaving(true);
     try {
@@ -1424,10 +1406,7 @@ export default function Home() {
 
   const handleUpdateResult = async () => {
     if (!updatingMatchId) return;
-    if (updatePassword !== 'ramborambo') {
-      showToast('Password non valida', 'error');
-      return;
-    }
+    const updatePassword = 'ramborambo';
 
     const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
     const strScorersA = stringifyScorers(updateScorersA);
@@ -1468,10 +1447,7 @@ export default function Home() {
 
   const handleDeleteMatch = async () => {
     if (!updatingMatchId) return;
-    if (updatePassword !== 'ramborambo') {
-      showToast('Password non valida', 'error');
-      return;
-    }
+    const updatePassword = 'ramborambo';
 
     if (!confirm('Sei sicuro di voler eliminare questa partita? Questa operazione è irreversibile.')) {
       return;
@@ -1909,10 +1885,7 @@ const formatResultTime = (timeStr?: string) => {
 
   const saveFormation = async () => {
     if (!results) return;
-    if (saveFormationPassword !== 'ramborambo') {
-      showToast('Password non valida', 'error');
-      return;
-    }
+    const saveFormationPassword = 'ramborambo';
     setIsSaving(true);
     const latestMatch = matches.length > 0 ? matches[0] : null;
     const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
@@ -1975,12 +1948,7 @@ const formatResultTime = (timeStr?: string) => {
   };
 
   const updatePlayerVote = async (matchId: number, playerName: string, delta: number) => {
-    // Basic password protection logic for UI interactions
-    const pass = window.prompt("Inserisci password per modificare i voti:");
-    if (pass !== 'ramborambo') {
-       showToast("Password errata", "error");
-       return;
-    }
+    const pass = 'ramborambo';
     
     try {
       const res = await fetch('/api/risultati/voti', {
@@ -3229,11 +3197,7 @@ const formatResultTime = (timeStr?: string) => {
                   )}
                   {isAdmin && (
                     <button className="secondary-btn" onClick={async () => {
-                        const pwd = window.prompt("Inserisci password per salvare il cambio maglie in bozza:");
-                      if (pwd !== 'ramborambo') {
-                          showToast('Password errata o operazione annullata', 'error');
-                          return;
-                      }
+                        const pwd = 'ramborambo';
                       const newVal = currentLightTeam === 'A' ? 'B' : 'A';
                       setUserOverrideMaglia(newVal);
                       try {
@@ -4181,16 +4145,7 @@ const formatResultTime = (timeStr?: string) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6f9c81', marginBottom: '0.3rem', fontWeight: 600 }}>Password *</label>
-              <input 
-                type="password" 
-                value={newMediaPassword} 
-                onChange={e => setNewMediaPassword(e.target.value)} 
-                placeholder="Inserisci password..." 
-                className="modal-input" 
-              />
-            </div>
+
 
             <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
               <button className="secondary-btn" onClick={() => setIsAddMediaModalOpen(false)}>Annulla</button>
@@ -4354,18 +4309,7 @@ const formatResultTime = (timeStr?: string) => {
                       </div>
                   </div>
 
-                  <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
-                        Password di sicurezza
-                      </label>
-                      <input 
-                        type="password" 
-                        value={updatePassword} 
-                        onChange={e => setUpdatePassword(e.target.value)} 
-                        placeholder="Inserisci password per salvare..." 
-                        className="modal-input" 
-                      />
-                  </div>
+
 
                   <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'space-between', alignItems: 'center' }}>
                       <button className="secondary-btn" onClick={handleDeleteMatch} style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)', padding: '0.6rem 1rem' }}>
@@ -4389,18 +4333,7 @@ const formatResultTime = (timeStr?: string) => {
                     Sei sicuro di voler eliminare questa partita? L'operazione è irreversibile.
                   </p>
                   
-                  <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
-                        Password di sicurezza
-                      </label>
-                      <input 
-                        type="password" 
-                        value={updatePassword} 
-                        onChange={e => setUpdatePassword(e.target.value)} 
-                        placeholder="Inserisci password per eliminare..." 
-                        className="modal-input" 
-                      />
-                  </div>
+
 
                   <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
                       <button className="secondary-btn" onClick={() => setIsDeleteModalOpen(false)}>Annulla</button>
@@ -4418,18 +4351,7 @@ const formatResultTime = (timeStr?: string) => {
                     Inserisci la password per salvare questa formazione.
                   </p>
                   
-                  <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
-                        Password di sicurezza
-                      </label>
-                      <input 
-                        type="password" 
-                        value={saveFormationPassword} 
-                        onChange={e => setSaveFormationPassword(e.target.value)} 
-                        placeholder="Inserisci password per salvare..." 
-                        className="modal-input" 
-                      />
-                  </div>
+
 
                   <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
                       <button className="secondary-btn" onClick={() => { setIsSaveFormationModalOpen(false); setSaveFormationPassword(''); }}>Annulla</button>
@@ -4608,16 +4530,7 @@ const formatResultTime = (timeStr?: string) => {
               />
             </div>
             
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label>Password *</label>
-              <input 
-                type="password" 
-                value={campoPassword} 
-                onChange={e => setCampoPassword(e.target.value)} 
-                placeholder="Inserisci password"
-                className="modal-input"
-              />
-            </div>
+
             
             <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)', justifyContent: 'center'}}>
               {campoModalMode === 'manage' && selectedCampoIdToManage && (

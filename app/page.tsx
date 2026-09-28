@@ -1417,8 +1417,7 @@ export default function Home() {
           marcatori_a: strScorersA,
           marcatori_b: strScorersB,
           voti_giocatori: updateVoti,
-          mvps: updateMVPs,
-          password: updatePassword
+          mvps: updateMVPs
         })
       });
 
@@ -1452,8 +1451,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: updatingMatchId,
-          password: updatePassword
+          id: updatingMatchId
         })
       });
 
@@ -1498,8 +1496,7 @@ export default function Home() {
           giocatore: newMediaAutori.length > 0 ? newMediaAutori.join(', ') : null,
           co_giocatore: newMediaCoAutori.length > 0 ? newMediaCoAutori.join(', ') : null,
           tipologia: newMediaTipologia,
-          youtube_id: youtubeId,
-          password: newMediaPassword
+          youtube_id: youtubeId
         })
       });
       const data = await res.json();
@@ -1946,7 +1943,7 @@ const formatResultTime = (timeStr?: string) => {
       const res = await fetch('/api/risultati/voti', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, playerName, delta, password: pass })
+        body: JSON.stringify({ matchId, playerName, delta })
       });
       const payload = await res.json();
       if (!res.ok || !payload.success) throw new Error(payload.error || 'Errore');

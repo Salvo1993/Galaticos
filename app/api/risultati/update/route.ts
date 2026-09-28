@@ -4,11 +4,7 @@ import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
-    const { id, risultato, marcatori_a, marcatori_b, voti_giocatori, mvps, password } = await req.json();
-
-    if (password !== 'ramborambo') {
-      return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
-    }
+    const { id, risultato, marcatori_a, marcatori_b, voti_giocatori, mvps } = await req.json();
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'ID partita mancante' }, { status: 400 });

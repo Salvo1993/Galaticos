@@ -3,11 +3,7 @@ import { sql } from '../../../../lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { id, maglia_chiara, password } = await req.json();
-
-    if (password !== 'ramborambo') {
-      return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
-    }
+    const { id, maglia_chiara } = await req.json();
 
     if (!id || !maglia_chiara) {
       return NextResponse.json({ success: false, error: 'Dati mancanti' }, { status: 400 });

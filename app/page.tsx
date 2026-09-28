@@ -1253,7 +1253,6 @@ export default function Home() {
         showToast("Nome campo obbligatorio", "error");
         return;
     }
-    const campoPassword = 'ramborambo';
 
     try {
       const payload: any = { 
@@ -1292,7 +1291,6 @@ export default function Home() {
 
   const handleDeleteCampo = async () => {
     if (!selectedCampoIdToManage) return;
-    const campoPassword = 'ramborambo';
     if (!confirm("Sei sicuro di voler eliminare questo campo?")) return;
 
     try {
@@ -1327,7 +1325,6 @@ export default function Home() {
       return;
     }
 
-    const pwd = 'ramborambo';
 
     setIsSaving(true);
     try {
@@ -1378,7 +1375,6 @@ export default function Home() {
   const handleDeletePlayers = async () => {
     if (selectedToDelete.size === 0) return;
     
-    const pwd = 'ramborambo';
 
     setIsSaving(true);
     try {
@@ -1406,7 +1402,6 @@ export default function Home() {
 
   const handleUpdateResult = async () => {
     if (!updatingMatchId) return;
-    const updatePassword = 'ramborambo';
 
     const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
     const strScorersA = stringifyScorers(updateScorersA);
@@ -1447,7 +1442,6 @@ export default function Home() {
 
   const handleDeleteMatch = async () => {
     if (!updatingMatchId) return;
-    const updatePassword = 'ramborambo';
 
     if (!confirm('Sei sicuro di voler eliminare questa partita? Questa operazione è irreversibile.')) {
       return;
@@ -1885,7 +1879,6 @@ const formatResultTime = (timeStr?: string) => {
 
   const saveFormation = async () => {
     if (!results) return;
-    const saveFormationPassword = 'ramborambo';
     setIsSaving(true);
     const latestMatch = matches.length > 0 ? matches[0] : null;
     const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
@@ -1948,7 +1941,6 @@ const formatResultTime = (timeStr?: string) => {
   };
 
   const updatePlayerVote = async (matchId: number, playerName: string, delta: number) => {
-    const pass = 'ramborambo';
     
     try {
       const res = await fetch('/api/risultati/voti', {
@@ -3197,14 +3189,13 @@ const formatResultTime = (timeStr?: string) => {
                   )}
                   {isAdmin && (
                     <button className="secondary-btn" onClick={async () => {
-                        const pwd = 'ramborambo';
                       const newVal = currentLightTeam === 'A' ? 'B' : 'A';
                       setUserOverrideMaglia(newVal);
                       try {
                           const res = await fetch('/api/session/update-maglia', {
                               method: 'POST',
                               headers: {'Content-Type': 'application/json'},
-                              body: JSON.stringify({ password: pwd, maglia_chiara: newVal })
+                              body: JSON.stringify({ maglia_chiara: newVal })
                           });
                           if (!res.ok) throw new Error();
 
@@ -3214,7 +3205,7 @@ const formatResultTime = (timeStr?: string) => {
                               await fetch('/api/risultati/update-maglia', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ password: pwd, matchId: latestMatch.id, lightTeam: newVal })
+                                  body: JSON.stringify({ matchId: latestMatch.id, lightTeam: newVal })
                               });
                               setMatches(matches.map(m => m.id === latestMatch.id ? { ...m, maglia_chiara: newVal } : m));
                           }

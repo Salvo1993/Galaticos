@@ -4,11 +4,7 @@ import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
-    const { matchId, playerName, delta, password } = await req.json();
-
-    if (password !== 'ramborambo') {
-      return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
-    }
+    const { matchId, playerName, delta } = await req.json();
 
     if (!matchId || !playerName || delta === undefined) {
       return NextResponse.json({ success: false, error: 'Dati mancanti' }, { status: 400 });

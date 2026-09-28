@@ -21,11 +21,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { partita_id, giocatore, co_giocatore, tipologia, youtube_id, password } = body;
-    
-    if (password !== 'ramborambo') {
-      return NextResponse.json({ success: false, error: 'Password non valida' }, { status: 401 });
-    }
+    const { partita_id, giocatore, co_giocatore, tipologia, youtube_id } = body;
     
     if (!partita_id || !tipologia || !youtube_id) {
       return NextResponse.json({ success: false, error: 'Parametri mancanti' }, { status: 400 });

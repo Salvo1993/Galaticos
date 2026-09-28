@@ -1136,6 +1136,10 @@ export default function Home() {
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
 
+        if (savedMatch && savedMatch.Stadium) {
+            setSelectedStadium(savedMatch.Stadium);
+        }
+
         if (Array.isArray(matchesData) && matchesData.length > 0 && !mediaFilterPartita) {
           const matchWithMedia = matchesData.find(m => 
             Array.isArray(mediaData) && mediaData.some(media => media.partita_id === m.id)
@@ -2798,7 +2802,7 @@ const formatResultTime = (timeStr?: string) => {
                             if (target.src.endsWith('.jpg')) {
                                 target.src = `/players/${name}.png`;
                             } else {
-                                target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '%233498db' : '%23e67e22'}" stroke="white" stroke-width="2"/></svg>`;
+                                target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '#3498db' : '#e67e22'}" stroke="white" stroke-width="2"/></svg>`)}`;
                             }
                           }}
                         />

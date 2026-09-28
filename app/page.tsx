@@ -1745,12 +1745,52 @@ const formatResultTime = (timeStr?: string) => {
     }));
   };
 
-  const generateTeams = async () => {
+  const generateTeams = async (forceShuffle: boolean | any = false) => {
+    const isShuffleForce = forceShuffle === true;
     setUserOverrideMaglia(null);
     // Validation
     if (selectedPlayers.some(p => !p)) {
       showToast(`Seleziona tutti e ${matchFormat * 2} i nomi prima di continuare`, 'error');
       return;
+    }
+
+    // Override logica di "Sostituzione Volante"
+    if (!isShuffleForce && matches && matches.length > 0) {
+       const latestMatch = matches[0];
+       const isToday = new Date(latestMatch.data).toDateString() === new Date().toDateString();
+       
+       if (isToday && latestMatch.team_a_players && latestMatch.team_b_players && (latestMatch.team_a_players.length + latestMatch.team_b_players.length === matchFormat * 2)) {
+          const oldPlayers = [...latestMatch.team_a_players, ...latestMatch.team_b_players];
+          const inCommon = selectedPlayers.filter(p => oldPlayers.includes(p));
+          
+          if (inCommon.length >= (matchFormat * 2) - 3 && inCommon.length < (matchFormat * 2)) {
+             const missingOld = oldPlayers.filter(p => !selectedPlayers.includes(p)); 
+             const subentrati = selectedPlayers.filter(p => !oldPlayers.includes(p));
+             
+             if (missingOld.length === subentrati.length) {
+                const teamA = [...latestMatch.team_a_players];
+                const teamB = [...latestMatch.team_b_players];
+                
+                for (let i = 0; i < missingOld.length; i++) {
+                   const oldP = missingOld[i];
+                   const newP = subentrati[i];
+                   
+                   const idxA = teamA.indexOf(oldP);
+                   if (idxA !== -1) teamA[idxA] = newP;
+                   
+                   const idxB = teamB.indexOf(oldP);
+                   if (idxB !== -1) teamB[idxB] = newP;
+                }
+                
+                const newResults = { teamA, teamB };
+                setResults(newResults);
+                await saveSession(newResults);
+                setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                showToast(`Sostituzione Volante ( ${missingOld.join(', ')} → ${subentrati.join(', ')} ) applicata!`, 'success');
+                return;
+             }
+          }
+       }
     }
 
     for (const cluster of clusters) {
@@ -3155,7 +3195,7 @@ const formatResultTime = (timeStr?: string) => {
                 })()}
 
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
-                  <button className="secondary-btn" onClick={generateTeams}><RotateCcw size={18} /> Rimescola</button>
+                  <button className="secondary-btn" onClick={() => generateTeams(true)}><RotateCcw size={18} /> Rimescola</button>
                   <button className="secondary-btn" onClick={async () => {
                       const pwd = window.prompt("Inserisci password per salvare il cambio maglie in bozza:");
                       if (pwd !== 'ramborambo') {

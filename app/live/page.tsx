@@ -198,10 +198,22 @@ export default function LiveMatchWear() {
     };
 
     setMatch(updatedMatch);
-    // Modal stays open so the user can keep adjusting or see the result!
     
+    // Salviamo SEMPRE in locale IMMEDIATAMENTE. In questo modo se il dispositivo
+    // si spegne o la rete cade prima che fetch fallisca, non perdiamo i gol.
+    localStorage.setItem('pendingLiveMatch', JSON.stringify(updatedMatch));
+
     // Sync DB
     syncMatch(updatedMatch);
+  };
+
+  const manualSync = () => {
+    const pending = localStorage.getItem('pendingLiveMatch');
+    if (pending) {
+        syncMatch(JSON.parse(pending));
+    } else if (match) {
+        syncMatch(match);
+    }
   };
 
   // UI for player selection
@@ -285,6 +297,12 @@ export default function LiveMatchWear() {
             <div style={{position: 'absolute', top: '-5px', right: '-5px', background: '#66bb6a', borderRadius: '50%', width: '14px', height: '14px', border: '2px solid #333'}} />
         )}
       </div>
+
+      {syncStatus === 'offline' && (
+        <button onClick={manualSync} style={styles.manualSyncBtn}>
+          Sincronizza Dati!
+        </button>
+      )}
       
       {/* LEFT BUTTON - TEAM A */}
       <div style={styles.halfBtnLeft} onClick={() => setSelectedTeam('A')}>
@@ -472,5 +490,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     minWidth: '20px',
     textAlign: 'center'
+  },
+  manualSyncBtn: {
+    position: 'absolute',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#ef5350',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '20px',
+    padding: '10px 20px',
+    fontWeight: 'bold',
+    fontSize: '1rem',
+    zIndex: 100,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.5)'
   }
 };

@@ -3055,7 +3055,11 @@ const formatResultTime = (timeStr?: string) => {
                       predGolB = avg;
                   }
 
-                  const totalStorico = synergyA.matchCount + synergyB.matchCount;
+                  const uniqueMatchKeys = new Set([
+                    ...synergyA.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.result),
+                    ...synergyB.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.result)
+                  ]);
+                  const totalStorico = uniqueMatchKeys.size;
                   let reliabilityText = 'Bassa';
                   let reliabilityColor = '#ff4444';
                   if (totalStorico >= 16) {

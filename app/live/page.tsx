@@ -18,6 +18,8 @@ export default function LiveMatchWear() {
   const [match, setMatch] = useState<LiveMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState<'A' | 'B' | null>(null);
+  const [isAutogolSelection, setIsAutogolSelection] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'online' | 'offline'>('online');
   
   const fetchMatch = async () => {
     try {
@@ -25,9 +27,27 @@ export default function LiveMatchWear() {
       if (res.ok) {
         const data = await res.json();
         setMatch(data);
+        
+        // If we just loaded and have a pending update in localStorage, sync it!
+        const pending = localStorage.getItem('pendingLiveMatch');
+        if (pending) {
+            const pendingMatch = JSON.parse(pending);
+            if (pendingMatch.id === data.id) {
+                // local state is ahead of DB? Actually, better to just push it
+                syncMatch(pendingMatch);
+            } else {
+                localStorage.removeItem('pendingLiveMatch');
+            }
+        }
       }
     } catch (e) {
       console.error(e);
+      // If offline on load, try to load from localStorage
+      const pending = localStorage.getItem('pendingLiveMatch');
+      if (pending) {
+          setMatch(JSON.parse(pending));
+          setSyncStatus('offline');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,12 +69,49 @@ export default function LiveMatchWear() {
     };
     
     requestWakeLock();
+
+    const handleOnline = () => {
+      setSyncStatus('online');
+      const pending = localStorage.getItem('pendingLiveMatch');
+      if (pending) {
+          syncMatch(JSON.parse(pending));
+      }
+    };
+
+    const handleOffline = () => setSyncStatus('offline');
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     return () => {
       if (wakeLock) {
         wakeLock.release().catch(console.error);
       }
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const syncMatch = async (matchData: LiveMatch) => {
+    try {
+      await fetch('/api/live-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: matchData.id,
+          risultato: matchData.risultato,
+          marcatori_a: matchData.marcatori_a,
+          marcatori_b: matchData.marcatori_b,
+        })
+      });
+      setSyncStatus('online');
+      localStorage.removeItem('pendingLiveMatch');
+    } catch (e) {
+      console.error("Sync failed, will retry", e);
+      setSyncStatus('offline');
+      localStorage.setItem('pendingLiveMatch', JSON.stringify(matchData));
+    }
+  };
 
   if (loading) {
     return <div style={styles.center}>Caricamento...</div>;
@@ -122,59 +179,70 @@ export default function LiveMatchWear() {
     const strMarcsA = stringifyScorers(marcsA);
     const strMarcsB = stringifyScorers(marcsB);
 
-    setMatch({
+    const updatedMatch = {
       ...match,
       risultato: newRisultato,
       marcatori_a: strMarcsA as any,
       marcatori_b: strMarcsB as any,
-    });
-    
+    };
+
+    setMatch(updatedMatch);
     setSelectedTeam(null); // back to main screen
+    setIsAutogolSelection(false);
 
     // Sync DB
-    await fetch('/api/live-match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: match.id,
-        risultato: newRisultato,
-        marcatori_a: strMarcsA,
-        marcatori_b: strMarcsB,
-      })
-    });
+    syncMatch(updatedMatch);
   };
 
   // UI for player selection
   if (selectedTeam) {
-    const players = selectedTeam === 'A' ? match.team_a_players : match.team_b_players;
-    const teamColor = selectedTeam === 'A' ? '#2196f3' : '#ff9800'; // Falchi : Aquile
+    const isTeamA = selectedTeam === 'A';
+    // Se isAutogolSelection è true, mostriamo i giocatori della squadra AVVERSARIA
+    const players = isAutogolSelection 
+        ? (isTeamA ? match.team_b_players : match.team_a_players)
+        : (isTeamA ? match.team_a_players : match.team_b_players);
+    
+    const teamColor = isTeamA ? '#2196f3' : '#ff9800'; // Falchi : Aquile
     
     return (
       <div style={styles.containerSelection}>
         <div style={styles.header}>
-           <button style={styles.backBtn} onClick={() => setSelectedTeam(null)}>
+           <button style={styles.backBtn} onClick={() => {
+               if (isAutogolSelection) setIsAutogolSelection(false);
+               else setSelectedTeam(null);
+           }}>
              <X size={24} color="#fff" />
            </button>
-           <span style={{color: teamColor, fontWeight: 'bold', fontSize: '1.2rem'}}>Chi ha segnato?</span>
+           <span style={{color: teamColor, fontWeight: 'bold', fontSize: '1.2rem'}}>
+               {isAutogolSelection ? 'Chi ha fatto autogol?' : 'Chi ha segnato?'}
+           </span>
         </div>
         
         <div style={styles.scrollList}>
           {players.map(p => (
             <button 
               key={p} 
-              style={{...styles.playerBtn, borderLeft: `6px solid ${teamColor}`}}
-              onClick={() => handleGoal(p, selectedTeam)}
+              style={{...styles.playerBtn, borderLeft: `6px solid ${isAutogolSelection ? '#ef5350' : teamColor}`}}
+              onClick={() => {
+                  if (isAutogolSelection) {
+                      handleGoal(`Autogol ${p}`, selectedTeam);
+                  } else {
+                      handleGoal(p, selectedTeam);
+                  }
+              }}
             >
               {p}
             </button>
           ))}
           {/* Option for Auto Goal */}
-          <button 
-            style={{...styles.playerBtn, borderLeft: `6px solid #ef5350`}}
-            onClick={() => handleGoal('Autogol', selectedTeam)}
-          >
-            Autogol
-          </button>
+          {!isAutogolSelection && (
+            <button 
+              style={{...styles.playerBtn, borderLeft: `6px solid #ef5350`}}
+              onClick={() => setIsAutogolSelection(true)}
+            >
+              Autogol
+            </button>
+          )}
         </div>
       </div>
     );
@@ -190,6 +258,9 @@ export default function LiveMatchWear() {
         <span style={{color: '#64b5f6'}}>{score.a}</span>
         <span style={{color: '#fff', fontSize: '1.5rem', margin: '0 10px'}}>-</span>
         <span style={{color: '#ffb74d'}}>{score.b}</span>
+        {syncStatus === 'offline' && (
+            <div style={{position: 'absolute', top: '-10px', right: '-10px', background: 'red', borderRadius: '50%', width: '12px', height: '12px'}} />
+        )}
       </div>
       
       {/* LEFT BUTTON - TEAM A */}

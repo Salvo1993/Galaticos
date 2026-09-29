@@ -1056,8 +1056,8 @@ export default function Home() {
   const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
   const { data: session } = useSession();
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim());
-  const isAdmin = session?.user?.email ? adminEmails.includes(session.user.email) : false;
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase());
+  const isAdmin = session?.user?.email ? adminEmails.includes(session.user.email.trim().toLowerCase()) : false;
 
   const resultsRef = useRef<HTMLDivElement>(null);
   const pitchesRef = useRef<HTMLDivElement>(null);

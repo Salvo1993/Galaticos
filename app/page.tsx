@@ -3017,15 +3017,16 @@ const formatResultTime = (timeStr?: string) => {
                   let finalPredA = baseAvg + (scartoGol / 2);
                   let finalPredB = baseAvg - (scartoGol / 2);
                   
-                  if (favorite === 'A' && finalPredA <= finalPredB) finalPredA = finalPredB + 1.2;
-                  if (favorite === 'B' && finalPredB <= finalPredA) finalPredB = finalPredA + 1.2;
-                  if (favorite === 'X') {
-                      finalPredA = (finalPredA + finalPredB) / 2;
-                      finalPredB = finalPredA;
-                  }
+                  let predGolA = Math.round(finalPredA);
+                  let predGolB = Math.round(finalPredB);
 
-                  const predGolA = Math.round(finalPredA);
-                  const predGolB = Math.round(finalPredB);
+                  if (favorite === 'A' && predGolA <= predGolB) predGolA = predGolB + 1;
+                  if (favorite === 'B' && predGolB <= predGolA) predGolB = predGolA + 1;
+                  if (favorite === 'X' && predGolA !== predGolB) {
+                      const avg = Math.round((predGolA + predGolB) / 2);
+                      predGolA = avg;
+                      predGolB = avg;
+                  }
 
                   const totalStorico = synergyA.matchCount + synergyB.matchCount;
                   let reliabilityText = 'Bassa';

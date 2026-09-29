@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 interface LiveMatch {
   id: number;
@@ -216,14 +216,15 @@ export default function LiveMatchWear() {
     
     return (
       <div style={styles.containerSelection}>
-        <div style={styles.header}>
-           <button style={styles.backBtn} onClick={() => {
+        <div 
+           style={{...styles.header, cursor: 'pointer', background: '#333', padding: '10px', borderRadius: '20px', justifyContent: 'center'}}
+           onClick={() => {
                if (isAutogolSelection) setIsAutogolSelection(false);
                else setSelectedTeam(null);
-           }}>
-             <X size={24} color="#fff" />
-           </button>
-           <span style={{color: teamColor, fontWeight: 'bold', fontSize: '1.2rem'}}>
+           }}
+        >
+           <ChevronLeft size={24} color={teamColor} />
+           <span style={{color: teamColor, fontWeight: 'bold', fontSize: '1.2rem', marginLeft: '5px'}}>
                {isAutogolSelection ? 'Chi ha fatto autogol?' : 'Chi ha segnato?'}
            </span>
         </div>

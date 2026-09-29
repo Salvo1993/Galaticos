@@ -197,10 +197,10 @@ export default function LiveMatchWear() {
   // UI for player selection
   if (selectedTeam) {
     const isTeamA = selectedTeam === 'A';
-    // Se isAutogolSelection è true, mostriamo i giocatori della squadra AVVERSARIA
-    const players = isAutogolSelection 
-        ? (isTeamA ? match.team_b_players : match.team_a_players)
-        : (isTeamA ? match.team_a_players : match.team_b_players);
+    // I giocatori mostrati sono sempre quelli della squadra selezionata.
+    // Se isAutogolSelection è true, significa che un giocatore di questa squadra ha fatto autogol, 
+    // quindi il punto andrà all'avversario.
+    const players = isTeamA ? match.team_a_players : match.team_b_players;
     
     const teamColor = isTeamA ? '#2196f3' : '#ff9800'; // Falchi : Aquile
     
@@ -225,7 +225,9 @@ export default function LiveMatchWear() {
               style={{...styles.playerBtn, borderLeft: `6px solid ${isAutogolSelection ? '#ef5350' : teamColor}`}}
               onClick={() => {
                   if (isAutogolSelection) {
-                      handleGoal(`Autogol ${p}`, selectedTeam);
+                      // Se la squadra A fa autogol, il punto va alla B (e viceversa)
+                      const opposingTeam = isTeamA ? 'B' : 'A';
+                      handleGoal(`Autogol ${p}`, opposingTeam);
                   } else {
                       handleGoal(p, selectedTeam);
                   }
@@ -259,7 +261,10 @@ export default function LiveMatchWear() {
         <span style={{color: '#fff', fontSize: '1.5rem', margin: '0 10px'}}>-</span>
         <span style={{color: '#ffb74d'}}>{score.b}</span>
         {syncStatus === 'offline' && (
-            <div style={{position: 'absolute', top: '-10px', right: '-10px', background: 'red', borderRadius: '50%', width: '12px', height: '12px'}} />
+            <div style={{position: 'absolute', top: '-5px', right: '-5px', background: '#ef5350', borderRadius: '50%', width: '14px', height: '14px', border: '2px solid #333'}} />
+        )}
+        {syncStatus === 'online' && (
+            <div style={{position: 'absolute', top: '-5px', right: '-5px', background: '#66bb6a', borderRadius: '50%', width: '14px', height: '14px', border: '2px solid #333'}} />
         )}
       </div>
       

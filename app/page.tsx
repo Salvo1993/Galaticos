@@ -2109,7 +2109,7 @@ const formatResultTime = (timeStr?: string) => {
                    saveSettings(newLabel);
                 }}
                 className="match-label-input"
-                style={{ background: 'transparent', border: 'none', outline: 'none', cursor: isAdmin ? 'pointer' : 'default', fontSize: '0.85rem', padding: '0', display: 'inline', width: 'auto', appearance: isAdmin ? 'auto' : 'none', WebkitAppearance: isAdmin ? 'auto' : 'none', pointerEvents: isAdmin ? 'auto' : 'none' }}
+                style={{ background: 'transparent', border: 'none', outline: 'none', cursor: isAdmin ? 'pointer' : 'default', fontSize: '0.85rem', padding: '0', display: 'inline', width: 'auto', appearance: isAdmin ? undefined : 'none', WebkitAppearance: isAdmin ? undefined : 'none', pointerEvents: isAdmin ? 'auto' : 'none' }}
               >
                 {[17, 18, 19, 20, 21, 22, 23].map(h => (
                    <option key={h} value={h} style={{ color: 'black' }}>{h}</option>

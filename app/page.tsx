@@ -2915,7 +2915,7 @@ const formatResultTime = (timeStr?: string) => {
                     let weightedGolFatti = 0;
                     let weightedGolSubiti = 0;
                     let totalWeight = 0;
-                    const matchDetails: { overlap: number, result: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
+                    const matchDetails: { overlap: number, result: string, originalResult: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
 
                     validMatches.forEach(m => {
                       const mDate = new Date(m.data);

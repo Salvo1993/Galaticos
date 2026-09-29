@@ -3747,17 +3747,19 @@ const formatResultTime = (timeStr?: string) => {
               <p className="section-subtitle" style={{ margin: 0 }}>
                 Esplora i video delle partite. Puoi filtrare per partita, giocatore o tipologia.
               </p>
-              <button 
-                className="create-teams-btn" 
-                style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                onClick={() => {
-                  if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
-                  setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
-                  setIsAddMediaModalOpen(true);
-                }}
-              >
-                <Plus size={16} /> Aggiungi Media
-              </button>
+              {isAdmin && (
+                <button 
+                  className="create-teams-btn" 
+                  style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  onClick={() => {
+                    if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
+                    setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
+                    setIsAddMediaModalOpen(true);
+                  }}
+                >
+                  <Plus size={16} /> Aggiungi Media
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem', position: 'relative' }}>

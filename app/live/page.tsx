@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Trophy, Plus, Minus } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface LiveMatch {
   id: number;
@@ -109,19 +109,19 @@ export default function LiveMatchWear() {
     const teamColor = selectedTeam === 'A' ? '#2196f3' : '#ff9800'; // Falchi : Aquile
     
     return (
-      <div style={styles.container}>
+      <div style={styles.containerSelection}>
         <div style={styles.header}>
            <button style={styles.backBtn} onClick={() => setSelectedTeam(null)}>
-             <X size={20} color="#fff" />
+             <X size={24} color="#fff" />
            </button>
-           <span style={{color: teamColor, fontWeight: 'bold'}}>Chi ha segnato?</span>
+           <span style={{color: teamColor, fontWeight: 'bold', fontSize: '1.2rem'}}>Chi ha segnato?</span>
         </div>
         
         <div style={styles.scrollList}>
           {players.map(p => (
             <button 
               key={p} 
-              style={{...styles.playerBtn, borderLeft: `4px solid ${teamColor}`}}
+              style={{...styles.playerBtn, borderLeft: `6px solid ${teamColor}`}}
               onClick={() => handleGoal(p, selectedTeam)}
             >
               {p}
@@ -129,7 +129,7 @@ export default function LiveMatchWear() {
           ))}
           {/* Option for Auto Goal */}
           <button 
-            style={{...styles.playerBtn, borderLeft: `4px solid #ef5350`}}
+            style={{...styles.playerBtn, borderLeft: `6px solid #ef5350`}}
             onClick={() => handleGoal('Autogol', selectedTeam)}
           >
             Autogol
@@ -139,26 +139,28 @@ export default function LiveMatchWear() {
     );
   }
 
-  // Main UI
+  const formatTeamName = (name: string) => name.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+
+  // Main UI - Split Left/Right
   return (
-    <div style={styles.container}>
-      {/* SCORE */}
-      <div style={styles.scoreContainer}>
-        <div style={{...styles.scoreNumber, color: '#2196f3'}}>{score.a}</div>
-        <div style={{color: '#fff', fontSize: '1.2rem'}}>-</div>
-        <div style={{...styles.scoreNumber, color: '#ff9800'}}>{score.b}</div>
+    <div style={styles.containerSplit}>
+      {/* SCORE FLOATING ON TOP */}
+      <div style={styles.scoreOverlay}>
+        <span style={{color: '#64b5f6'}}>{score.a}</span>
+        <span style={{color: '#fff', fontSize: '1.5rem', margin: '0 10px'}}>-</span>
+        <span style={{color: '#ffb74d'}}>{score.b}</span>
       </div>
       
-      {/* TEAM BUTTONS */}
-      <div style={styles.buttonsContainer}>
-        <button style={{...styles.teamBtn, backgroundColor: 'rgba(33, 150, 243, 0.2)', borderColor: '#2196f3'}} onClick={() => setSelectedTeam('A')}>
-           <span style={{color: '#2196f3', fontSize: '1.5rem'}}>+</span>
-           <span style={{color: '#2196f3', fontSize: '0.8rem', marginTop: '4px'}}>Gol {match.team_a_name}</span>
-        </button>
-        <button style={{...styles.teamBtn, backgroundColor: 'rgba(255, 152, 0, 0.2)', borderColor: '#ff9800'}} onClick={() => setSelectedTeam('B')}>
-           <span style={{color: '#ff9800', fontSize: '1.5rem'}}>+</span>
-           <span style={{color: '#ff9800', fontSize: '0.8rem', marginTop: '4px'}}>Gol {match.team_b_name}</span>
-        </button>
+      {/* LEFT BUTTON - TEAM A */}
+      <div style={styles.halfBtnLeft} onClick={() => setSelectedTeam('A')}>
+         <span style={styles.teamNameText}>{formatTeamName(match.team_a_name)}</span>
+         <span style={styles.plusIcon}>+</span>
+      </div>
+
+      {/* RIGHT BUTTON - TEAM B */}
+      <div style={styles.halfBtnRight} onClick={() => setSelectedTeam('B')}>
+         <span style={styles.teamNameText}>{formatTeamName(match.team_b_name)}</span>
+         <span style={styles.plusIcon}>+</span>
       </div>
     </div>
   );
@@ -176,48 +178,82 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#fff',
     fontFamily: 'sans-serif'
   },
-  container: {
+  containerSelection: {
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
     height: '100vh',
     width: '100vw',
-    backgroundColor: '#000', // Black for AMOLED
+    backgroundColor: '#000',
     color: '#fff',
     fontFamily: 'sans-serif',
-    padding: '20px',
+    padding: '25px 15px',
     boxSizing: 'border-box'
   },
-  scoreContainer: {
+  containerSplit: {
+    display: 'flex',
+    flexDirection: 'row',
+    height: '100vh',
+    width: '100vw',
+    backgroundColor: '#000',
+    color: '#fff',
+    fontFamily: 'sans-serif',
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  scoreOverlay: {
+    position: 'absolute',
+    top: '15%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '15px',
-    marginBottom: '20px'
-  },
-  scoreNumber: {
-    fontSize: '3rem',
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    padding: '5px 15px',
+    borderRadius: '30px',
+    fontSize: '2.2rem',
     fontWeight: 'bold',
+    border: '1px solid #333'
   },
-  buttonsContainer: {
+  halfBtnLeft: {
+    flex: 1,
+    backgroundColor: '#1565c0', // deeper blue
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
-    width: '100%'
-  },
-  teamBtn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: '15px',
-    borderRadius: '25px',
-    border: '2px solid',
-    borderStyle: 'solid', // Make sure border is solid
-    background: 'transparent',
-    width: '100%',
-    cursor: 'pointer'
+    alignItems: 'center',
+    paddingRight: '15px',
+    paddingTop: '30px',
+    cursor: 'pointer',
+    borderRight: '2px solid #000'
+  },
+  halfBtnRight: {
+    flex: 1,
+    backgroundColor: '#ef6c00', // deeper orange
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: '15px',
+    paddingTop: '30px',
+    cursor: 'pointer',
+    borderLeft: '2px solid #000'
+  },
+  teamNameText: {
+    fontSize: '1.4rem',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    wordWrap: 'break-word',
+    maxWidth: '90%',
+    lineHeight: '1.1',
+    textShadow: '1px 1px 3px rgba(0,0,0,0.5)'
+  },
+  plusIcon: {
+    fontSize: '3.5rem',
+    marginTop: '10px',
+    opacity: 0.9,
+    fontWeight: '300'
   },
   header: {
     display: 'flex',
@@ -230,30 +266,33 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: '#333',
     border: 'none',
     borderRadius: '50%',
-    width: '36px',
-    height: '36px',
+    width: '44px',
+    height: '44px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    flexShrink: 0
   },
   scrollList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '10px',
     width: '100%',
     overflowY: 'auto',
-    maxHeight: '70vh',
-    paddingRight: '5px'
+    flex: 1,
+    paddingRight: '5px',
+    paddingBottom: '20px'
   },
   playerBtn: {
     background: '#1a1a1a',
     border: 'none',
-    borderRadius: '8px',
-    padding: '15px',
+    borderRadius: '12px',
+    padding: '20px 15px',
     color: '#fff',
     textAlign: 'left',
-    fontSize: '0.9rem',
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
     cursor: 'pointer'
   }
 };

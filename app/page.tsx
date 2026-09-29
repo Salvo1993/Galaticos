@@ -863,7 +863,17 @@ export default function Home() {
   }, [matches]);
 
   const historicalPredictions = useMemo(() => {
-    const validMatches = [...matches].filter(m => m.risultato && m.risultato !== '0-0').sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    const uniqueMatchesMap = new Set<string>();
+    const validMatches = [...matches].filter(m => {
+        if (!m.risultato || m.risultato === '0-0') return false;
+        const teamA = (m.team_a_name || '').trim();
+        const teamB = (m.team_b_name || '').trim();
+        const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
+        let key = teamA < teamB ? `${teamA}_${teamB}_${scoreA}-${scoreB}` : `${teamB}_${teamA}_${scoreB}-${scoreA}`;
+        if (uniqueMatchesMap.has(key)) return false;
+        uniqueMatchesMap.add(key);
+        return true;
+    }).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
     const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean }> = {};
     let correctCount = 0;
     let totalCount = 0;
@@ -2885,7 +2895,17 @@ const formatResultTime = (timeStr?: string) => {
                 {/* --- PREVISIONE MATCH --- */}
                 {(() => {
                   // Algoritmo di previsione basato su stats individuali + sinergia storica
-                  const validMatches = matches.filter(m => m.risultato && m.risultato !== '0-0');
+                  const uniqueMatchesMap = new Set<string>();
+                  const validMatches = matches.filter(m => {
+                      if (!m.risultato || m.risultato === '0-0') return false;
+                      const teamA = (m.team_a_name || '').trim();
+                      const teamB = (m.team_b_name || '').trim();
+                      const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
+                      let key = teamA < teamB ? `${teamA}_${teamB}_${scoreA}-${scoreB}` : `${teamB}_${teamA}_${scoreB}-${scoreA}`;
+                      if (uniqueMatchesMap.has(key)) return false;
+                      uniqueMatchesMap.add(key);
+                      return true;
+                  });
                   
                   // Calcola la sinergia storica per una squadra
                   const getTeamSynergy = (teamPlayers: string[]) => {

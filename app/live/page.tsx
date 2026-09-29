@@ -72,20 +72,61 @@ export default function LiveMatchWear() {
 
   const score = parseScore(match.risultato);
 
+  const parseScorers = (scorersInput: any) => {
+    if (!scorersInput) return {};
+    let scorersStr = '';
+    if (Array.isArray(scorersInput)) {
+      scorersStr = scorersInput.join(', ');
+    } else if (typeof scorersInput === 'string') {
+      scorersStr = scorersInput;
+    } else {
+      return {};
+    }
+
+    const map: Record<string, number> = {};
+    scorersStr.split(',').forEach(s => {
+      const trimmed = s.trim();
+      if (!trimmed) return;
+      const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+      if (match) {
+        const name = match[1].trim();
+        const count = match[2] ? parseInt(match[2], 10) : 1;
+        map[name] = (map[name] || 0) + count;
+      }
+    });
+    return map;
+  };
+
+  const stringifyScorers = (map: Record<string, number>) => {
+    return Object.entries(map)
+      .filter(([_, count]) => count > 0)
+      .map(([name, count]) => count > 1 ? `${name} (${count})` : name)
+      .join(', ');
+  };
+
   const handleGoal = async (player: string, team: 'A' | 'B') => {
     // Optimistic update
     const newScoreA = team === 'A' ? score.a + 1 : score.a;
     const newScoreB = team === 'B' ? score.b + 1 : score.b;
     const newRisultato = `${newScoreA}-${newScoreB}`;
     
-    const marcs = team === 'A' ? (match.marcatori_a || []) : (match.marcatori_b || []);
-    const newMarcs = [...marcs, player];
+    const marcsA = parseScorers(match.marcatori_a);
+    const marcsB = parseScorers(match.marcatori_b);
+
+    if (team === 'A') {
+        marcsA[player] = (marcsA[player] || 0) + 1;
+    } else {
+        marcsB[player] = (marcsB[player] || 0) + 1;
+    }
+
+    const strMarcsA = stringifyScorers(marcsA);
+    const strMarcsB = stringifyScorers(marcsB);
 
     setMatch({
       ...match,
       risultato: newRisultato,
-      marcatori_a: team === 'A' ? newMarcs : match.marcatori_a,
-      marcatori_b: team === 'B' ? newMarcs : match.marcatori_b,
+      marcatori_a: strMarcsA as any,
+      marcatori_b: strMarcsB as any,
     });
     
     setSelectedTeam(null); // back to main screen
@@ -97,8 +138,8 @@ export default function LiveMatchWear() {
       body: JSON.stringify({
         id: match.id,
         risultato: newRisultato,
-        marcatori_a: team === 'A' ? newMarcs : match.marcatori_a,
-        marcatori_b: team === 'B' ? newMarcs : match.marcatori_b,
+        marcatori_a: strMarcsA,
+        marcatori_b: strMarcsB,
       })
     });
   };
@@ -139,7 +180,7 @@ export default function LiveMatchWear() {
     );
   }
 
-  const formatTeamName = (name: string) => name.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+  const formatTeamName = (name: string) => name ? name.replace(/[^a-zA-Z0-9 ]/g, '').trim() : '';
 
   // Main UI - Split Left/Right
   return (

@@ -39,16 +39,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'ID partita mancante' }, { status: 400 });
     }
 
-    // Convert arrays to JSON strings if they are arrays, else use them directly
-    const marcatoriA = Array.isArray(marcatori_a) ? JSON.stringify(marcatori_a) : marcatori_a;
-    const marcatoriB = Array.isArray(marcatori_b) ? JSON.stringify(marcatori_b) : marcatori_b;
-
     await sql`
       UPDATE public."Risultati"
       SET 
         risultato = ${risultato},
-        marcatori_a = ${marcatoriA}::jsonb,
-        marcatori_b = ${marcatoriB}::jsonb
+        marcatori_a = ${JSON.stringify(marcatori_a)}::jsonb,
+        marcatori_b = ${JSON.stringify(marcatori_b)}::jsonb
       WHERE id = ${id}
     `;
 

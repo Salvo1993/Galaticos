@@ -3229,7 +3229,7 @@ const formatResultTime = (timeStr?: string) => {
 
                 {isAdmin && (
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-                    <button className="create-teams-btn" onClick={() => setIsSaveFormationModalOpen(true)} disabled={isSaving} style={{ width: '100%', maxWidth: '400px' }}>
+                    <button className="create-teams-btn" onClick={saveFormation} disabled={isSaving} style={{ width: '100%', maxWidth: '400px' }}>
                         {isSaving ? 'Salvataggio...' : '💾 Salva Formazione'}
                     </button>
                   </div>

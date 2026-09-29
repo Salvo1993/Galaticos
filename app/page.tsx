@@ -2956,6 +2956,7 @@ const formatResultTime = (timeStr?: string) => {
                         matchDetails.push({ 
                           overlap: bestOverlap, 
                           result: `${golFatti}-${golSubiti}`, 
+                          originalResult: m.risultato || '0-0',
                           weight,
                           date: mDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
                           players: commonPlayers,
@@ -3056,8 +3057,8 @@ const formatResultTime = (timeStr?: string) => {
                   }
 
                   const uniqueMatchKeys = new Set([
-                    ...synergyA.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.result),
-                    ...synergyB.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.result)
+                    ...synergyA.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult),
+                    ...synergyB.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult)
                   ]);
                   const totalStorico = uniqueMatchKeys.size;
                   let reliabilityText = 'Bassa';

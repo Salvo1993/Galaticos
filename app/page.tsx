@@ -2607,24 +2607,25 @@ const formatResultTime = (timeStr?: string) => {
                { team: 'B', name: teamBName, setName: setTeamBName, list: results.teamB, cls: 'team-aquile' }
             ].map(t => (
               <div key={t.team} className={`team-card ${t.cls}`}>
-                <label className="team-header" style={{ cursor: 'text', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="team-header" style={{ cursor: isAdmin ? 'text' : 'default', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <input 
                     type="text" 
                     className="team-name" 
                     value={t.name} 
-                    onChange={(e) => t.setName(e.target.value)} 
+                    onChange={(e) => isAdmin && t.setName(e.target.value)} 
                     spellCheck={false} 
-                    style={{ flex: 1, cursor: 'text' }}
+                    readOnly={!isAdmin}
+                    style={{ flex: 1, cursor: isAdmin ? 'text' : 'default', background: 'transparent', border: 'none', outline: 'none', color: 'inherit' }}
                   />
-                  <Pencil size={16} style={{opacity:0.5, cursor: 'pointer'}} />
+                  {isAdmin && <Pencil size={16} style={{opacity:0.5, cursor: 'pointer'}} />}
                 </label>
                 <ul className="team-list">
                   {t.list.map(name => {
                     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
                     const hue = hashStringToHue(name);
                     
-                    const isSwapTarget = activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
-                    const isSwapSource = activeSwapSource?.name === name;
+                    const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
+                    const isSwapSource = isAdmin && activeSwapSource?.name === name;
                     const ruolo = dbPlayers.find(p => p.Nome === name)?.Ruolo;
                     const morale = getPlayerMorale(name);
 
@@ -2673,13 +2674,15 @@ const formatResultTime = (timeStr?: string) => {
                                 {ruolo && <span style={{ fontSize: '0.75rem', color: '#6f9c81', marginTop: '0.1rem' }}>{ruolo}</span>}
                             </div>
                         </div>
-                        <button 
-                            className="swap-icon-btn" 
-                            onClick={(e) => { e.stopPropagation(); setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
-                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.4rem', color: isSwapSource ? '#fff' : 'rgba(255,255,255,0.4)' }}
-                        >
-                            ⇄
-                        </button>
+                        {isAdmin && (
+                          <button 
+                              className="swap-icon-btn" 
+                              onClick={(e) => { e.stopPropagation(); setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'}); }}
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0.4rem', color: isSwapSource ? '#fff' : 'rgba(255,255,255,0.4)' }}
+                          >
+                              ⇄
+                          </button>
+                        )}
                       </li>
                     );
                   })}
@@ -2696,8 +2699,8 @@ const formatResultTime = (timeStr?: string) => {
                   <div className="pes-goal-area-top"></div>
                   <div className="pes-goal-area-bottom"></div>
                   {t.list.map((name, idx) => {
-                    const isSwapTarget = activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
-                    const isSwapSource = activeSwapSource?.name === name;
+                    const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
+                    const isSwapSource = isAdmin && activeSwapSource?.name === name;
                     const morale = getPlayerMorale(name);
                     
                     let positions: { top: string; left: string }[] = [];
@@ -2763,7 +2766,7 @@ const formatResultTime = (timeStr?: string) => {
                         }}
                         onContextMenu={(e) => {
                           e.preventDefault();
-                          setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'});
+                          if (isAdmin) setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'});
                         }}
                       >
                         <img 

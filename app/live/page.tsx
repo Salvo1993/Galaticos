@@ -161,23 +161,34 @@ export default function LiveMatchWear() {
       .join(', ');
   };
 
-  const handleGoal = async (player: string, team: 'A' | 'B') => {
-    // Optimistic update
-    const newScoreA = team === 'A' ? score.a + 1 : score.a;
-    const newScoreB = team === 'B' ? score.b + 1 : score.b;
-    const newRisultato = `${newScoreA}-${newScoreB}`;
-    
+  const updateGoal = async (player: string, team: 'A' | 'B', action: 'add' | 'remove') => {
     const marcsA = parseScorers(match.marcatori_a);
     const marcsB = parseScorers(match.marcatori_b);
+    
+    const targetMarcs = team === 'A' ? marcsA : marcsB;
+    const currentGoals = targetMarcs[player] || 0;
 
-    if (team === 'A') {
-        marcsA[player] = (marcsA[player] || 0) + 1;
+    if (action === 'remove' && currentGoals <= 0) return; // cannot remove if 0
+
+    if (action === 'add') {
+        targetMarcs[player] = currentGoals + 1;
     } else {
-        marcsB[player] = (marcsB[player] || 0) + 1;
+        targetMarcs[player] = currentGoals - 1;
     }
 
     const strMarcsA = stringifyScorers(marcsA);
     const strMarcsB = stringifyScorers(marcsB);
+
+    let newScoreA = score.a;
+    let newScoreB = score.b;
+
+    if (team === 'A') {
+        newScoreA = action === 'add' ? score.a + 1 : score.a - 1;
+    } else {
+        newScoreB = action === 'add' ? score.b + 1 : score.b - 1;
+    }
+
+    const newRisultato = `${Math.max(0, newScoreA)}-${Math.max(0, newScoreB)}`;
 
     const updatedMatch = {
       ...match,
@@ -187,9 +198,8 @@ export default function LiveMatchWear() {
     };
 
     setMatch(updatedMatch);
-    setSelectedTeam(null); // back to main screen
-    setIsAutogolSelection(false);
-
+    // Modal stays open so the user can keep adjusting or see the result!
+    
     // Sync DB
     syncMatch(updatedMatch);
   };
@@ -219,27 +229,34 @@ export default function LiveMatchWear() {
         </div>
         
         <div style={styles.scrollList}>
-          {players.map(p => (
-            <button 
-              key={p} 
-              style={{...styles.playerBtn, borderLeft: `6px solid ${isAutogolSelection ? '#ef5350' : teamColor}`}}
-              onClick={() => {
-                  if (isAutogolSelection) {
-                      // Se la squadra A fa autogol, il punto va alla B (e viceversa)
-                      const opposingTeam = isTeamA ? 'B' : 'A';
-                      handleGoal(`Autogol ${p}`, opposingTeam);
-                  } else {
-                      handleGoal(p, selectedTeam);
-                  }
-              }}
-            >
-              {p}
-            </button>
-          ))}
+          {players.map(p => {
+              const targetTeam = isAutogolSelection ? (isTeamA ? 'B' : 'A') : selectedTeam;
+              const playerKey = isAutogolSelection ? `Autogol ${p}` : p;
+              const targetMarcs = targetTeam === 'A' ? parseScorers(match.marcatori_a) : parseScorers(match.marcatori_b);
+              const currentGoals = targetMarcs[playerKey] || 0;
+              const rowBorderColor = isAutogolSelection ? '#ef5350' : teamColor;
+
+              return (
+                <div key={p} style={{...styles.playerRow, borderLeft: `6px solid ${rowBorderColor}`}}>
+                    <span style={styles.playerName}>{p}</span>
+                    <div style={styles.counterControls}>
+                       <button 
+                         style={styles.circleBtn} 
+                         onClick={() => updateGoal(playerKey, targetTeam, 'remove')}
+                       >-</button>
+                       <span style={styles.playerScore}>{currentGoals}</span>
+                       <button 
+                         style={styles.circleBtn} 
+                         onClick={() => updateGoal(playerKey, targetTeam, 'add')}
+                       >+</button>
+                    </div>
+                </div>
+              );
+          })}
           {/* Option for Auto Goal */}
           {!isAutogolSelection && (
             <button 
-              style={{...styles.playerBtn, borderLeft: `6px solid #ef5350`}}
+              style={{...styles.playerBtn, borderLeft: `6px solid #ef5350`, marginTop: '10px'}}
               onClick={() => setIsAutogolSelection(true)}
             >
               Autogol
@@ -411,5 +428,48 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '1.1rem',
     fontWeight: 'bold',
     cursor: 'pointer'
+  },
+  playerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    background: '#1a1a1a',
+    borderRadius: '12px',
+    padding: '10px 15px',
+    marginBottom: '10px'
+  },
+  playerName: {
+    color: '#fff',
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    flex: 1,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  counterControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  circleBtn: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: '#333',
+    border: 'none',
+    color: '#fff',
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  playerScore: {
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    minWidth: '20px',
+    textAlign: 'center'
   }
 };

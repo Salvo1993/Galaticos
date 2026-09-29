@@ -2053,8 +2053,9 @@ const formatResultTime = (timeStr?: string) => {
           <div className="logo-section">
             <div className="match-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <div 
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: isAdmin ? 'pointer' : 'default' }}
                 onClick={(e) => {
+                   if (!isAdmin) return;
                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
                    if (input && typeof input.showPicker === 'function') {
                       try { input.showPicker(); } catch (err) { input.focus(); }
@@ -2064,12 +2065,13 @@ const formatResultTime = (timeStr?: string) => {
                 }}
               >
                 <Calendar size={14} className="calendar-icon" />
-                <span className="match-label-input" style={{ cursor: 'pointer', zIndex: 1, pointerEvents: 'none', paddingRight: '2px' }}>
+                <span className="match-label-input" style={{ cursor: isAdmin ? 'pointer' : 'default', zIndex: 1, pointerEvents: 'none', paddingRight: '2px' }}>
                   {matchLabel.split(' - ')[0] || "Seleziona data..."}
                 </span>
                 <input 
                   type="date" 
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
+                  disabled={!isAdmin}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: isAdmin ? 'pointer' : 'default', zIndex: 2, pointerEvents: isAdmin ? 'auto' : 'none' }}
                   onChange={(e) => {
                     if (!e.target.value) return;
                     const date = new Date(e.target.value);
@@ -2093,7 +2095,9 @@ const formatResultTime = (timeStr?: string) => {
               
               <select 
                 value={matchLabel.match(/Ore (\d+)/)?.[1] || "21"}
+                disabled={!isAdmin}
                 onChange={(e) => {
+                   if (!isAdmin) return;
                    const newHour = e.target.value;
                    let newLabel = matchLabel;
                    if (newLabel.includes('- Ore')) {
@@ -2105,7 +2109,7 @@ const formatResultTime = (timeStr?: string) => {
                    saveSettings(newLabel);
                 }}
                 className="match-label-input"
-                style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '0', display: 'inline', width: 'auto' }}
+                style={{ background: 'transparent', border: 'none', outline: 'none', cursor: isAdmin ? 'pointer' : 'default', fontSize: '0.85rem', padding: '0', display: 'inline', width: 'auto', appearance: isAdmin ? 'auto' : 'none', WebkitAppearance: isAdmin ? 'auto' : 'none', pointerEvents: isAdmin ? 'auto' : 'none' }}
               >
                 {[17, 18, 19, 20, 21, 22, 23].map(h => (
                    <option key={h} value={h} style={{ color: 'black' }}>{h}</option>

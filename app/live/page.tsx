@@ -23,7 +23,7 @@ export default function LiveMatchWear() {
   
   const fetchMatch = async () => {
     try {
-      const res = await fetch('/api/live-match');
+      const res = await fetch(`/api/live-match?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setMatch(data);

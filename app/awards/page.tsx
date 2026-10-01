@@ -174,10 +174,15 @@ export default function AwardsPage() {
     };
 
     return (
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '300px', maxWidth: '500px', margin: '0 auto', paddingTop: '2rem' }}>
-        <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} />
-        <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} />
-        <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '300px', maxWidth: '500px', margin: '0 auto', paddingTop: '2rem' }}>
+          <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} />
+          <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} />
+          <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} />
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '2.5rem', color: 'var(--color-text-muted)', fontSize: '0.95rem', maxWidth: '600px', lineHeight: '1.6' }}>
+          Il <strong>Giocatore del Mese</strong> è calcolato tramite un algoritmo che premia la costanza. Si basa su <strong style={{color: '#fff'}}>Media Voto</strong>, <strong style={{color: '#fff'}}>N° MVP</strong>, <strong style={{color: '#fff'}}>Punti Squadra</strong> e <strong style={{color: '#fff'}}>Gol Segnati</strong>, con un malus per chi gioca meno del 50% delle partite.
+        </div>
       </div>
     );
   };
@@ -193,12 +198,32 @@ export default function AwardsPage() {
 
     const colors = ['#ffd700', '#c0c0c0', '#cd7f32', '#34d680', '#5de4ff'];
 
+    const dateMap: Record<string, any> = {};
+    if (stats && Array.isArray(stats)) {
+      stats.forEach(p => {
+        if (p.storicoVoti && Array.isArray(p.storicoVoti)) {
+          p.storicoVoti.forEach((v: any) => {
+            if (!dateMap[v.date]) dateMap[v.date] = { name: v.date };
+            dateMap[v.date][p.name] = v.voto;
+          });
+        }
+      });
+    }
+    
+    const timeSeriesData = Object.values(dateMap).sort((a: any, b: any) => {
+       if (!a.name || !b.name) return 0;
+       const [d1, m1] = a.name.split('/').map(Number);
+       const [d2, m2] = b.name.split('/').map(Number);
+       if (m1 !== m2) return m1 - m2;
+       return d1 - d2;
+    });
+
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '3rem' }}>
         
         {/* MVP Chart */}
         <div className="chart-card">
-          <h4><Star size={16} /> N° MVP Ottenuti (35%)</h4>
+          <h4><Star size={16} /> N° MVP Ottenuti</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
@@ -218,27 +243,29 @@ export default function AwardsPage() {
 
         {/* Media Voto Chart */}
         <div className="chart-card">
-          <h4><TrendingUp size={16} /> Media Voto (35%)</h4>
+          <h4><TrendingUp size={16} /> Media Voto</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                <Bar dataKey="mediaVoto" radius={[4, 4, 0, 0]}>
-                  {stats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              {timeSeriesData.length > 0 ? (
+                <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+                  <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                  {stats.slice(0, 3).map((p, index) => (
+                    <Line key={p.name} type="monotone" dataKey={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
                   ))}
-                </Bar>
-              </BarChart>
+                </LineChart>
+              ) : (
+                <div style={{color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Nessuno storico voti disponibile nel mese. Per vederlo, ricalcola i dati visitando /api/awards/calculate?month=MESE</div>
+              )}
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Punti Ottenuti Chart */}
         <div className="chart-card">
-          <h4><Medal size={16} /> Punti Squadra (20%)</h4>
+          <h4><Medal size={16} /> Punti Squadra</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
@@ -258,7 +285,7 @@ export default function AwardsPage() {
 
         {/* Gol Segnati */}
         <div className="chart-card">
-          <h4><Target size={16} /> Gol Segnati (10%)</h4>
+          <h4><Target size={16} /> Gol Segnati</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>

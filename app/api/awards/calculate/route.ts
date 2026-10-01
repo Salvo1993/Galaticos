@@ -48,17 +48,26 @@ export async function GET(req: Request) {
       const processPlayers = (players: string[], teamPoints: number, marcatoriObj: any) => {
         if (!Array.isArray(players)) return;
         players.forEach(p => {
-          if (!stats[p]) stats[p] = { name: p, matches: 0, mvp: 0, sumVoto: 0, punti: 0, gol: 0 };
+          if (!stats[p]) stats[p] = { name: p, matches: 0, mvp: 0, sumVoto: 0, punti: 0, gol: 0, storicoVoti: [] };
           stats[p].matches += 1;
           stats[p].punti += teamPoints;
 
+          let playerVoto = teamPoints === 3 ? 7 : (teamPoints === 1 ? 6 : 5);
           if (match.voti_giocatori && typeof match.voti_giocatori === 'object') {
             if (match.voti_giocatori[p]) {
-              stats[p].sumVoto += parseFloat(match.voti_giocatori[p]);
-            } else {
-               stats[p].sumVoto += teamPoints === 3 ? 7 : (teamPoints === 1 ? 6 : 5);
+              playerVoto = parseFloat(match.voti_giocatori[p]) || playerVoto;
             }
           }
+          stats[p].sumVoto += playerVoto;
+
+          let matchDateStr = "Sconosciuta";
+          if (match.data) {
+             const d = new Date(match.data);
+             if (!isNaN(d.getTime())) {
+                matchDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+             }
+          }
+          stats[p].storicoVoti.push({ date: matchDateStr, voto: playerVoto });
           
           if (marcatoriObj) {
             if (typeof marcatoriObj === 'string') {
@@ -151,7 +160,8 @@ export async function GET(req: Request) {
        mediaVoto: p.mediaVoto,
        punti: p.punti,
        gol: p.gol,
-       figurina: avatarMap[p.name] || null
+       figurina: avatarMap[p.name] || null,
+       storicoVoti: p.storicoVoti
     }));
 
     await sql`

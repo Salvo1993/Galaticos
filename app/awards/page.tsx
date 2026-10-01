@@ -181,7 +181,7 @@ export default function AwardsPage() {
           <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} />
         </div>
         <div style={{ textAlign: 'center', marginTop: '2.5rem', color: 'var(--color-text-muted)', fontSize: '0.95rem', maxWidth: '600px', lineHeight: '1.6' }}>
-          Il <strong>Giocatore del Mese</strong> è calcolato tramite un algoritmo che premia la costanza. Si basa su <strong style={{color: '#fff'}}>Media Voto</strong>, <strong style={{color: '#fff'}}>N° MVP</strong>, <strong style={{color: '#fff'}}>Punti Squadra</strong> e <strong style={{color: '#fff'}}>Gol Segnati</strong>, con un malus per chi gioca meno del 50% delle partite.
+          Il <strong>Giocatore del Mese</strong> è calcolato tramite un algoritmo che premia la costanza. Si basa su <strong style={{color: '#fff'}}>Media Voto (35%)</strong>, <strong style={{color: '#fff'}}>N° MVP (35%)</strong>, <strong style={{color: '#fff'}}>Punti Squadra (20%)</strong> e <strong style={{color: '#fff'}}>Gol Segnati (10%)</strong>, con un malus per chi gioca meno del 50% delle partite.
         </div>
       </div>
     );

@@ -263,7 +263,7 @@ export default function AwardsPage() {
                     <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
                     <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                    <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#ccc' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#ccc', paddingTop: '15px' }} />
                     {stats.slice(0, 3).map((p, index) => (
                       <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
                     ))}

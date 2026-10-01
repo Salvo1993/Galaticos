@@ -2159,9 +2159,10 @@ const formatResultTime = (timeStr?: string) => {
           { id: 'classifica', label: '🏅 Classifica' },
           { id: 'mvp', label: '⭐ MVP' },
           { id: 'media', label: '🎥 Media' },
-          { id: 'stats', label: '📊 Stats' }
+          { id: 'stats', label: '📊 Stats' },
+          { id: 'awards', label: '🎖️ Awards', url: '/awards' }
         ].map(item => (
-          <a key={item.id} href={`#${item.id}`} style={{ color: '#cfe8d8', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <a key={item.id} href={item.url || `#${item.id}`} style={{ color: '#cfe8d8', textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
             {item.label}
           </a>
         ))}
@@ -3235,7 +3236,7 @@ const formatResultTime = (timeStr?: string) => {
                               await fetch('/api/risultati/update-maglia', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ matchId: latestMatch.id, lightTeam: newVal })
+                                  body: JSON.stringify({ id: latestMatch.id, maglia_chiara: newVal })
                               });
                               setMatches(matches.map(m => m.id === latestMatch.id ? { ...m, maglia_chiara: newVal } : m));
                           }

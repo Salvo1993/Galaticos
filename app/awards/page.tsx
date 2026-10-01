@@ -168,9 +168,9 @@ export default function AwardsPage() {
 
     const stats: any[] = typeof currentAward.stats_details === 'string' ? JSON.parse(currentAward.stats_details) : currentAward.stats_details;
     const findAvatar = (pName: string) => {
-       if (!stats || !Array.isArray(stats)) return null;
+       if (!stats || !Array.isArray(stats)) return `/players/${pName}.png`;
        const p = stats.find(s => s.name === pName);
-       return p?.figurina || null;
+       return p?.figurina || `/players/${pName}.png`;
     };
 
     return (
@@ -350,7 +350,7 @@ export default function AwardsPage() {
               const { initials, hue } = getAvatar(award.primo_posto);
               const stats: any[] = typeof award.stats_details === 'string' ? JSON.parse(award.stats_details) : award.stats_details;
               const topPlayer = stats && Array.isArray(stats) ? stats.find(s => s.name === award.primo_posto) : null;
-              const avatarUrl = topPlayer?.figurina || null;
+              const avatarUrl = topPlayer?.figurina || `/players/${award.primo_posto}.png`;
 
               return (
                 <div key={award.mese_anno} style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(0,0,0,0.6) 100%)', border: '1px solid rgba(255,215,0,0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }} onClick={() => setSelectedMonth(award.mese_anno)}>

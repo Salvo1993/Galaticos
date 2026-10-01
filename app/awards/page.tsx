@@ -245,21 +245,23 @@ export default function AwardsPage() {
         <div className="chart-card">
           <h4><TrendingUp size={16} /> Media Voto</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
-            <ResponsiveContainer width="100%" height="100%">
               {timeSeriesData.length > 0 ? (
-                <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                  <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                  <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                  {stats.slice(0, 3).map((p, index) => (
-                    <Line key={p.name} type="monotone" dataKey={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
-                  ))}
-                </LineChart>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                    <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+                    <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                    {stats.slice(0, 3).map((p, index) => (
+                      <Line key={p.name} type="monotone" dataKey={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
-                <div style={{color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Nessuno storico voti disponibile nel mese. Per vederlo, ricalcola i dati visitando /api/awards/calculate?month=MESE</div>
+                <div style={{color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem'}}>
+                  Nessuno storico voti disponibile nel mese.<br/><br/>Per vederlo, ricalcola i dati visitando<br/>/api/awards/calculate?month=MESE
+                </div>
               )}
-            </ResponsiveContainer>
           </div>
         </div>
 

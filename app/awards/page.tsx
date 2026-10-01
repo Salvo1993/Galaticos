@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Trophy, Medal, Star, Target, TrendingUp, CalendarDays } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 
 // --- Utils ---
 const hashStringToHue = (str: string) => {
@@ -107,7 +107,7 @@ export default function AwardsPage() {
 
     const { primo_posto, secondo_posto, terzo_posto } = currentAward;
 
-    const PodiumItem = ({ rank, name, height, color, glow, avatarUrl }: any) => {
+    const PodiumItem = ({ rank, name, height, color, glow, avatarUrl, score }: any) => {
       const { initials, hue } = getAvatar(name);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: 1, zIndex: 3 - rank }}>
@@ -147,6 +147,11 @@ export default function AwardsPage() {
           
           <div style={{ fontWeight: 800, fontSize: rank === 1 ? '1.2rem' : '1rem', color: rank === 1 ? color : '#fff', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', textAlign: 'center', marginBottom: '8px' }}>
             {name}
+            {score !== undefined && score !== null && (
+               <div style={{ fontSize: '0.85rem', color: '#ccc', fontWeight: 600, marginTop: '2px' }}>
+                 {score} pts
+               </div>
+            )}
           </div>
           
           <div style={{
@@ -173,12 +178,18 @@ export default function AwardsPage() {
        return p?.figurina || `/players/${pName}.png`;
     };
 
+    const findScore = (pName: string) => {
+       if (!stats || !Array.isArray(stats)) return null;
+       const p = stats.find(s => s.name === pName);
+       return p?.punteggio || null;
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '300px', maxWidth: '500px', margin: '0 auto', paddingTop: '2rem' }}>
-          <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} />
-          <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} />
-          <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} />
+          <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} score={findScore(secondo_posto)} />
+          <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} score={findScore(primo_posto)} />
+          <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} score={findScore(terzo_posto)} />
         </div>
         <div style={{ textAlign: 'center', marginTop: '2.5rem', color: 'var(--color-text-muted)', fontSize: '0.95rem', maxWidth: '600px', lineHeight: '1.6' }}>
           Il <strong>Giocatore del Mese</strong> è calcolato tramite un algoritmo che premia la costanza. Si basa su <strong style={{color: '#fff'}}>Media Voto (35%)</strong>, <strong style={{color: '#fff'}}>N° MVP (35%)</strong>, <strong style={{color: '#fff'}}>Punti Squadra (20%)</strong> e <strong style={{color: '#fff'}}>Gol Segnati (10%)</strong>, con un malus per chi gioca meno del 50% delle partite.
@@ -252,8 +263,9 @@ export default function AwardsPage() {
                     <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
                     <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                    <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#ccc' }} />
                     {stats.slice(0, 3).map((p, index) => (
-                      <Line key={p.name} type="monotone" dataKey={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
+                      <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>

@@ -156,6 +156,7 @@ export async function GET(req: Request) {
 
     const top3stats = finalScoreboard.slice(0, 3).map(p => ({
        name: p.name,
+       punteggio: parseFloat(p.aggregateIndex.toFixed(1)),
        mvp: p.mvp,
        mediaVoto: p.mediaVoto,
        punti: p.punti,

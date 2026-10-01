@@ -186,7 +186,7 @@ export default function AwardsPage() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '300px', maxWidth: '500px', margin: '0 auto', paddingTop: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '350px', maxWidth: '500px', margin: '0 auto', paddingTop: '1rem' }}>
           <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} score={findScore(secondo_posto)} />
           <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} score={findScore(primo_posto)} />
           <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} score={findScore(terzo_posto)} />

@@ -107,7 +107,7 @@ export default function AwardsPage() {
 
     const { primo_posto, secondo_posto, terzo_posto } = currentAward;
 
-    const PodiumItem = ({ rank, name, height, color, glow }: any) => {
+    const PodiumItem = ({ rank, name, height, color, glow, avatarUrl }: any) => {
       const { initials, hue } = getAvatar(name);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: 1, zIndex: 3 - rank }}>
@@ -116,7 +116,7 @@ export default function AwardsPage() {
             width: rank === 1 ? '70px' : '55px', 
             height: rank === 1 ? '70px' : '55px', 
             borderRadius: '50%', 
-            background: `hsl(${hue}, 60%, 45%)`,
+            background: avatarUrl ? `url(${avatarUrl}) center/cover` : `hsl(${hue}, 60%, 45%)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -128,7 +128,7 @@ export default function AwardsPage() {
             marginBottom: '1rem',
             position: 'relative'
           }}>
-            {initials}
+            {!avatarUrl && initials}
             <div style={{
               position: 'absolute',
               bottom: '-10px',
@@ -166,11 +166,18 @@ export default function AwardsPage() {
       );
     }
 
+    const stats: any[] = typeof currentAward.stats_details === 'string' ? JSON.parse(currentAward.stats_details) : currentAward.stats_details;
+    const findAvatar = (pName: string) => {
+       if (!stats || !Array.isArray(stats)) return null;
+       const p = stats.find(s => s.name === pName);
+       return p?.figurina || null;
+    };
+
     return (
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '300px', maxWidth: '500px', margin: '0 auto', paddingTop: '2rem' }}>
-        <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" />
-        <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" />
-        <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" />
+        <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} />
+        <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} />
+        <PodiumItem rank={3} name={terzo_posto} height="90px" color="#cd7f32" glow="rgba(205, 127, 50, 0.4)" avatarUrl={findAvatar(terzo_posto)} />
       </div>
     );
   };
@@ -211,16 +218,20 @@ export default function AwardsPage() {
 
         {/* Media Voto Chart */}
         <div className="chart-card">
-          <h4><TrendingUp size={16} /> Trend Media Voto (35%)</h4>
+          <h4><TrendingUp size={16} /> Media Voto (35%)</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+              <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                <Tooltip contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} />
-                <Line type="monotone" dataKey="mediaVoto" stroke="#5de4ff" strokeWidth={3} dot={{ r: 4, fill: '#151f2b', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} />
+                <Bar dataKey="mediaVoto" radius={[4, 4, 0, 0]}>
+                  {stats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -337,13 +348,17 @@ export default function AwardsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
             {alboDoro.map(award => {
               const { initials, hue } = getAvatar(award.primo_posto);
+              const stats: any[] = typeof award.stats_details === 'string' ? JSON.parse(award.stats_details) : award.stats_details;
+              const topPlayer = stats && Array.isArray(stats) ? stats.find(s => s.name === award.primo_posto) : null;
+              const avatarUrl = topPlayer?.figurina || null;
+
               return (
                 <div key={award.mese_anno} style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(0,0,0,0.6) 100%)', border: '1px solid rgba(255,215,0,0.3)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'all 0.2s', cursor: 'pointer' }} onClick={() => setSelectedMonth(award.mese_anno)}>
                   <span style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 700 }}>
                     {getMonthLabel(award.mese_anno).split(' ')[0]} {award.mese_anno.split('-')[0]}
                   </span>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: `hsl(${hue}, 60%, 45%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', border: '2px solid #ffd700', marginBottom: '8px', boxShadow: '0 0 10px rgba(255,215,0,0.3)' }}>
-                    {initials}
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover` : `hsl(${hue}, 60%, 45%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', border: '2px solid #ffd700', marginBottom: '8px', boxShadow: '0 0 10px rgba(255,215,0,0.3)' }}>
+                    {!avatarUrl && initials}
                   </div>
                   <span style={{ fontWeight: 800, color: '#ffd700', fontSize: '0.9rem', textAlign: 'center' }}>{award.primo_posto}</span>
                 </div>

@@ -61,7 +61,22 @@ export async function GET(req: Request) {
           }
           
           if (marcatoriObj) {
-            if (Array.isArray(marcatoriObj)) {
+            if (typeof marcatoriObj === 'string') {
+              const parts = marcatoriObj.split(',');
+              parts.forEach(part => {
+                const str = part.trim();
+                if (str) {
+                  const matchResult = str.match(/^(.*?)(?:\s*\\((\\d+)\\))?$/);
+                  if (matchResult) {
+                    const mName = matchResult[1].trim();
+                    const numGol = parseInt(matchResult[2] || '1', 10);
+                    if (mName === p) {
+                      stats[p].gol += numGol;
+                    }
+                  }
+                }
+              });
+            } else if (Array.isArray(marcatoriObj)) {
               const mar = marcatoriObj.find((m: any) => m.nome === p);
               if (mar) stats[p].gol += parseInt(mar.gol, 10) || 0;
             } else if (typeof marcatoriObj === 'object') {
@@ -121,12 +136,21 @@ export async function GET(req: Request) {
     const secondo_posto = finalScoreboard[1].name;
     const terzo_posto = finalScoreboard[2].name;
 
+    const giocatori = await sql`SELECT "Nome", "figurina" FROM public."Giocatori"`;
+    const avatarMap: Record<string, string> = {};
+    giocatori.forEach((g: any) => {
+        if (g.Nome && g.figurina) {
+            avatarMap[g.Nome] = g.figurina;
+        }
+    });
+
     const top3stats = finalScoreboard.slice(0, 3).map(p => ({
        name: p.name,
        mvp: p.mvp,
        mediaVoto: p.mediaVoto,
        punti: p.punti,
-       gol: p.gol
+       gol: p.gol,
+       figurina: avatarMap[p.name] || null
     }));
 
     await sql`

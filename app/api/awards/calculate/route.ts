@@ -7,7 +7,15 @@ export const revalidate = 0;
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const targetMonth = searchParams.get('month') || '2026-09';
+    
+    let targetMonth = searchParams.get('month');
+    if (!targetMonth) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1); // Prende il mese precedente
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      targetMonth = `${y}-${m}`;
+    }
     
     console.log(`Calcolando i vincitori per il mese: ${targetMonth}`);
     const [yyyy, mm] = targetMonth.split('-');
@@ -17,7 +25,7 @@ export async function GET(req: Request) {
     
     const matches = await sql`
       SELECT * FROM public."Risultati" 
-      WHERE data LIKE ${monthPattern}
+      WHERE data::text LIKE ${monthPattern}
       AND risultato IS NOT NULL 
       AND risultato != ''
       AND risultato != '0-0'

@@ -62,11 +62,12 @@ export async function GET(req: Request) {
           
           if (marcatoriObj) {
             if (typeof marcatoriObj === 'string') {
-              const parts = marcatoriObj.split(',');
+              const cleanObj = marcatoriObj.replace(/^["']|["']$/g, '');
+              const parts = cleanObj.split(',');
               parts.forEach(part => {
                 const str = part.trim();
                 if (str) {
-                  const matchResult = str.match(/^(.*?)(?:\s*\\((\\d+)\\))?$/);
+                  const matchResult = str.match(/^(.*?)(?:\s*\(\s*(\d+)\s*\))?$/);
                   if (matchResult) {
                     const mName = matchResult[1].trim();
                     const numGol = parseInt(matchResult[2] || '1', 10);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../../lib/db';
+import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
@@ -118,8 +119,26 @@ export async function POST(req: Request) {
         }
       }
 
-      await sql`UPDATE public."Media" SET giocatore = ${sanitizedNew} WHERE giocatore = ${target}`;
-      await sql`UPDATE public."Media" SET co_giocatore = ${sanitizedNew} WHERE co_giocatore = ${target}`;
+      const mediaTarget = `%${target}%`;
+      const mediaList = await sql`SELECT id, giocatore, co_giocatore FROM public."Media" WHERE giocatore LIKE ${mediaTarget} OR co_giocatore LIKE ${mediaTarget}`;
+      
+      for (const m of mediaList) {
+          let g = m.giocatore;
+          let cg = m.co_giocatore;
+          let mediaUpdated = false;
+
+          if (g && typeof g === 'string' && g.includes(target)) {
+              g = g.split(',').map((s: string) => s.trim() === target ? sanitizedNew : s.trim()).join(', ');
+              mediaUpdated = true;
+          }
+          if (cg && typeof cg === 'string' && cg.includes(target)) {
+              cg = cg.split(',').map((s: string) => s.trim() === target ? sanitizedNew : s.trim()).join(', ');
+              mediaUpdated = true;
+          }
+          if (mediaUpdated) {
+              await sql`UPDATE public."Media" SET giocatore = ${g}, co_giocatore = ${cg} WHERE id = ${m.id}`;
+          }
+      }
 
       // Update LatestSession
       const sessions = await sql`SELECT * FROM public."LatestSession" WHERE id = 1 LIMIT 1`;
@@ -170,6 +189,8 @@ export async function POST(req: Request) {
           `;
         }
       }
+      // Ricalcola la classifica 
+      await recalculateAndSaveClassifica(sql);
     }
 
     return NextResponse.json({ success: true });

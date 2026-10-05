@@ -28,13 +28,27 @@ const parseScorersStr = (scorersInput: any): Record<string, number> => {
   }
 
   const map: Record<string, number> = {};
-  scorersStr.split(',').forEach(s => {
+  scorersStr.split(',').forEach((s: string) => {
     const trimmed = s.trim();
     if (!trimmed) return;
-    const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+    
+    // Supporto per minuti es: "Marco (14', 35')" oppure puro conteggio "Marco (3)"
+    const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
     if (match) {
       const name = match[1].trim();
-      const count = match[2] ? parseInt(match[2], 10) : 1;
+      let count = 1;
+      const content = match[2];
+      
+      if (content) {
+        if (content.includes("'")) {
+          // Format (14', 35') -> split by comma to count goals
+          count = content.split(',').length;
+        } else {
+          // Legacy direct count format: (3)
+          count = parseInt(content, 10) || 1;
+        }
+      }
+      
       map[name] = (map[name] || 0) + count;
     }
   });

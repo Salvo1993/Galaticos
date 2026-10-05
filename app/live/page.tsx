@@ -20,6 +20,61 @@ export default function LiveMatchWear() {
   const [selectedTeam, setSelectedTeam] = useState<'A' | 'B' | null>(null);
   const [isAutogolSelection, setIsAutogolSelection] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline'>('online');
+  const [timerState, setTimerState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
+  const [elapsedMinutes, setElapsedMinutes] = useState<number>(0);
+  
+  const loadTimerState = () => {
+      const state = localStorage.getItem('matchTimerState');
+      const start = localStorage.getItem('matchTimerStart');
+      const elapsed = localStorage.getItem('matchTimerElapsed');
+
+      const tState = (state as 'stopped' | 'playing' | 'paused') || 'stopped';
+      const tStart = start ? parseInt(start, 10) : null;
+      const tElapsed = elapsed ? parseInt(elapsed, 10) : 0;
+      
+      setTimerState(tState);
+      
+      if (tState === 'playing' && tStart) {
+          const currentTotalMs = tElapsed + (Date.now() - tStart);
+          setElapsedMinutes(Math.floor(currentTotalMs / 60000));
+      } else {
+          setElapsedMinutes(Math.floor(tElapsed / 60000));
+      }
+      return { tState, tStart, tElapsed };
+  };
+
+  const playTimer = () => {
+     const { tState, tElapsed } = loadTimerState();
+     if (tState === 'playing') {
+         // Pause it
+         const tStart = parseInt(localStorage.getItem('matchTimerStart') || '0', 10);
+         const currentTotalMs = tElapsed + (Date.now() - tStart);
+         
+         localStorage.setItem('matchTimerState', 'paused');
+         localStorage.setItem('matchTimerElapsed', currentTotalMs.toString());
+         localStorage.removeItem('matchTimerStart');
+         
+         setTimerState('paused');
+         setElapsedMinutes(Math.floor(currentTotalMs / 60000));
+     } else {
+         // Play
+         const now = Date.now();
+         localStorage.setItem('matchTimerState', 'playing');
+         localStorage.setItem('matchTimerStart', now.toString());
+         setTimerState('playing');
+     }
+  };
+
+  const stopTimer = () => {
+     if (confirm("Vuoi azzerare il timer della partita?")) {
+         localStorage.setItem('matchTimerState', 'stopped');
+         localStorage.setItem('matchTimerElapsed', '0');
+         localStorage.removeItem('matchTimerStart');
+         
+         setTimerState('stopped');
+         setElapsedMinutes(0);
+     }
+  };
   
   const fetchMatch = async () => {
     try {
@@ -83,12 +138,18 @@ export default function LiveMatchWear() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    loadTimerState();
+    const timerInterval = setInterval(() => {
+       loadTimerState();
+    }, 10000);
+
     return () => {
       if (wakeLock) {
         wakeLock.release().catch(console.error);
       }
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(timerInterval);
     };
   }, []);
 
@@ -131,33 +192,44 @@ export default function LiveMatchWear() {
 
   const parseScorers = (scorersInput: any) => {
     if (!scorersInput) return {};
-    let scorersStr = '';
-    if (Array.isArray(scorersInput)) {
-      scorersStr = scorersInput.join(', ');
-    } else if (typeof scorersInput === 'string') {
-      scorersStr = scorersInput;
-    } else {
-      return {};
-    }
-
-    const map: Record<string, number> = {};
-    scorersStr.split(',').forEach(s => {
+    let scorersStr = Array.isArray(scorersInput) ? scorersInput.join(', ') : (typeof scorersInput === 'string' ? scorersInput : '');
+    const map: Record<string, string[]> = {};
+    
+    scorersStr.split(',').forEach((s: string) => {
       const trimmed = s.trim();
       if (!trimmed) return;
-      const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+      const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
       if (match) {
-        const name = match[1].trim();
-        const count = match[2] ? parseInt(match[2], 10) : 1;
-        map[name] = (map[name] || 0) + count;
+         const name = match[1].trim();
+         const content = match[2];
+         if (!map[name]) map[name] = [];
+         
+         if (content) {
+             if (content.includes("'")) {
+                 map[name].push(...content.split(',').map(m => m.trim()));
+             } else {
+                 const count = parseInt(content, 10) || 1;
+                 for (let i = 0; i < count; i++) map[name].push(''); // Legacy counts become empty strings
+             }
+         } else {
+             map[name].push('');
+         }
       }
     });
     return map;
   };
 
-  const stringifyScorers = (map: Record<string, number>) => {
+  const stringifyScorers = (map: Record<string, string[]>) => {
     return Object.entries(map)
-      .filter(([_, count]) => count > 0)
-      .map(([name, count]) => count > 1 ? `${name} (${count})` : name)
+      .filter(([_, minutes]) => minutes.length > 0)
+      .map(([name, minutes]) => {
+         const hasRealMinutes = minutes.some(m => m.includes("'"));
+         if (hasRealMinutes) {
+             return `${name} (${minutes.filter(m => m).join(', ')})`;
+         } else {
+             return minutes.length > 1 ? `${name} (${minutes.length})` : name;
+         }
+      })
       .join(', ');
   };
 
@@ -166,14 +238,29 @@ export default function LiveMatchWear() {
     const marcsB = parseScorers(match.marcatori_b);
     
     const targetMarcs = team === 'A' ? marcsA : marcsB;
-    const currentGoals = targetMarcs[player] || 0;
+    if (!targetMarcs[player]) targetMarcs[player] = [];
+    const currentGoals = targetMarcs[player].length;
 
-    if (action === 'remove' && currentGoals <= 0) return; // cannot remove if 0
+    if (action === 'remove' && currentGoals <= 0) return;
 
     if (action === 'add') {
-        targetMarcs[player] = currentGoals + 1;
+        let elapsed = null;
+        const state = localStorage.getItem('matchTimerState') || 'stopped';
+        if (state !== 'stopped') {
+            const start = localStorage.getItem('matchTimerStart');
+            const storedElapsed = parseInt(localStorage.getItem('matchTimerElapsed') || '0', 10);
+            
+            if (state === 'playing' && start) {
+                const totalMs = storedElapsed + (Date.now() - parseInt(start, 10));
+                elapsed = Math.floor(totalMs / 60000);
+            } else if (state === 'paused') {
+                elapsed = Math.floor(storedElapsed / 60000);
+            }
+        }
+        
+        targetMarcs[player].push(elapsed !== null ? `${elapsed}'` : '');
     } else {
-        targetMarcs[player] = currentGoals - 1;
+        targetMarcs[player].pop();
     }
 
     const strMarcsA = stringifyScorers(marcsA);
@@ -246,7 +333,7 @@ export default function LiveMatchWear() {
               const targetTeam = isAutogolSelection ? (isTeamA ? 'B' : 'A') : selectedTeam;
               const playerKey = isAutogolSelection ? `Autogol ${p}` : p;
               const targetMarcs = targetTeam === 'A' ? parseScorers(match.marcatori_a) : parseScorers(match.marcatori_b);
-              const currentGoals = targetMarcs[playerKey] || 0;
+              const currentGoals = targetMarcs[playerKey] ? targetMarcs[playerKey].length : 0;
               const rowBorderColor = isAutogolSelection ? '#ef5350' : teamColor;
 
               return (
@@ -287,6 +374,31 @@ export default function LiveMatchWear() {
     <div style={styles.containerSplit}>
       {/* SCORE FLOATING ON TOP */}
       <div style={styles.scoreOverlay}>
+        <div style={{position: 'absolute', top: '-40px', display: 'flex', gap: '10px', alignItems: 'center'}}>
+           {timerState !== 'stopped' && (
+              <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '1px 1px 2px #000' }}>
+                 {elapsedMinutes}'
+              </div>
+           )}
+           <button onClick={(e) => { e.stopPropagation(); playTimer(); }} style={{
+              background: timerState === 'playing' ? '#ef5350' : '#4caf50', 
+              color: 'white', border: 'none', borderRadius: '15px', padding: '5px 12px', 
+              fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.5)'
+           }}>
+              {timerState === 'playing' ? `Pausa` : '▶ Play'}
+           </button>
+           {timerState === 'paused' && (
+               <button onClick={(e) => { e.stopPropagation(); stopTimer(); }} style={{
+                  background: '#333', 
+                  color: 'white', border: '1px solid #666', borderRadius: '15px', padding: '5px 12px', 
+                  fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.5)'
+               }}>
+                  Stop (Azzera)
+               </button>
+           )}
+        </div>
         <span style={{color: '#64b5f6'}}>{score.a}</span>
         <span style={{color: '#fff', fontSize: '1.5rem', margin: '0 10px'}}>-</span>
         <span style={{color: '#ffb74d'}}>{score.b}</span>

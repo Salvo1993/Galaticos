@@ -28,7 +28,8 @@ const parseScorersStr = (scorersInput: any): Record<string, number> => {
   }
 
   const map: Record<string, number> = {};
-  scorersStr.split(',').forEach((s: string) => {
+  // Usa regex con negative lookahead per splittare le virgole solo se esterne alle parentesi
+  scorersStr.split(/,\s*(?![^()]*\))/).forEach((s: string) => {
     const trimmed = s.trim();
     if (!trimmed) return;
     

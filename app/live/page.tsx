@@ -21,7 +21,7 @@ export default function LiveMatchWear() {
   const [isAutogolSelection, setIsAutogolSelection] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline'>('online');
   const [timerState, setTimerState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
-  const [elapsedMinutes, setElapsedMinutes] = useState<number>(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   
   const loadTimerState = () => {
       const state = localStorage.getItem('matchTimerState');
@@ -36,9 +36,9 @@ export default function LiveMatchWear() {
       
       if (tState === 'playing' && tStart) {
           const currentTotalMs = tElapsed + (Date.now() - tStart);
-          setElapsedMinutes(Math.floor(currentTotalMs / 60000));
+          setElapsedSeconds(Math.floor(currentTotalMs / 1000));
       } else {
-          setElapsedMinutes(Math.floor(tElapsed / 60000));
+          setElapsedSeconds(Math.floor(tElapsed / 1000));
       }
       return { tState, tStart, tElapsed };
   };
@@ -55,7 +55,7 @@ export default function LiveMatchWear() {
          localStorage.removeItem('matchTimerStart');
          
          setTimerState('paused');
-         setElapsedMinutes(Math.floor(currentTotalMs / 60000));
+         setElapsedSeconds(Math.floor(currentTotalMs / 1000));
      } else {
          // Play
          const now = Date.now();
@@ -66,13 +66,25 @@ export default function LiveMatchWear() {
   };
 
   const stopTimer = () => {
-     if (confirm("Vuoi azzerare il timer della partita?")) {
+     if (confirm("Vuoi azzerare il timer della partita e ripartire da 0-0?")) {
          localStorage.setItem('matchTimerState', 'stopped');
          localStorage.setItem('matchTimerElapsed', '0');
          localStorage.removeItem('matchTimerStart');
          
          setTimerState('stopped');
-         setElapsedMinutes(0);
+         setElapsedSeconds(0);
+
+         if (match) {
+             const resetMatch = {
+                 ...match,
+                 risultato: '0-0',
+                 marcatori_a: null,
+                 marcatori_b: null,
+             };
+             setMatch(resetMatch);
+             localStorage.setItem('pendingLiveMatch', JSON.stringify(resetMatch));
+             syncMatch(resetMatch);
+         }
      }
   };
   
@@ -141,7 +153,7 @@ export default function LiveMatchWear() {
     loadTimerState();
     const timerInterval = setInterval(() => {
        loadTimerState();
-    }, 10000);
+    }, 1000);
 
     return () => {
       if (wakeLock) {
@@ -195,7 +207,8 @@ export default function LiveMatchWear() {
     let scorersStr = Array.isArray(scorersInput) ? scorersInput.join(', ') : (typeof scorersInput === 'string' ? scorersInput : '');
     const map: Record<string, string[]> = {};
     
-    scorersStr.split(',').forEach((s: string) => {
+    // Divide solo sulle virgole esterne alle parentesi
+    scorersStr.split(/,\s*(?![^()]*\))/).forEach((s: string) => {
       const trimmed = s.trim();
       if (!trimmed) return;
       const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
@@ -376,8 +389,8 @@ export default function LiveMatchWear() {
       <div style={styles.scoreOverlay}>
         <div style={{position: 'absolute', top: '-40px', display: 'flex', gap: '10px', alignItems: 'center'}}>
            {timerState !== 'stopped' && (
-              <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '1px 1px 2px #000' }}>
-                 {elapsedMinutes}'
+              <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '1px 1px 2px #000', fontVariantNumeric: 'tabular-nums' }}>
+                 {Math.floor(elapsedSeconds/60)}:{(elapsedSeconds%60).toString().padStart(2, '0')}
               </div>
            )}
            <button onClick={(e) => { e.stopPropagation(); playTimer(); }} style={{

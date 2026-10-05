@@ -599,6 +599,7 @@ export default function Home() {
   const [archiveMonthFilter, setArchiveMonthFilter] = useState('');
   const [archiveYearFilter, setArchiveYearFilter] = useState('');
   const [archivePlayerFilter, setArchivePlayerFilter] = useState('');
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<'month'|'year'|'player'|null>(null);
 
   const filteredArchiveMatches = useMemo(() => {
     return matches.filter(m => {
@@ -3318,78 +3319,98 @@ const formatResultTime = (timeStr?: string) => {
         <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
         
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-           <input 
-              type="text" 
-              list="archive-months-list" 
-              placeholder="Mese (es. Giugno)" 
-              value={archiveMonthFilter} 
-              onChange={e => setArchiveMonthFilter(e.target.value)}
-              style={{ 
-                  flex: '1 1 120px', 
-                  padding: '0.6rem 1rem',
-                  background: 'var(--color-surface-2)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  fontSize: '0.9rem',
-                  colorScheme: theme
-              }}
-           />
-           <datalist id="archive-months-list">
-              <option value="Gennaio" /><option value="Febbraio" /><option value="Marzo" />
-              <option value="Aprile" /><option value="Maggio" /><option value="Giugno" />
-              <option value="Luglio" /><option value="Agosto" /><option value="Settembre" />
-              <option value="Ottobre" /><option value="Novembre" /><option value="Dicembre" />
-           </datalist>
+           <div style={{ position: 'relative', flex: '1 1 120px' }}>
+             <input 
+                type="text" 
+                placeholder="Mese (es. Giugno)" 
+                value={archiveMonthFilter} 
+                onChange={e => setArchiveMonthFilter(e.target.value)}
+                onFocus={() => setActiveFilterDropdown('month')}
+                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
+                style={{ 
+                    width: '100%',
+                    padding: '0.6rem 1rem',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--color-text)',
+                    outline: 'none',
+                    fontSize: '0.9rem',
+                    colorScheme: theme
+                }}
+             />
+             {activeFilterDropdown === 'month' && (
+                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                   {['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+                     .filter(m => m.toLowerCase().includes(archiveMonthFilter.toLowerCase()))
+                     .map(m => (
+                        <div key={m} className="dropdown-option" onClick={() => { setArchiveMonthFilter(m); setActiveFilterDropdown(null); }}>{m}</div>
+                     ))}
+                </div>
+             )}
+           </div>
 
-           <input 
-              type="text" 
-              list="archive-years-list" 
-              placeholder="Anno (es. 2026)" 
-              value={archiveYearFilter} 
-              onChange={e => setArchiveYearFilter(e.target.value)}
-              style={{ 
-                  flex: '1 1 100px', 
-                  padding: '0.6rem 1rem',
-                  background: 'var(--color-surface-2)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  fontSize: '0.9rem',
-                  colorScheme: theme
-              }}
-           />
-           <datalist id="archive-years-list">
-              {Array.from(new Set(matches.map(m => new Date(m.data).getFullYear()))).sort((a,b)=>b-a).map(y => (
-                  <option key={y} value={y} />
-              ))}
-           </datalist>
+           <div style={{ position: 'relative', flex: '1 1 100px' }}>
+             <input 
+                type="text" 
+                placeholder="Anno (es. 2026)" 
+                value={archiveYearFilter} 
+                onChange={e => setArchiveYearFilter(e.target.value)}
+                onFocus={() => setActiveFilterDropdown('year')}
+                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
+                style={{ 
+                    width: '100%',
+                    padding: '0.6rem 1rem',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--color-text)',
+                    outline: 'none',
+                    fontSize: '0.9rem',
+                    colorScheme: theme
+                }}
+             />
+             {activeFilterDropdown === 'year' && (
+                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                   {Array.from(new Set(matches.map(m => new Date(m.data).getFullYear()))).sort((a,b)=>b-a)
+                     .filter(y => y.toString().includes(archiveYearFilter.trim()))
+                     .map(y => (
+                        <div key={y} className="dropdown-option" onClick={() => { setArchiveYearFilter(y.toString()); setActiveFilterDropdown(null); }}>{y}</div>
+                     ))}
+                </div>
+             )}
+           </div>
 
-           <input 
-              type="text" 
-              list="archive-players-list" 
-              placeholder="Giocatore (es. Mattia)" 
-              value={archivePlayerFilter} 
-              onChange={e => setArchivePlayerFilter(e.target.value)}
-              style={{ 
-                  flex: '1 1 120px', 
-                  padding: '0.6rem 1rem',
-                  background: 'var(--color-surface-2)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  fontSize: '0.9rem',
-                  colorScheme: theme
-              }}
-           />
-           <datalist id="archive-players-list">
-              {dbPlayers && [...dbPlayers].sort((a,b)=>a.Nome.localeCompare(b.Nome)).map(p => (
-                  <option key={p.Nome} value={p.Nome} />
-              ))}
-           </datalist>
+           <div style={{ position: 'relative', flex: '1 1 120px' }}>
+             <input 
+                type="text" 
+                placeholder="Giocatore (es. Mattia)" 
+                value={archivePlayerFilter} 
+                onChange={e => setArchivePlayerFilter(e.target.value)}
+                onFocus={() => setActiveFilterDropdown('player')}
+                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
+                style={{ 
+                    width: '100%',
+                    padding: '0.6rem 1rem',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--color-text)',
+                    outline: 'none',
+                    fontSize: '0.9rem',
+                    colorScheme: theme
+                }}
+             />
+             {activeFilterDropdown === 'player' && (
+                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                   {dbPlayers && [...dbPlayers].sort((a,b)=>a.Nome.localeCompare(b.Nome))
+                     .filter(p => p.Nome.toLowerCase().includes(archivePlayerFilter.toLowerCase().trim()))
+                     .map(p => (
+                        <div key={p.Nome} className="dropdown-option" onClick={() => { setArchivePlayerFilter(p.Nome); setActiveFilterDropdown(null); }}>{p.Nome}</div>
+                     ))}
+                </div>
+             )}
+           </div>
         </div>
 
         {filteredArchiveMatches.length === 0 ? (

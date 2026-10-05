@@ -3332,7 +3332,8 @@ const formatResultTime = (timeStr?: string) => {
                   borderRadius: 'var(--radius-md)',
                   color: 'var(--color-text)',
                   outline: 'none',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  colorScheme: theme
               }}
            />
            <datalist id="archive-months-list">
@@ -3356,7 +3357,8 @@ const formatResultTime = (timeStr?: string) => {
                   borderRadius: 'var(--radius-md)',
                   color: 'var(--color-text)',
                   outline: 'none',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  colorScheme: theme
               }}
            />
            <datalist id="archive-years-list">
@@ -3379,7 +3381,8 @@ const formatResultTime = (timeStr?: string) => {
                   borderRadius: 'var(--radius-md)',
                   color: 'var(--color-text)',
                   outline: 'none',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  colorScheme: theme
               }}
            />
            <datalist id="archive-players-list">

@@ -595,6 +595,37 @@ export default function Home() {
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [showGuests, setShowGuests] = useState(false);
 
+  // Archivio Filtri
+  const [archiveMonthFilter, setArchiveMonthFilter] = useState('');
+  const [archiveYearFilter, setArchiveYearFilter] = useState('');
+  const [archivePlayerFilter, setArchivePlayerFilter] = useState('');
+
+  const filteredArchiveMatches = useMemo(() => {
+    return matches.filter(m => {
+      const date = new Date(m.data);
+      const mMonth = date.toLocaleDateString('it-IT', { month: 'long' }).toLowerCase();
+      const mYear = date.getFullYear().toString();
+      
+      const pF = archivePlayerFilter.toLowerCase().trim();
+      const monthF = archiveMonthFilter.toLowerCase().trim();
+      const yearF = archiveYearFilter.trim();
+      
+      if (monthF && !mMonth.includes(monthF)) return false;
+      if (yearF && mYear !== yearF) return false;
+      
+      if (pF) {
+          const matchPlayers = [
+            ...(m.team_a_players || []),
+            ...(m.team_b_players || []),
+          ].map((p: string) => p.toLowerCase());
+          
+          if (!matchPlayers.some(p => p.includes(pF))) return false;
+      }
+      
+      return true;
+    });
+  }, [matches, archiveMonthFilter, archiveYearFilter, archivePlayerFilter]);
+
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'desc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
@@ -3269,11 +3300,60 @@ const formatResultTime = (timeStr?: string) => {
 
       <section className="archive-typography" id="archivio">
         <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
-        {matches.length === 0 ? (
-          <p className="section-subtitle">Nessuna partita archiviata</p>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+           <input 
+              type="text" 
+              list="archive-months-list" 
+              placeholder="Mese (es. Giugno)" 
+              value={archiveMonthFilter} 
+              onChange={e => setArchiveMonthFilter(e.target.value)}
+              className="text-input"
+              style={{ flex: '1 1 120px', padding: '0.5rem' }}
+           />
+           <datalist id="archive-months-list">
+              <option value="Gennaio" /><option value="Febbraio" /><option value="Marzo" />
+              <option value="Aprile" /><option value="Maggio" /><option value="Giugno" />
+              <option value="Luglio" /><option value="Agosto" /><option value="Settembre" />
+              <option value="Ottobre" /><option value="Novembre" /><option value="Dicembre" />
+           </datalist>
+
+           <input 
+              type="text" 
+              list="archive-years-list" 
+              placeholder="Anno (es. 2026)" 
+              value={archiveYearFilter} 
+              onChange={e => setArchiveYearFilter(e.target.value)}
+              className="text-input"
+              style={{ flex: '1 1 100px', padding: '0.5rem' }}
+           />
+           <datalist id="archive-years-list">
+              {Array.from(new Set(matches.map(m => new Date(m.data).getFullYear()))).sort((a,b)=>b-a).map(y => (
+                  <option key={y} value={y} />
+              ))}
+           </datalist>
+
+           <input 
+              type="text" 
+              list="archive-players-list" 
+              placeholder="Giocatore (es. Mattia)" 
+              value={archivePlayerFilter} 
+              onChange={e => setArchivePlayerFilter(e.target.value)}
+              className="text-input"
+              style={{ flex: '1 1 120px', padding: '0.5rem' }}
+           />
+           <datalist id="archive-players-list">
+              {dbPlayers && [...dbPlayers].sort((a,b)=>a.Nome.localeCompare(b.Nome)).map(p => (
+                  <option key={p.Nome} value={p.Nome} />
+              ))}
+           </datalist>
+        </div>
+
+        {filteredArchiveMatches.length === 0 ? (
+          <p className="section-subtitle">Nessuna partita trovata</p>
         ) : (
           <div className="matches-list">
-            {matches.map(m => {
+            {filteredArchiveMatches.map(m => {
               const isExpanded = expandedMatchId === m.id;
               const isEditing = editingStadiumId === m.id;
               const isLightOnA = (m.maglia_chiara || 'A') === 'A';

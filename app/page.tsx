@@ -3103,6 +3103,22 @@ const formatResultTime = (timeStr?: string) => {
                       reliabilityColor = '#ffcc00';
                   }
 
+                  const matchPlayersList = [...(results?.teamA || []), ...(results?.teamB || [])];
+                  const unknownPlayersCount = matchPlayersList.filter(p => !leaderboard.some(l => l.nome === p && l.partite_giocate > 0)).length;
+                  
+                  if (unknownPlayersCount === 1) {
+                      if (reliabilityText === 'Alta') {
+                          reliabilityText = 'Media (1 debuttante)';
+                          reliabilityColor = '#ffcc00';
+                      } else {
+                          reliabilityText = 'Bassa (1 debuttante)';
+                          reliabilityColor = '#ff4444';
+                      }
+                  } else if (unknownPlayersCount > 1) {
+                      reliabilityText = `Molto Bassa (${unknownPlayersCount} debuttanti)`;
+                      reliabilityColor = '#ff4444';
+                  }
+
                   return (
                     <div style={{ 
                       background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
@@ -3308,8 +3324,16 @@ const formatResultTime = (timeStr?: string) => {
               placeholder="Mese (es. Giugno)" 
               value={archiveMonthFilter} 
               onChange={e => setArchiveMonthFilter(e.target.value)}
-              className="text-input"
-              style={{ flex: '1 1 120px', padding: '0.5rem' }}
+              style={{ 
+                  flex: '1 1 120px', 
+                  padding: '0.6rem 1rem',
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  fontSize: '0.9rem'
+              }}
            />
            <datalist id="archive-months-list">
               <option value="Gennaio" /><option value="Febbraio" /><option value="Marzo" />
@@ -3324,8 +3348,16 @@ const formatResultTime = (timeStr?: string) => {
               placeholder="Anno (es. 2026)" 
               value={archiveYearFilter} 
               onChange={e => setArchiveYearFilter(e.target.value)}
-              className="text-input"
-              style={{ flex: '1 1 100px', padding: '0.5rem' }}
+              style={{ 
+                  flex: '1 1 100px', 
+                  padding: '0.6rem 1rem',
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  fontSize: '0.9rem'
+              }}
            />
            <datalist id="archive-years-list">
               {Array.from(new Set(matches.map(m => new Date(m.data).getFullYear()))).sort((a,b)=>b-a).map(y => (
@@ -3339,8 +3371,16 @@ const formatResultTime = (timeStr?: string) => {
               placeholder="Giocatore (es. Mattia)" 
               value={archivePlayerFilter} 
               onChange={e => setArchivePlayerFilter(e.target.value)}
-              className="text-input"
-              style={{ flex: '1 1 120px', padding: '0.5rem' }}
+              style={{ 
+                  flex: '1 1 120px', 
+                  padding: '0.6rem 1rem',
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  fontSize: '0.9rem'
+              }}
            />
            <datalist id="archive-players-list">
               {dbPlayers && [...dbPlayers].sort((a,b)=>a.Nome.localeCompare(b.Nome)).map(p => (

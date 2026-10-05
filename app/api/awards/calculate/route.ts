@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../../lib/db';
+import { parseScorersStr } from '../../../../lib/classifica-utils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -70,27 +71,9 @@ export async function GET(req: Request) {
           stats[p].storicoVoti.push({ date: matchDateStr, voto: playerVoto });
           
           if (marcatoriObj) {
-            if (typeof marcatoriObj === 'string') {
-              const cleanObj = marcatoriObj.replace(/^["']|["']$/g, '');
-              const parts = cleanObj.split(',');
-              parts.forEach(part => {
-                const str = part.trim();
-                if (str) {
-                  const matchResult = str.match(/^(.*?)(?:\s*\(\s*(\d+)\s*\))?$/);
-                  if (matchResult) {
-                    const mName = matchResult[1].trim();
-                    const numGol = parseInt(matchResult[2] || '1', 10);
-                    if (mName === p) {
-                      stats[p].gol += numGol;
-                    }
-                  }
-                }
-              });
-            } else if (Array.isArray(marcatoriObj)) {
-              const mar = marcatoriObj.find((m: any) => m.nome === p);
-              if (mar) stats[p].gol += parseInt(mar.gol, 10) || 0;
-            } else if (typeof marcatoriObj === 'object') {
-              if (marcatoriObj[p]) stats[p].gol += parseInt(marcatoriObj[p], 10) || 0;
+            const parsedMap = parseScorersStr(marcatoriObj);
+            if (parsedMap[p]) {
+               stats[p].gol += parsedMap[p];
             }
           }
 

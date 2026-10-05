@@ -16,7 +16,7 @@ export interface LeaderboardEntry {
   forma_dettagli: string; // JSON string in DB
 }
 
-const parseScorersStr = (scorersInput: any): Record<string, number> => {
+export const parseScorersStr = (scorersInput: any): Record<string, number> => {
   if (!scorersInput) return {};
   let scorersStr = '';
   if (Array.isArray(scorersInput)) {

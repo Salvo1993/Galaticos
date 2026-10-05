@@ -693,7 +693,7 @@ export default function Home() {
     }
 
     const map: Record<string, number> = {};
-    scorersStr.split(',').forEach(s => {
+    scorersStr.split(/,\s*(?![^()]*\))/).forEach(s => {
       const trimmed = s.trim();
       if (!trimmed) return;
       const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);

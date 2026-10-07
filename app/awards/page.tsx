@@ -45,8 +45,6 @@ export default function AwardsPage() {
 
   useEffect(() => {
     const d = new Date();
-    // Default to last month if we're in a new month
-    d.setMonth(d.getMonth() - 1);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const startStr = '2026-09';

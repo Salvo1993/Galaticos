@@ -21,6 +21,7 @@ export default function AwardsPage() {
   const [selectedMonth, setSelectedMonth] = useState('2026-09');
   const [awardsData, setAwardsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   
   // Genera mesi da Settembre 2026 fino ad un anno avanti
   const months = useMemo(() => {
@@ -201,37 +202,70 @@ export default function AwardsPage() {
        return p?.punteggio || null;
     };
 
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'desc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     const renderScoreboard = () => {
       if (!stats || stats.length === 0) return null;
+      
+      let sortableStats = [...stats].map((p, index) => ({ ...p, originalPos: index + 1 }));
+      
+      if (sortConfig) {
+          sortableStats.sort((a, b) => {
+              let aVal = a[sortConfig.key];
+              let bVal = b[sortConfig.key];
+              if (sortConfig.key === 'punteggio' || sortConfig.key === 'mediaVoto') {
+                 aVal = Number(aVal);
+                 bVal = Number(bVal);
+              }
+              if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+              if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+              return 0;
+          });
+      }
+
+      const getSortIcon = (key: string) => {
+        if (!sortConfig || sortConfig.key !== key) return '';
+        return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+      };
+
       return (
         <div style={{ marginTop: '3rem', width: '100%', overflowX: 'auto', background: 'var(--color-surface)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
           <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: '#fff' }}>Classifica del Mese Completa</h3>
           <table style={{ width: '100%', minWidth: '500px', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#aaa', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Pos</th>
-                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Nome</th>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Score</th>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Voto</th>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>MVP</th>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Punti</th>
-                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Gol</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Rank</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('name')}>Nome <span style={{color: '#fff'}}>{getSortIcon('name')}</span></th>
+                <th style={{ padding: '12px 10px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('punteggio')}>Score <span style={{color: '#fff'}}>{getSortIcon('punteggio')}</span></th>
+                <th style={{ padding: '12px 10px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('mediaVoto')}>Voto <span style={{color: '#fff'}}>{getSortIcon('mediaVoto')}</span></th>
+                <th style={{ padding: '12px 10px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('mvp')}>MVP <span style={{color: '#fff'}}>{getSortIcon('mvp')}</span></th>
+                <th style={{ padding: '12px 10px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('punti')}>Punti <span style={{color: '#fff'}}>{getSortIcon('punti')}</span></th>
+                <th style={{ padding: '12px 10px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('gol')}>Gol <span style={{color: '#fff'}}>{getSortIcon('gol')}</span></th>
               </tr>
             </thead>
             <tbody>
-              {stats.map((p, index) => (
-                <tr key={p.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#fff' }}>
-                  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: index < 3 ? (index === 0 ? '#ffd700' : (index === 1 ? '#c0c0c0' : '#cd7f32')) : '#888' }}>{index + 1}°</td>
-                  <td style={{ padding: '10px', textAlign: 'left', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {p.name}
-                  </td>
-                  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#64b5f6' }}>{p.punteggio} pts</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{Number(p.mediaVoto).toFixed(2)}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.mvp}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.punti}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.gol}</td>
-                </tr>
-              ))}
+              {sortableStats.map((p) => {
+                const color = p.originalPos === 1 ? '#ffd700' : (p.originalPos === 2 ? '#c0c0c0' : (p.originalPos === 3 ? '#cd7f32' : '#888'));
+                return (
+                  <tr key={p.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#fff' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color }}>{p.originalPos}°</td>
+                    <td style={{ padding: '10px', textAlign: 'left', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {p.name}
+                    </td>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#64b5f6' }}>{p.punteggio} pts</td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>{Number(p.mediaVoto).toFixed(2)}</td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>{p.mvp}</td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>{p.punti}</td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>{p.gol}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

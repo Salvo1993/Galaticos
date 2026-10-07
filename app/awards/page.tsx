@@ -409,7 +409,9 @@ export default function AwardsPage() {
     );
   };
 
-  const alboDoro = awardsData.filter(a => a.primo_posto);
+  const dNow = new Date();
+  const currentMonthGlobal = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}`;
+  const alboDoro = awardsData.filter(a => a.primo_posto && a.mese_anno !== currentMonthGlobal);
 
   return (
     <div style={{ paddingBottom: '4rem' }}>

@@ -296,11 +296,12 @@ export default function AwardsPage() {
 
     if (!Array.isArray(stats) || stats.length === 0) return null;
 
+    const chartStats = stats.slice(0, 5);
     const colors = ['#ffd700', '#c0c0c0', '#cd7f32', '#34d680', '#5de4ff'];
 
     const dateMap: Record<string, any> = {};
     if (stats && Array.isArray(stats)) {
-      stats.forEach(p => {
+      chartStats.forEach(p => {
         if (p.storicoVoti && Array.isArray(p.storicoVoti)) {
           p.storicoVoti.forEach((v: any) => {
             if (!dateMap[v.date]) dateMap[v.date] = { name: v.date };
@@ -326,13 +327,13 @@ export default function AwardsPage() {
           <h4><Star size={16} /> N° MVP Ottenuti</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
                 <Bar dataKey="mvp" radius={[4, 4, 0, 0]}>
-                  {stats.map((entry, index) => (
+                  {chartStats.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Bar>
@@ -353,7 +354,7 @@ export default function AwardsPage() {
                     <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
                     <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
                     <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#ccc', paddingTop: '15px' }} />
-                    {stats.slice(0, 3).map((p, index) => (
+                    {chartStats.slice(0, 3).map((p, index) => (
                       <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
                     ))}
                   </LineChart>
@@ -371,13 +372,13 @@ export default function AwardsPage() {
           <h4><Medal size={16} /> Punti Squadra</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
                 <Bar dataKey="punti" radius={[4, 4, 0, 0]}>
-                  {stats.map((entry, index) => (
+                  {chartStats.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.8} />
                   ))}
                 </Bar>
@@ -391,13 +392,13 @@ export default function AwardsPage() {
           <h4><Target size={16} /> Gol Segnati</h4>
           <div style={{ height: '220px', padding: '10px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
                 <Bar dataKey="gol" radius={[4, 4, 0, 0]}>
-                  {stats.map((entry, index) => (
+                  {chartStats.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.6} />
                   ))}
                 </Bar>

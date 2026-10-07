@@ -137,7 +137,7 @@ export async function GET(req: Request) {
         }
     });
 
-    const top3stats = finalScoreboard.slice(0, 3).map(p => ({
+    const allStats = finalScoreboard.map(p => ({
        name: p.name,
        punteggio: parseFloat(p.aggregateIndex.toFixed(1)),
        mvp: p.mvp,
@@ -150,7 +150,7 @@ export async function GET(req: Request) {
 
     await sql`
       INSERT INTO public."Awards" (mese_anno, primo_posto, secondo_posto, terzo_posto, stats_details)
-      VALUES (${targetMonth}, ${primo_posto}, ${secondo_posto}, ${terzo_posto}, ${JSON.stringify(top3stats)}::jsonb)
+      VALUES (${targetMonth}, ${primo_posto}, ${secondo_posto}, ${terzo_posto}, ${JSON.stringify(allStats)}::jsonb)
       ON CONFLICT (mese_anno) 
       DO UPDATE SET 
         primo_posto = EXCLUDED.primo_posto,
@@ -162,10 +162,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       message: `Giocatori del mese calcolati e salvati con successo per ${targetMonth}!`,
-      podium: {
-          primo: { name: primo_posto, punteggio: finalScoreboard[0].aggregateIndex },
-          secondo: { name: secondo_posto, punteggio: finalScoreboard[1].aggregateIndex },
-          terzo: { name: terzo_posto, punteggio: finalScoreboard[2].aggregateIndex }
+      award_data: {
+          mese_anno: targetMonth,
+          primo_posto,
+          secondo_posto,
+          terzo_posto,
+          stats_details: JSON.stringify(allStats)
       }
     });
 

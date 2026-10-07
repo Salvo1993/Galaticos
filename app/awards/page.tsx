@@ -53,7 +53,13 @@ export default function AwardsPage() {
     const computed = `${y}-${m}`;
     // Clamp
     if (computed >= startStr) {
-      setSelectedMonth(computed);
+      const isCurrentMonth = d.getFullYear() === new Date().getFullYear() && d.getMonth() === new Date().getMonth();
+      if (isCurrentMonth) {
+          // If we're looking at current month, it's progressivo
+          setSelectedMonth(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+      } else {
+          setSelectedMonth(computed);
+      }
     } else {
       setSelectedMonth('2026-09');
     }
@@ -66,9 +72,22 @@ export default function AwardsPage() {
     try {
       const res = await fetch('/api/awards');
       const data = await res.json();
-      if (data.success) {
-        setAwardsData(data.awards);
+      
+      let fetchedAwards = data.success ? data.awards : [];
+
+      // Calcola progressivo mese corrente LIVE
+      const d = new Date();
+      const currentMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      
+      const resLive = await fetch(`/api/awards/calculate?month=${currentMonthStr}`);
+      const dataLive = await resLive.json();
+      
+      if (dataLive.success && dataLive.award_data) {
+          fetchedAwards = [...fetchedAwards.filter((a: any) => a.mese_anno !== currentMonthStr), dataLive.award_data];
       }
+      
+      setAwardsData(fetchedAwards);
+      
     } catch(err) {
       console.error(err);
     } finally {
@@ -184,8 +203,45 @@ export default function AwardsPage() {
        return p?.punteggio || null;
     };
 
+    const renderScoreboard = () => {
+      if (!stats || stats.length === 0) return null;
+      return (
+        <div style={{ marginTop: '3rem', width: '100%', overflowX: 'auto', background: 'var(--color-surface)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: '#fff' }}>Classifica del Mese Completa</h3>
+          <table style={{ width: '100%', minWidth: '500px', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#aaa', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Pos</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left' }}>Nome</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Score</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Voto</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>MVP</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Punti</th>
+                <th style={{ padding: '12px 10px', textAlign: 'center' }}>Gol</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((p, index) => (
+                <tr key={p.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#fff' }}>
+                  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: index < 3 ? (index === 0 ? '#ffd700' : (index === 1 ? '#c0c0c0' : '#cd7f32')) : '#888' }}>{index + 1}°</td>
+                  <td style={{ padding: '10px', textAlign: 'left', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {p.name}
+                  </td>
+                  <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#64b5f6' }}>{p.punteggio} pts</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{Number(p.mediaVoto).toFixed(2)}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.mvp}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.punti}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{p.gol}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '8px', height: '350px', maxWidth: '500px', margin: '0 auto', paddingTop: '1rem' }}>
           <PodiumItem rank={2} name={secondo_posto} height="120px" color="#c0c0c0" glow="rgba(192, 192, 192, 0.4)" avatarUrl={findAvatar(secondo_posto)} score={findScore(secondo_posto)} />
           <PodiumItem rank={1} name={primo_posto} height="180px" color="#ffd700" glow="rgba(255, 215, 0, 0.6)" avatarUrl={findAvatar(primo_posto)} score={findScore(primo_posto)} />
@@ -194,6 +250,7 @@ export default function AwardsPage() {
         <div style={{ textAlign: 'center', marginTop: '2.5rem', color: 'var(--color-text-muted)', fontSize: '0.95rem', maxWidth: '600px', lineHeight: '1.6' }}>
           Il <strong>Giocatore del Mese</strong> è calcolato tramite un algoritmo che premia la costanza. Si basa su <strong style={{color: '#fff'}}>Media Voto (35%)</strong>, <strong style={{color: '#fff'}}>N° MVP (35%)</strong>, <strong style={{color: '#fff'}}>Punti Squadra (20%)</strong> e <strong style={{color: '#fff'}}>Gol Segnati (10%)</strong>, con un malus per chi gioca meno del 50% delle partite.
         </div>
+        {renderScoreboard()}
       </div>
     );
   };

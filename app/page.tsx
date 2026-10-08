@@ -724,7 +724,6 @@ export default function Home() {
   };
 
   const handleSaveSfida = async () => {
-    if (!isAdmin) return;
     if (sfidaPlayers.length < 2) return;
     let title = sfidaTitolo.trim();
     if (!title) {
@@ -736,17 +735,26 @@ export default function Home() {
       const r = await fetch('/api/sfide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titolo: title, giocatori: sfidaPlayers, data_da: sfidaDataDa || null })
+        body: JSON.stringify({ titolo: title, giocatori: sfidaPlayers, data_da: sfidaDataDa || null, is_approved: isAdmin })
       });
       if (r.ok) {
-        showToast('Sfida salvata!', 'success');
+        showToast(isAdmin ? 'Sfida salvata!' : 'Sfida in attesa di approvazione degli Admin', 'success');
         loadSfide();
       } else {
-        showToast('Errore durante il salvataggio.', 'error');
+        const err = await r.json();
+        showToast(err.error || 'Errore durante il salvataggio.', 'error');
       }
     } catch(e: any) {
       showToast(e.message || 'Errore durante il salvataggio!', 'error');
     }
+  };
+
+  const approveSfida = async (id: number) => {
+    if (!isAdmin) return;
+    try {
+      const r = await fetch(`/api/sfide?id=${id}`, { method: 'PUT' });
+      if (r.ok) loadSfide();
+    } catch(e){}
   };
 
   const deleteSfida = async (id: number) => {
@@ -5213,11 +5221,12 @@ const formatResultTime = (timeStr?: string) => {
                <div style={{ marginBottom: '1.5rem', background: 'var(--color-surface-2)', padding: '1rem', borderRadius: '8px' }}>
                  <h3 style={{ fontSize: '1rem', color: '#3da5f5', marginBottom: '10px' }}>Sfide Salvate:</h3>
                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                   {sfideSalvate.map(s => (
-                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-surface)', padding: '5px 10px', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                   {sfideSalvate.filter(s => isAdmin || s.is_approved).map(s => (
+                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-surface)', padding: '5px 10px', borderRadius: '4px', border: s.is_approved ? '1px solid var(--color-border)' : '1px solid #f0ad4e' }}>
                        <span style={{ cursor: 'pointer', color: '#fff', fontSize: '0.9rem' }} onClick={() => { setSfidaPlayers(s.giocatori); setSfidaDataDa(s.data_da || ''); setTimeout(() => document.getElementById('calc-sfida-btn')?.click(), 100); }}>
-                         {s.titolo} {s.data_da ? ` (dal ${s.data_da})` : ''}
+                         {s.titolo} {s.data_da ? ` (dal ${s.data_da})` : ''} {!s.is_approved && <span style={{color: '#f0ad4e', fontSize: '0.75rem'}}> (In attesa)</span>}
                        </span>
+                       {isAdmin && !s.is_approved && <button onClick={() => approveSfida(s.id)} style={{ background: 'transparent', border: 'none', color: '#34d680', cursor: 'pointer', padding: '0 5px', fontWeight: 'bold' }}>✓</button>}
                        {isAdmin && <button onClick={() => deleteSfida(s.id)} style={{ background: 'transparent', border: 'none', color: '#f55', cursor: 'pointer', padding: '0 5px' }}>x</button>}
                      </div>
                    ))}
@@ -5245,7 +5254,7 @@ const formatResultTime = (timeStr?: string) => {
                </div>
                <div style={{ display: 'flex', gap: '8px' }}>
                  <button id="calc-sfida-btn" className="admin-button" onClick={computeSfida} style={{ padding: '0.7rem 1.2rem', background: '#3da5f5', color: '#000', fontWeight: 'bold' }}>Calcola</button>
-                 {isAdmin && <button className="admin-button" onClick={handleSaveSfida} style={{ padding: '0.7rem 1.2rem', background: '#34d680', color: '#000', fontWeight: 'bold' }}>Salva</button>}
+                 <button className="admin-button" onClick={handleSaveSfida} style={{ padding: '0.7rem 1.2rem', background: '#34d680', color: '#000', fontWeight: 'bold' }}>{isAdmin ? 'Salva' : 'Invia'}</button>
                </div>
             </div>
 

@@ -2587,7 +2587,7 @@ const formatResultTime = (timeStr?: string) => {
                       <div style={{marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem'}}>
                           <h4 style={{color: '#fff', margin: '0 0 0.8rem 0'}}>Aggiustamenti OVR / Handicap</h4>
                           <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                             {[...selectedPlayers.filter(Boolean)].sort((a,b) => (getRating(b, false) + (ovrModifiers[b]||0)) - (getRating(a, false) + (ovrModifiers[a]||0))).map(p => {
+                             {[...selectedPlayers.filter(Boolean)].sort((a,b) => getRating(b, false) - getRating(a, false)).map(p => {
                                  const base = getRating(p, false);
                                  const currentMod = ovrModifiers[p] || 0;
                                  const total = (base + currentMod).toFixed(1);

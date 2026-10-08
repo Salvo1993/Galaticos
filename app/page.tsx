@@ -2008,13 +2008,39 @@ const formatResultTime = (timeStr?: string) => {
     const unassignedPlayers = selectedPlayers.filter(p => !assignments.has(p));
     
     const getRating = (name: string) => {
+        const s = statsData.find(x => x.name === name);
         const l = leaderboard.find(x => x.nome === name);
-        return l && l.media_voto > 0 ? l.media_voto : 6.0;
+        
+        let base = 6.0;
+        if (l && l.media_voto > 0) base = l.media_voto;
+        
+        let off = 0;
+        let dif = 0;
+        if (s && s.partiteGiocate > 0) {
+            off = s.golFattiSquadra / s.partiteGiocate;
+            dif = s.golSubitiSquadra / s.partiteGiocate;
+        }
+        
+        let mvp = 0;
+        let winRate = 0.5;
+        if (l && l.partite_giocate > 0) {
+            mvp = l.mvp_count / l.partite_giocate;
+            winRate = l.vittorie / l.partite_giocate;
+        }
+        
+        // Calcolo un "OVR" (rating globale) su base ~100
+        const ratingBase = (base / 10) * 50; 
+        const ratingWin = winRate * 30;
+        const ratingDiff = Math.max(0, Math.min(20, 10 + (off - dif) * 2));
+        const ratingMvp = mvp * 15;
+        
+        return ratingBase + ratingWin + ratingDiff + ratingMvp;
     };
 
-    // Ordina i restanti per voto (dal più forte al più debole) con un leggerissimo jitter randomico per variare
+    // Ordina i restanti per il nuovo OVR globale (dal più forte al più debole) 
+    // con un pizzico di randomicità (0-2 punti OVR) per variare le scelte
     const sortedUnassigned = [...unassignedPlayers].sort((a, b) => {
-        return (getRating(b) - getRating(a)) + (Math.random() * 0.2 - 0.1); 
+        return (getRating(b) - getRating(a)) + (Math.random() * 2 - 1); 
     });
 
     const teamA: string[] = [];

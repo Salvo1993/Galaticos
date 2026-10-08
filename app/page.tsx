@@ -601,6 +601,170 @@ export default function Home() {
   const [archivePlayerFilter, setArchivePlayerFilter] = useState('');
   const [activeFilterDropdown, setActiveFilterDropdown] = useState<'month'|'year'|'player'|null>(null);
 
+  // Sfida State
+  const [isSfidaModalOpen, setIsSfidaModalOpen] = useState(false);
+  const [sfidaDataDa, setSfidaDataDa] = useState('');
+  const [sfidaTitolo, setSfidaTitolo] = useState('');
+  const [sfidaPlayers, setSfidaPlayers] = useState<string[]>([]);
+  const [sfideSalvate, setSfideSalvate] = useState<any[]>([]);
+  const [sfidaLeaderboard, setSfidaLeaderboard] = useState<any[]>([]);
+  const [sfidaSortConfig, setSfidaSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  
+  const sfidaPlayerOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        matches.flatMap(m => [
+          ...(m.team_a_players || []),
+          ...(m.team_b_players || []),
+        ])
+      )
+    ).map(p => ({ label: p, value: p })).sort((a,b) => a.label.localeCompare(b.label));
+  }, [matches]);
+
+  const requestSfidaSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sfidaSortConfig && sfidaSortConfig.key === key && sfidaSortConfig.direction === 'desc') direction = 'asc';
+    setSfidaSortConfig({ key, direction });
+  };
+
+  const loadSfide = async () => {
+    try {
+      const r = await fetch('/api/sfide');
+      const d = await r.json();
+      if (d.success) setSfideSalvate(d.sfide);
+    } catch(e) {}
+  };
+  
+  useEffect(() => { loadSfide(); }, []);
+
+  const computeSfida = () => {
+    if (sfidaPlayers.length < 2) return alert('Seleziona almeno 2 giocatori');
+    let filteredMatches = matches.filter(m => m.risultato && m.risultato !== '' && m.risultato !== '0-0');
+    if (sfidaDataDa) {
+      filteredMatches = filteredMatches.filter(m => {
+        if (!m.data) return true;
+        return new Date(m.data) >= new Date(sfidaDataDa);
+      });
+    }
+
+    const stats: Record<string, any> = {};
+    sfidaPlayers.forEach(p => {
+       stats[p] = { nome: p, partite_giocate: 0, vittorie: 0, pareggi: 0, sconfitte: 0, punti_assoluti: 0, gol: 0, mvp_count: 0, somma_voti: 0, partite_voto: 0, pt_partita: 0, media_voto: 0 };
+    });
+
+    filteredMatches.forEach(m => {
+      const parts = m.risultato?.split('-');
+      if (!parts || parts.length < 2) return;
+      
+      const scorA = parseInt(parts[0], 10);
+      const scorB = parseInt(parts[1], 10);
+      
+      let winA = false, winB = false, draw = false;
+      if (scorA > scorB) winA = true;
+      else if (scorA < scorB) winB = true;
+      else draw = true;
+
+      const vt = typeof m.voti_giocatori === 'string' ? JSON.parse(m.voti_giocatori || '{}') : (m.voti_giocatori || {});
+
+      sfidaPlayers.forEach(p => {
+        const isTeamA = m.team_a_players?.includes(p);
+        const isTeamB = m.team_b_players?.includes(p);
+        if (isTeamA || isTeamB) {
+          stats[p].partite_giocate += 1;
+          
+          if ((isTeamA && winA) || (isTeamB && winB)) { stats[p].vittorie += 1; stats[p].punti_assoluti += 3; }
+          else if (draw) { stats[p].pareggi += 1; stats[p].punti_assoluti += 1; }
+          else { stats[p].sconfitte += 1; }
+
+          if (vt[p] !== undefined && Number(vt[p]) > 0) {
+            stats[p].somma_voti += Number(vt[p]);
+            stats[p].partite_voto += 1;
+          }
+
+          if (m.mvps && m.mvps.includes(p)) {
+             stats[p].mvp_count += 1;
+          }
+        }
+      });
+
+      const parseGoals = (str: string | null) => {
+        if (!str) return;
+        const pts = str.split(/,\s*(?![^()]*\))/);
+        pts.forEach(pt => {
+           let np = pt.replace(/\(.*?\)/g, "").trim();
+           if (stats[np]) {
+              let cnt = 1;
+              const match = pt.match(/\((.*?)\)/);
+              if (match) {
+                 const min = match[1];
+                 const splits = min.split(/,|(?:' e )|(?:' )/).filter(k => k.trim() !== "");
+                 if (splits.every(x => isNaN(parseInt(x, 10)))) {
+                    cnt = parseInt(min, 10) || 1;
+                 } else {
+                    cnt = splits.length;
+                 }
+              }
+              stats[np].gol += cnt;
+           }
+        });
+      };
+      parseGoals(m.marcatori_a);
+      parseGoals(m.marcatori_b);
+    });
+
+    const res = Object.values(stats).map(d => {
+       d.pt_partita = d.partite_giocate > 0 ? parseFloat((d.punti_assoluti / d.partite_giocate).toFixed(2)) : 0;
+       d.media_voto = d.partite_voto > 0 ? parseFloat((d.somma_voti / d.partite_voto).toFixed(2)) : 0;
+       return d;
+    });
+
+    res.sort((a, b) => b.punti_assoluti - a.punti_assoluti);
+    setSfidaSortConfig(null);
+    setSfidaLeaderboard(res);
+  };
+
+  const handleSaveSfida = async () => {
+    if (!isAdmin) return;
+    if (sfidaPlayers.length < 2) return;
+    let title = sfidaTitolo.trim();
+    if (!title) {
+        const p1 = sfidaPlayers[0], p2 = sfidaPlayers[1];
+        title = `${p1} vs ${p2}`;
+        if (sfidaPlayers.length > 2) title += ` e altri`;
+    }
+    try {
+      const r = await fetch('/api/sfide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titolo: title, giocatori: sfidaPlayers, data_da: sfidaDataDa || null })
+      });
+      if (r.ok) {
+        alert('Sfida salvata!');
+        loadSfide();
+      }
+    } catch(e){}
+  };
+
+  const deleteSfida = async (id: number) => {
+    if (!isAdmin) return;
+    if (!confirm('Sicuro di voler eliminare questa sfida?')) return;
+    try {
+      const r = await fetch(`/api/sfide?id=${id}`, { method: 'DELETE' });
+      if (r.ok) loadSfide();
+    } catch(e){}
+  };
+
+  let sortedSfidaLeaderboard = [...sfidaLeaderboard];
+  if (sfidaSortConfig) {
+    sortedSfidaLeaderboard.sort((a, b) => {
+       let aV = a[sfidaSortConfig.key];
+       let bV = b[sfidaSortConfig.key];
+       if (aV < bV) return sfidaSortConfig.direction === 'asc' ? -1 : 1;
+       if (aV > bV) return sfidaSortConfig.direction === 'asc' ? 1 : -1;
+       return 0;
+    });
+  }
+
   const filteredArchiveMatches = useMemo(() => {
     return matches.filter(m => {
       const date = new Date(m.data);
@@ -3700,6 +3864,12 @@ const formatResultTime = (timeStr?: string) => {
              Stato di Forma
            </button>
            <button 
+             onClick={() => setIsSfidaModalOpen(true)}
+             style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #3da5f5', background: 'transparent', color: '#3da5f5', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+           >
+             ⚔️ Sfida
+           </button>
+           <button 
              onClick={() => setShowGuests(!showGuests)}
              style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: '1px solid #6f9c81', background: showGuests ? 'transparent' : 'rgba(111, 156, 129, 0.15)', color: '#6f9c81', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', marginLeft: 'auto' }}
            >
@@ -4956,6 +5126,96 @@ const formatResultTime = (timeStr?: string) => {
           }
         }
       `}</style>
+      
+      {/* Sfida Modal */}
+      {isSfidaModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsSfidaModalOpen(false)} style={{ zIndex: 9999 }}>
+          <div className="modal-content admin-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
+            <h2 className="admin-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>⚔️ Area Sfida</h2>
+            
+            {sfideSalvate.length > 0 && (
+               <div style={{ marginBottom: '1.5rem', background: 'var(--color-surface-2)', padding: '1rem', borderRadius: '8px' }}>
+                 <h3 style={{ fontSize: '1rem', color: '#3da5f5', marginBottom: '10px' }}>Sfide Salvate:</h3>
+                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                   {sfideSalvate.map(s => (
+                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-surface)', padding: '5px 10px', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                       <span style={{ cursor: 'pointer', color: '#fff', fontSize: '0.9rem' }} onClick={() => { setSfidaPlayers(s.giocatori); setSfidaDataDa(s.data_da || ''); setTimeout(() => document.getElementById('calc-sfida-btn')?.click(), 100); }}>
+                         {s.titolo} {s.data_da ? ` (dal ${s.data_da})` : ''}
+                       </span>
+                       {isAdmin && <button onClick={() => deleteSfida(s.id)} style={{ background: 'transparent', border: 'none', color: '#f55', cursor: 'pointer', padding: '0 5px' }}>x</button>}
+                     </div>
+                   ))}
+                 </div>
+               </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
+               <div style={{ flex: 1, minWidth: '200px' }}>
+                 <label className="admin-label">Seleziona Giocatori (min. 2)</label>
+                 <MultiSelectDropdown
+                    selectedValues={sfidaPlayers}
+                    options={sfidaPlayerOptions}
+                    onChange={setSfidaPlayers}
+                    placeholder="Scegli i giocatori"
+                 />
+               </div>
+               <div style={{ width: '130px' }}>
+                 <label className="admin-label">Data Da (Opz.)</label>
+                 <input type="date" className="admin-input" value={sfidaDataDa} onChange={e => setSfidaDataDa(e.target.value)} />
+               </div>
+               <div style={{ flex: 1, minWidth: '150px' }}>
+                 <label className="admin-label">Nome Sfida (Opz.)</label>
+                 <input type="text" className="admin-input" placeholder="Es: Classifica Estiva" value={sfidaTitolo} onChange={e => setSfidaTitolo(e.target.value)} />
+               </div>
+               <div style={{ display: 'flex', gap: '8px' }}>
+                 <button id="calc-sfida-btn" className="admin-button" onClick={computeSfida} style={{ padding: '0.7rem 1.2rem', background: '#3da5f5', color: '#000', fontWeight: 'bold' }}>Calcola</button>
+                 {isAdmin && <button className="admin-button" onClick={handleSaveSfida} style={{ padding: '0.7rem 1.2rem', background: '#34d680', color: '#000', fontWeight: 'bold' }}>Salva</button>}
+               </div>
+            </div>
+
+            {sfidaLeaderboard.length > 0 && (
+              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--color-border)', marginTop: '2rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(61, 165, 245, 0.1)', borderBottom: '1px solid var(--color-border)' }}>
+                      <th style={{ padding: '10px', textAlign: 'left', color: '#3da5f5' }}>Pos</th>
+                      <th style={{ padding: '10px', textAlign: 'left', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('nome')}>Nominativo {sfidaSortConfig?.key==='nome'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('punti_assoluti')}>Punti {sfidaSortConfig?.key==='punti_assoluti'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('partite_giocate')}>Giocate {sfidaSortConfig?.key==='partite_giocate'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('vittorie')}>V {sfidaSortConfig?.key==='vittorie'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('pareggi')}>N {sfidaSortConfig?.key==='pareggi'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('sconfitte')}>P {sfidaSortConfig?.key==='sconfitte'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('media_voto')}>Media Voto {sfidaSortConfig?.key==='media_voto'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('mvp_count')}>MVP {sfidaSortConfig?.key==='mvp_count'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('pt_partita')}>Pt/Partita {sfidaSortConfig?.key==='pt_partita'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                      <th style={{ padding: '10px', textAlign: 'center', color: '#3da5f5', cursor: 'pointer' }} onClick={() => requestSfidaSort('gol')}>Gol {sfidaSortConfig?.key==='gol'?(sfidaSortConfig.direction==='asc'?'↑':'↓'):''}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                     {sortedSfidaLeaderboard.map((p, idx) => (
+                        <tr key={p.nome} style={{ borderBottom: '1px solid var(--color-border)', color: '#fff' }}>
+                           <td style={{ padding: '10px', fontWeight: 'bold' }}>{idx + 1}°</td>
+                           <td style={{ padding: '10px', fontWeight: 600 }}>{p.nome}</td>
+                           <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#fff' }}>{p.punti_assoluti}</td>
+                           <td style={{ padding: '10px', textAlign: 'center' }}>{p.partite_giocate}</td>
+                           <td style={{ padding: '10px', textAlign: 'center', color: '#34d680' }}>{p.vittorie}</td>
+                           <td style={{ padding: '10px', textAlign: 'center', color: '#f0ad4e' }}>{p.pareggi}</td>
+                           <td style={{ padding: '10px', textAlign: 'center', color: '#d9534f' }}>{p.sconfitte}</td>
+                           <td style={{ padding: '10px', textAlign: 'center' }}>{p.media_voto}</td>
+                           <td style={{ padding: '10px', textAlign: 'center', color: '#ffd700' }}>{p.mvp_count}</td>
+                           <td style={{ padding: '10px', textAlign: 'center' }}>{p.pt_partita}</td>
+                           <td style={{ padding: '10px', textAlign: 'center' }}>{p.gol}</td>
+                        </tr>
+                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            <button className="admin-button cancel-button" onClick={() => setIsSfidaModalOpen(false)} style={{ marginTop: '1.5rem', width: '100%' }}>Chiudi</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

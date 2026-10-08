@@ -637,6 +637,7 @@ export default function Home() {
   
   useEffect(() => { loadSfide(); }, []);
 
+  const computeSfida = () => {
     if (sfidaPlayers.length < 2) return showToast('Seleziona almeno 2 giocatori', 'error');
     let filteredMatches = matches.filter(m => m.risultato && m.risultato !== '' && m.risultato !== '0-0');
     if (sfidaDataDa) {

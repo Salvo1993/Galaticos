@@ -480,6 +480,14 @@ export default function Home() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [isClustersExpanded, setIsClustersExpanded] = useState(false);
+  const [algoModalOpen, setAlgoModalOpen] = useState(false);
+  const [algoSettings, setAlgoSettings] = useState({
+    wVoto: 50,
+    wWinRate: 30,
+    wGolRatio: 20,
+    wMvp: 15,
+    balanceRoles: true
+  });
   const [results, setResults] = useState<Results | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [loading, setLoading] = useState(true);
@@ -2036,20 +2044,53 @@ const formatResultTime = (timeStr?: string) => {
             winRate = l.vittorie / l.partite_giocate;
         }
         
-        // Calcolo un "OVR" (rating globale) su base ~100
-        const ratingBase = (base / 10) * 50; 
-        const ratingWin = winRate * 30;
-        const ratingDiff = Math.max(0, Math.min(20, 10 + (off - dif) * 2));
-        const ratingMvp = mvp * 15;
+        // Calcolo un "OVR" (rating globale) proporzionato
+        const ratingBase = (base / 10) * algoSettings.wVoto; 
+        const ratingWin = winRate * algoSettings.wWinRate;
+        const halfGol = algoSettings.wGolRatio / 2;
+        const ratingDiff = Math.max(0, Math.min(algoSettings.wGolRatio, halfGol + (off - dif) * (algoSettings.wGolRatio/10)));
+        const ratingMvp = mvp * algoSettings.wMvp;
         
         return ratingBase + ratingWin + ratingDiff + ratingMvp;
     };
 
-    // Ordina i restanti per il nuovo OVR globale (dal più forte al più debole) 
-    // con un pizzico di randomicità (0-2 punti OVR) per variare le scelte
-    const sortedUnassigned = [...unassignedPlayers].sort((a, b) => {
-        return (getRating(b) - getRating(a)) + (Math.random() * 2 - 1); 
-    });
+    let sortedUnassigned = [...unassignedPlayers];
+
+    if (algoSettings.balanceRoles) {
+        const categorized = sortedUnassigned.map(p => {
+            const dbP = dbPlayers.find(x => x.Nome === p);
+            let roleName = dbP ? dbP.Ruolo : 'Centrocampista Centrale';
+            const s = statsData.find(x => x.name === p);
+            const golRatio = (s && s.partiteGiocate > 0) ? (s.golFattiSquadra / s.partiteGiocate) : 0;
+            return { name: p, role: roleName, golRatio, ovr: getRating(p) + (Math.random() * 2 - 1), macro: '' };
+        });
+
+        const wingers = categorized.filter(c => (c.role || '').toLowerCase().includes('ala') || (c.role || '').toLowerCase().includes('jolly'));
+        wingers.sort((a,b) => b.golRatio - a.golRatio);
+        const half = Math.floor(wingers.length / 2);
+        wingers.forEach((w, i) => {
+            w.macro = i < half ? 'Offensivo' : 'Difensivo';
+        });
+
+        categorized.forEach(c => {
+            if (!c.macro) {
+                const r = (c.role || '').toLowerCase();
+                if (r.includes('difensor') || r.includes('portiere')) c.macro = 'Difensivo';
+                else if (r.includes('attaccante') || r.includes('trequartista') || r.includes('punta')) c.macro = 'Offensivo';
+                else c.macro = 'Centrocampo';
+            }
+        });
+
+        const defs = categorized.filter(c => c.macro === 'Difensivo').sort((a,b) => b.ovr - a.ovr);
+        const mids = categorized.filter(c => c.macro === 'Centrocampo').sort((a,b) => b.ovr - a.ovr);
+        const offs = categorized.filter(c => c.macro === 'Offensivo').sort((a,b) => b.ovr - a.ovr);
+
+        sortedUnassigned = [...defs, ...mids, ...offs].map(c => c.name);
+    } else {
+        sortedUnassigned.sort((a, b) => {
+            return (getRating(b) - getRating(a)) + (Math.random() * 2 - 1); 
+        });
+    }
 
     const teamA: string[] = [];
     const teamB: string[] = [];
@@ -2440,6 +2481,9 @@ const formatResultTime = (timeStr?: string) => {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
             <h2>👥 Giocatori</h2>
             <div style={{display:'flex', gap:'var(--space-2)'}}>
+                <button className="secondary-btn" onClick={() => setAlgoModalOpen(true)}>
+                    Algoritmo
+                </button>
                 <button className="secondary-btn" onClick={() => setIsManageModalOpen(true)}>
                     Gestisci
                 </button>
@@ -2462,6 +2506,53 @@ const formatResultTime = (timeStr?: string) => {
           ))}
         </div>
       </section>
+
+      {algoModalOpen && (
+          <div className="modal-overlay" onClick={() => setAlgoModalOpen(false)} style={{zIndex: 1000}}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+                      <h3 style={{margin:0, color: '#3da5f5'}}>⚙️ Impostazioni Algoritmo</h3>
+                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setAlgoModalOpen(false)}><X size={20} /></button>
+                  </div>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '1.2rem'}}>
+                      <div>
+                          <label style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fff', fontSize: '0.9rem'}}>
+                              <span>🏆 Media Voto</span>
+                              <span style={{fontWeight: 'bold', color: '#34d680'}}>{algoSettings.wVoto}</span>
+                          </label>
+                          <input type="range" min="0" max="100" value={algoSettings.wVoto} onChange={e => setAlgoSettings({...algoSettings, wVoto: parseInt(e.target.value)})} style={{width: '100%', cursor: 'pointer'}} />
+                      </div>
+                      <div>
+                          <label style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fff', fontSize: '0.9rem'}}>
+                              <span>📈 Win Rate Storico</span>
+                              <span style={{fontWeight: 'bold', color: '#34d680'}}>{algoSettings.wWinRate}</span>
+                          </label>
+                          <input type="range" min="0" max="100" value={algoSettings.wWinRate} onChange={e => setAlgoSettings({...algoSettings, wWinRate: parseInt(e.target.value)})} style={{width: '100%', cursor: 'pointer'}} />
+                      </div>
+                      <div>
+                          <label style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fff', fontSize: '0.9rem'}}>
+                              <span>⚽ Rapporto Gol Fatti/Subiti</span>
+                              <span style={{fontWeight: 'bold', color: '#34d680'}}>{algoSettings.wGolRatio}</span>
+                          </label>
+                          <input type="range" min="0" max="100" value={algoSettings.wGolRatio} onChange={e => setAlgoSettings({...algoSettings, wGolRatio: parseInt(e.target.value)})} style={{width: '100%', cursor: 'pointer'}} />
+                      </div>
+                      <div>
+                          <label style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fff', fontSize: '0.9rem'}}>
+                              <span>⭐ MVP Ratio</span>
+                              <span style={{fontWeight: 'bold', color: '#34d680'}}>{algoSettings.wMvp}</span>
+                          </label>
+                          <input type="range" min="0" max="100" value={algoSettings.wMvp} onChange={e => setAlgoSettings({...algoSettings, wMvp: parseInt(e.target.value)})} style={{width: '100%', cursor: 'pointer'}} />
+                      </div>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', background: 'rgba(61, 165, 245, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(61, 165, 245, 0.3)'}}>
+                          <input type="checkbox" id="balanceRoles" checked={algoSettings.balanceRoles} onChange={e => setAlgoSettings({...algoSettings, balanceRoles: e.target.checked})} style={{width: '20px', height: '20px', cursor: 'pointer'}} />
+                          <label htmlFor="balanceRoles" style={{fontWeight: 'bold', color: '#3da5f5', cursor: 'pointer', margin: 0, fontSize: '0.95rem'}}>
+                              Bilancia Ruoli & Ali (Jolly)
+                          </label>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {isManageModalOpen && (
           <div className="modal-overlay" onClick={() => setIsManageModalOpen(false)}>

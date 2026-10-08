@@ -488,6 +488,7 @@ export default function Home() {
     wMvp: 15,
     balanceRoles: true
   });
+  const [ovrModifiers, setOvrModifiers] = useState<Record<string, number>>({});
   const [results, setResults] = useState<Results | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [loading, setLoading] = useState(true);
@@ -1976,6 +1977,37 @@ const formatResultTime = (timeStr?: string) => {
     }));
   };
 
+  const getRating = (name: string, withModifier = true) => {
+      const s = statsData.find(x => x.name === name);
+      const l = leaderboard.find(x => x.nome === name);
+      
+      let base = 6.0;
+      if (l && l.media_voto > 0) base = l.media_voto;
+      
+      let off = 0;
+      let dif = 0;
+      if (s && s.partiteGiocate > 0) {
+          off = s.golFattiSquadra / s.partiteGiocate;
+          dif = s.golSubitiSquadra / s.partiteGiocate;
+      }
+      
+      let mvp = 0;
+      let winRate = 0.5;
+      if (l && l.partite_giocate > 0) {
+          mvp = l.mvp_count / l.partite_giocate;
+          winRate = l.vittorie / l.partite_giocate;
+      }
+      
+      const ratingBase = (base / 10) * algoSettings.wVoto; 
+      const ratingWin = winRate * algoSettings.wWinRate;
+      const halfGol = algoSettings.wGolRatio / 2;
+      const ratingDiff = Math.max(0, Math.min(algoSettings.wGolRatio, halfGol + (off - dif) * (algoSettings.wGolRatio/10)));
+      const ratingMvp = mvp * algoSettings.wMvp;
+      
+      const res = ratingBase + ratingWin + ratingDiff + ratingMvp;
+      return res + (withModifier ? (ovrModifiers[name] || 0) : 0);
+  };
+
   const generateTeams = async (forceShuffle: boolean | any = false) => {
     const isShuffleForce = forceShuffle === true;
     setUserOverrideMaglia(null);
@@ -2054,37 +2086,6 @@ const formatResultTime = (timeStr?: string) => {
     // 2. Assegnazione finale (Bilanciamento tramite storico Media Voto)
     const unassignedPlayers = selectedPlayers.filter(p => !assignments.has(p));
     
-    const getRating = (name: string) => {
-        const s = statsData.find(x => x.name === name);
-        const l = leaderboard.find(x => x.nome === name);
-        
-        let base = 6.0;
-        if (l && l.media_voto > 0) base = l.media_voto;
-        
-        let off = 0;
-        let dif = 0;
-        if (s && s.partiteGiocate > 0) {
-            off = s.golFattiSquadra / s.partiteGiocate;
-            dif = s.golSubitiSquadra / s.partiteGiocate;
-        }
-        
-        let mvp = 0;
-        let winRate = 0.5;
-        if (l && l.partite_giocate > 0) {
-            mvp = l.mvp_count / l.partite_giocate;
-            winRate = l.vittorie / l.partite_giocate;
-        }
-        
-        // Calcolo un "OVR" (rating globale) proporzionato
-        const ratingBase = (base / 10) * algoSettings.wVoto; 
-        const ratingWin = winRate * algoSettings.wWinRate;
-        const halfGol = algoSettings.wGolRatio / 2;
-        const ratingDiff = Math.max(0, Math.min(algoSettings.wGolRatio, halfGol + (off - dif) * (algoSettings.wGolRatio/10)));
-        const ratingMvp = mvp * algoSettings.wMvp;
-        
-        return ratingBase + ratingWin + ratingDiff + ratingMvp;
-    };
-
     let sortedUnassigned = [...unassignedPlayers];
 
     if (algoSettings.balanceRoles) {
@@ -2581,6 +2582,30 @@ const formatResultTime = (timeStr?: string) => {
                           </label>
                       </div>
                   </div>
+
+                  {isAdmin && selectedPlayers.filter(p => p).length > 0 && (
+                      <div style={{marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem'}}>
+                          <h4 style={{color: '#fff', margin: '0 0 0.8rem 0'}}>Aggiustamenti OVR / Handicap</h4>
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '5px'}}>
+                             {selectedPlayers.filter(p => p).map(p => {
+                                 const base = getRating(p, false);
+                                 const currentMod = ovrModifiers[p] || 0;
+                                 const total = (base + currentMod).toFixed(1);
+                                 return (
+                                    <div key={p} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px'}}>
+                                        <span style={{fontSize: '0.85rem', color: '#ccc', flex: 1}}>{p} <strong style={{color: currentMod > 0 ? '#34d680' : currentMod < 0 ? '#f55' : '#3da5f5', marginLeft: '5px'}}>({total})</strong></span>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod - 1})} style={{background: '#f55', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>-</button>
+                                            <span style={{color: '#fff', width: '24px', textAlign: 'center', fontSize: '0.9rem'}}>{currentMod > 0 ? `+${currentMod}` : currentMod}</span>
+                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod + 1})} style={{background: '#34d680', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>+</button>
+                                        </div>
+                                    </div>
+                                 );
+                             })}
+                          </div>
+                      </div>
+                  )}
+
                   <div style={{display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap'}}>
                       {isAdmin && <button className="admin-button" onClick={saveAlgoSettings} style={{flex: 1, minWidth: '120px', padding: '0.8rem', background: '#34d680', color: '#000', fontWeight: 'bold'}}>Salva</button>}
                       {isAdmin && <button className="admin-button" onClick={resetAlgoSettings} style={{flex: 1, minWidth: '160px', padding: '0.8rem', background: '#f0ad4e', color: '#000', fontWeight: 'bold'}}>Ripristina Default</button>}

@@ -482,9 +482,9 @@ export default function Home() {
   const [isClustersExpanded, setIsClustersExpanded] = useState(false);
   const [algoModalOpen, setAlgoModalOpen] = useState(false);
   const [algoSettings, setAlgoSettings] = useState({
-    wVoto: 50,
+    wVoto: 40,
     wWinRate: 30,
-    wGolRatio: 20,
+    wGolRatio: 30,
     wMvp: 15,
     balanceRoles: true
   });
@@ -777,9 +777,9 @@ export default function Home() {
 
   const resetAlgoSettings = () => {
       setAlgoSettings({
-        wVoto: 50,
+        wVoto: 40,
         wWinRate: 30,
-        wGolRatio: 20,
+        wGolRatio: 30,
         wMvp: 15,
         balanceRoles: true
       });

@@ -6,14 +6,14 @@ export const revalidate = 0;
 export async function GET() {
   try {
     try {
-        await sql`ALTER TABLE public."SiteSettings" ADD COLUMN algo_settings JSONB DEFAULT '{"wVoto": 50, "wWinRate": 30, "wGolRatio": 20, "wMvp": 15, "balanceRoles": true}'::jsonb`;
+        await sql`ALTER TABLE public."SiteSettings" ADD COLUMN algo_settings JSONB DEFAULT '{"wVoto": 40, "wWinRate": 30, "wGolRatio": 30, "wMvp": 15, "balanceRoles": true}'::jsonb`;
     } catch(e) {}
     
     const settings = await sql`SELECT match_label, algo_settings FROM public."SiteSettings" WHERE id = 1`;
-    return NextResponse.json(settings[0] || { match_label: 'Venerdì 19 giugno - Ore 21', algo_settings: {wVoto: 50, wWinRate: 30, wGolRatio: 20, wMvp: 15, balanceRoles: true} });
+    return NextResponse.json(settings[0] || { match_label: 'Venerdì 19 giugno - Ore 21', algo_settings: {wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true} });
   } catch (error) {
     console.error('Fetch Settings Error:', error);
-    return NextResponse.json({ match_label: 'Venerdì 19 giugno - Ore 21', algo_settings: {wVoto: 50, wWinRate: 30, wGolRatio: 20, wMvp: 15, balanceRoles: true} });
+    return NextResponse.json({ match_label: 'Venerdì 19 giugno - Ore 21', algo_settings: {wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true} });
   }
 }
 

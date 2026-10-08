@@ -774,6 +774,34 @@ export default function Home() {
     } catch(e){}
   };
 
+  const resetAlgoSettings = () => {
+      setAlgoSettings({
+        wVoto: 50,
+        wWinRate: 30,
+        wGolRatio: 20,
+        wMvp: 15,
+        balanceRoles: true
+      });
+  };
+
+  const saveAlgoSettings = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ algo_settings: algoSettings })
+      });
+      if (res.ok) {
+        showToast('Impostazioni algoritmo salvate', 'success');
+        setAlgoModalOpen(false);
+      } else {
+        showToast('Errore salvataggio impostazioni', 'error');
+      }
+    } catch(e) {
+      showToast('Errore salvataggio impostazioni', 'error');
+    }
+  };
+
   let sortedSfidaLeaderboard = [...sfidaLeaderboard];
   if (sfidaSortConfig) {
     sortedSfidaLeaderboard.sort((a, b) => {
@@ -1361,6 +1389,9 @@ export default function Home() {
         if (settingsData && settingsData.match_label) {
           currentLabel = settingsData.match_label;
           setMatchLabel(currentLabel);
+        }
+        if (settingsData && settingsData.algo_settings) {
+          setAlgoSettings(settingsData.algo_settings);
         }
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
@@ -2549,6 +2580,11 @@ const formatResultTime = (timeStr?: string) => {
                               Bilancia Ruoli & Ali (Jolly)
                           </label>
                       </div>
+                  </div>
+                  <div style={{display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap'}}>
+                      {isAdmin && <button className="admin-button" onClick={saveAlgoSettings} style={{flex: 1, minWidth: '120px', padding: '0.8rem', background: '#34d680', color: '#000', fontWeight: 'bold'}}>Salva</button>}
+                      {isAdmin && <button className="admin-button" onClick={resetAlgoSettings} style={{flex: 1, minWidth: '160px', padding: '0.8rem', background: '#f0ad4e', color: '#000', fontWeight: 'bold'}}>Ripristina Default</button>}
+                      <button className="secondary-btn" style={{flex: isAdmin ? '1 1 100%' : 1, padding: '0.8rem'}} onClick={() => setAlgoModalOpen(false)}>Chiudi</button>
                   </div>
               </div>
           </div>

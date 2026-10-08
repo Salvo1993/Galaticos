@@ -5125,6 +5125,22 @@ const formatResultTime = (timeStr?: string) => {
             text-align: left;
           }
         }
+        .admin-input {
+          background: rgba(0,0,0,0.5);
+          color: #fff;
+          border: 1px solid rgba(61, 165, 245, 0.4);
+          padding: 0.45rem 0.6rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          outline: none;
+          width: 100%;
+        }
+        .admin-input[type="date"] {
+          color-scheme: dark;
+        }
+        .admin-modal {
+          overflow: visible !important;
+        }
       `}</style>
       
       {/* Sfida Modal */}
@@ -5174,7 +5190,7 @@ const formatResultTime = (timeStr?: string) => {
             </div>
 
             {sfidaLeaderboard.length > 0 && (
-              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--color-border)', marginTop: '2rem' }}>
+              <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', borderRadius: '8px', border: '1px solid var(--color-border)', marginTop: '2rem' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ background: 'rgba(61, 165, 245, 0.1)', borderBottom: '1px solid var(--color-border)' }}>

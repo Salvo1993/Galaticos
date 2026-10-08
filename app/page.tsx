@@ -2595,9 +2595,9 @@ const formatResultTime = (timeStr?: string) => {
                                     <div key={p} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '4px'}}>
                                         <span style={{fontSize: '0.85rem', color: '#ccc', flex: 1}}>{p} <strong style={{color: currentMod > 0 ? '#34d680' : currentMod < 0 ? '#f55' : '#3da5f5', marginLeft: '5px'}}>({total})</strong></span>
                                         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod - 1})} style={{background: '#f55', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>-</button>
+                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod - 5})} style={{background: '#f55', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>-</button>
                                             <span style={{color: '#fff', width: '24px', textAlign: 'center', fontSize: '0.9rem'}}>{currentMod > 0 ? `+${currentMod}` : currentMod}</span>
-                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod + 1})} style={{background: '#34d680', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>+</button>
+                                            <button onClick={() => setOvrModifiers({...ovrModifiers, [p]: currentMod + 5})} style={{background: '#34d680', color: '#fff', border: 'none', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>+</button>
                                         </div>
                                     </div>
                                  );

@@ -2541,7 +2541,7 @@ const formatResultTime = (timeStr?: string) => {
 
       {algoModalOpen && (
           <div className="modal-overlay" onClick={() => setAlgoModalOpen(false)} style={{zIndex: 1000}}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
                       <h3 style={{margin:0, color: '#3da5f5'}}>⚙️ Impostazioni Algoritmo</h3>
                       <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setAlgoModalOpen(false)}><X size={20} /></button>
@@ -2586,8 +2586,8 @@ const formatResultTime = (timeStr?: string) => {
                   {isAdmin && selectedPlayers.filter(p => p).length > 0 && (
                       <div style={{marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem'}}>
                           <h4 style={{color: '#fff', margin: '0 0 0.8rem 0'}}>Aggiustamenti OVR / Handicap</h4>
-                          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '5px'}}>
-                             {selectedPlayers.filter(p => p).map(p => {
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                             {[...selectedPlayers.filter(Boolean)].sort((a,b) => (getRating(b, false) + (ovrModifiers[b]||0)) - (getRating(a, false) + (ovrModifiers[a]||0))).map(p => {
                                  const base = getRating(p, false);
                                  const currentMod = ovrModifiers[p] || 0;
                                  const total = (base + currentMod).toFixed(1);

@@ -28,12 +28,6 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const c = await cookies();
-    const isAdmin = c.get('adminLoggedIn')?.value === 'true';
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { titolo, giocatori, data_da } = await req.json();
     await sql`
       INSERT INTO public."Sfide" (titolo, giocatori, data_da)
@@ -48,11 +42,6 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const c = await cookies();
-    const isAdmin = c.get('adminLoggedIn')?.value === 'true';
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ success: false, error: 'ID required' });

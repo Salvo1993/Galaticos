@@ -28,7 +28,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const c = cookies();
+    const c = await cookies();
     const isAdmin = c.get('adminLoggedIn')?.value === 'true';
     if (!isAdmin) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const c = cookies();
+    const c = await cookies();
     const isAdmin = c.get('adminLoggedIn')?.value === 'true';
     if (!isAdmin) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

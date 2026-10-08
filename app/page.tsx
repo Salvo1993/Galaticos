@@ -2003,25 +2003,55 @@ const formatResultTime = (timeStr?: string) => {
         groupB.forEach(p => assignments.set(p, 'teamB'));
     }
 
-    // 2. Assegnazione finale
-    const shuffled = [...selectedPlayers].sort(() => Math.random() - 0.5);
+    // 2. Assegnazione finale (Bilanciamento tramite storico Media Voto)
+    const unassignedPlayers = selectedPlayers.filter(p => !assignments.has(p));
+    
+    const getRating = (name: string) => {
+        const l = leaderboard.find(x => x.nome === name);
+        return l && l.media_voto > 0 ? l.media_voto : 6.0;
+    };
+
+    // Ordina i restanti per voto (dal più forte al più debole) con un leggerissimo jitter randomico per variare
+    const sortedUnassigned = [...unassignedPlayers].sort((a, b) => {
+        return (getRating(b) - getRating(a)) + (Math.random() * 0.2 - 0.1); 
+    });
+
     const teamA: string[] = [];
     const teamB: string[] = [];
+    let ratingSumA = 0;
+    let ratingSumB = 0;
 
     try {
-      for (const player of shuffled) {
+      // Inseriamo prima i pre-assegnati
+      for (const player of selectedPlayers) {
         const assignedTeam = assignments.get(player);
-        
         if (assignedTeam) {
-            if (assignedTeam === 'teamA' && teamA.length < matchFormat) teamA.push(player);
-            else if (assignedTeam === 'teamB' && teamB.length < matchFormat) teamB.push(player);
-            else throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
-        } else {
-            // Normal assignment
-            if (teamA.length <= teamB.length && teamA.length < matchFormat) teamA.push(player);
-            else if (teamB.length < matchFormat) teamB.push(player);
-            else throw new Error('Impossibile completare le squadre');
+            const rating = getRating(player);
+            if (assignedTeam === 'teamA' && teamA.length < matchFormat) {
+                teamA.push(player);
+                ratingSumA += rating;
+            } else if (assignedTeam === 'teamB' && teamB.length < matchFormat) {
+                teamB.push(player);
+                ratingSumB += rating;
+            } else {
+               throw new Error('Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster.');
+            }
         }
+      }
+
+      // Distribuiamo i restanti in maniera "Greedy" (al team più debole o con meno giocatori)
+      for (const player of sortedUnassigned) {
+          const rating = getRating(player);
+          // Se la squadra A ha spazio e (B è già piena oppure A è svantaggiata)
+          if (teamA.length < matchFormat && (teamB.length === matchFormat || ratingSumA <= ratingSumB)) {
+              teamA.push(player);
+              ratingSumA += rating;
+          } else if (teamB.length < matchFormat) {
+              teamB.push(player);
+              ratingSumB += rating;
+          } else {
+              throw new Error('Impossibile completare le squadre');
+          }
       }
 
       if (teamA.length !== matchFormat || teamB.length !== matchFormat) throw new Error('Errore nella generazione');

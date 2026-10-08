@@ -2510,9 +2510,9 @@ const formatResultTime = (timeStr?: string) => {
       {isAdmin && (
         <>
           <section id="giocatori">
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)'}}>
+        <div style={{display:'flex', flexWrap:'wrap', justifyContent:'space-between', alignItems:'center', marginBottom:'var(--space-4)', gap: '1rem'}}>
             <h2>👥 Giocatori</h2>
-            <div style={{display:'flex', gap:'var(--space-2)'}}>
+            <div style={{display:'flex', flexWrap:'wrap', gap:'var(--space-2)'}}>
                 <button className="secondary-btn" onClick={() => setAlgoModalOpen(true)}>
                     Algoritmo
                 </button>
@@ -2540,7 +2540,7 @@ const formatResultTime = (timeStr?: string) => {
       </section>
 
       {algoModalOpen && (
-          <div className="modal-overlay" onClick={() => setAlgoModalOpen(false)} style={{zIndex: 1000}}>
+          <div className="modal-overlay" onClick={() => setAlgoModalOpen(false)} style={{zIndex: 1000, alignItems: 'flex-start', paddingTop: 'max(2rem, 5vh)', paddingBottom: '2rem'}}>
               <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
                       <h3 style={{margin:0, color: '#3da5f5'}}>⚙️ Impostazioni Algoritmo</h3>

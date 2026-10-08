@@ -637,8 +637,7 @@ export default function Home() {
   
   useEffect(() => { loadSfide(); }, []);
 
-  const computeSfida = () => {
-    if (sfidaPlayers.length < 2) return alert('Seleziona almeno 2 giocatori');
+    if (sfidaPlayers.length < 2) return showToast('Seleziona almeno 2 giocatori', 'error');
     let filteredMatches = matches.filter(m => m.risultato && m.risultato !== '' && m.risultato !== '0-0');
     if (sfidaDataDa) {
       filteredMatches = filteredMatches.filter(m => {
@@ -739,10 +738,14 @@ export default function Home() {
         body: JSON.stringify({ titolo: title, giocatori: sfidaPlayers, data_da: sfidaDataDa || null })
       });
       if (r.ok) {
-        alert('Sfida salvata!');
+        showToast('Sfida salvata!', 'success');
         loadSfide();
+      } else {
+        showToast('Errore durante il salvataggio.', 'error');
       }
-    } catch(e){}
+    } catch(e: any) {
+      showToast(e.message || 'Errore durante il salvataggio!', 'error');
+    }
   };
 
   const deleteSfida = async (id: number) => {

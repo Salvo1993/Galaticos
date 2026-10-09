@@ -68,9 +68,12 @@ Il collettore statistico oggettivo, senza alcun tasto di Esportazione diretto. S
 L'arena adibita a pura bacheca e Classifica Speciale per il riconoscimento "Man of the Match".
 - **Visitatori ed Amministratori**: Al pari della schermata Awards, questa sezione funge da spazio di Visualizzazione a sola lettura (read-only). Espone il tabellone ordinato di tutti gli atleti con le relative incoronazioni MvP cumulate nel tempo e la percentuale (MVP Ratio). La votazione vera e propria NON risiede in questo quadrante.
 
-## 7. Media Gallery 
-Cartella destinata ai ricordi di scatti video realizzati sui manti erbosi. 
-- **Tutti quanti**: Possono visualizzare i tab allegati per data scartabellando fra thumbnail, match storici e immagini pre partita per ravvivare memorie calcistiche. L'upload avviene mediante backend Vercel/Psql per evitare carichi di rete onerosi all'applicativo base Front End.
+## 7. Sezione Media 
+Cartella destinata all'archivio visivo e ai ricordi (scatti o video) realizzati sui manti erbosi. 
+- **Visitatori**: Possono visualizzare liberamente tutti i media caricati esplorando la galleria. Possono inoltre sfruttare un sistema di filtri per ricercare materiale specifico di una data o di certi giocatori.
+- **Amministratori**: Oltre alla visualizzazione, dispongono dell'arsenale per l'arricchimento della galleria.
+  - **Aggiunta Nuovo Media**: Possono caricare nuovi file (Immagini e Video) nella piattaforma.
+  - **Taggatura e Classificazione**: Ad ogni upload possono etichettare con precisione la scena. Hanno la facoltà di "taggare" direttamente i giocatori coinvolti nell'azione sportiva raffigurata e di associarvi tipologie specifiche del repertorio (come la categoria *Giocata*, un comico *Epic Fail*, un formidabile *Golazo*, ecc...) arricchendo a dismisura le funzioni di ricerca descritte poc'anzi per i visitatori.
 
 ## 8. Sezione The Awards
 Vetrina celebrativa autonoma. Traccia le figure emblematiche dominatrici o top classificatesi nell'ultimo mese giocato, separando statistiche d'effetto in vari tab "Trophy". 

@@ -31,16 +31,15 @@ Pannello per interagire con l'elenco generale di tutti i tesserati.
     - **Bilanciatore OVR Nascosto (-5/+5)**: Elenco con nomi associati a funzioni di +/-. Serve all'Admin a malusare/boostare fittizziamente un utente per rendere le squadre bilanciate alla vista della community, ma nascondendo lo stat check sfavorevole allo spiato affinché non si creino offese.
   - **Foto del Profilo Giocatori**: Aprendo le schede dei giocatori c'è un'icona fotocamera con cui gli admin possono applicare un volto ritratto all'account sostituendovi la figurina non brandizzata.
 
-## 3. Sezione Cluster (Generazione Squadre & Avvio)
+## 3. Sezione Prossima Partita, Formazioni & Info
 In quest'area viene generato l'equilibrio della gara e definita la partita del giorno.
-- **Visitatori**: Possono unicamente consultare passivamente l'ultima sfida o controllare visivamente la formazione generata prima di scendere in campo. Non possono in alcun modo generare sfide o modificare formazioni.
-- **Amministratori**: Sono gli unici ad avere accesso ai processi creativi:
-  - Scelgono i giocatori presenti dal roster.
-  - Azionano il calcolo dell'algoritmo per dividere le due squadre.
-  - Possono alterare manualmente le squadre se non soddisfatti ("swap").
-  - Convertono le formazioni definitivamente nel formato ufficiale tramite l'opzione "Salva in Sessione Giocabile".
-  - Possono invertire l'assegnazione dei colori/pettorine per le squadre.
-  - Aprono la schermata di partita "Live Match" dove accenderanno il Timer ed il tabellone per inserire i risultati in tempo record.
+- **Visitatori**: Possono unicamente consultare passivamente l'ultima sfida o controllare visivamente la formazione generata prima di scendere in campo. Non possono in alcun modo generare sfide, modificare formazioni o esportare contenuti.
+- **Amministratori**: Sono gli unici ad avere accesso ai controlli completi:
+  - Scelgono i tesserati presenti alla giornata.
+  - Azionano il calcolo dell'algoritmo bilanciatore.
+  - Possono alterare manualmente le squadre invertendo manualmente un giocatore ("Cambia Maglie") o forzare del tutto un nuovo calcolo randomico equilibrato ("Rimescola").
+  - **Tool di Esportazione**: Controllano in via esclusiva i comodi bottoni di export, ovvero **"Copia Formazioni"**, **"Copia Stats"** (entrambi per incollare il testo curato direttamente su WhatsApp o simili) e **"Scarica JPEG"** per prelevare un'infografica dell'evento.
+  - **Salva Formazione**: Pulsante chiave per confermare definitivamente le squadre nel formato ufficiale, rendendo ufficiale il Live Match.
 
 ## 3.5. Schermata Live Match (Smartwatch / Bordo Campo)
 Accessibile tramite l'url diretto `/live` (es. `vs-sito.app/live`), è l'interfaccia principale da utilizzare durante l'esecuzione del match.
@@ -55,15 +54,15 @@ Questa vista contiene l'albo cronologico completo delle dispute del torneo, most
   - **Modifica Storica**: In possesso del tab per "Modificare una partita". Questo fa sì che qualora ci si scordasse un marcatore nella foga del Live Match, si possano aprire i parametri crudi per stornare, inserire il goal corretto e salvare. Il tabellino aggiornerà l'intero archivio generalizzato a cascata.
 
 ## 5. Sezione Classifica e Stats 
-Il collettore dove ogni esito partorito rientra visualmente. Sono presenti varie sottosezioni e modalità di navigazione:
+Il collettore statistico oggettivo, senza alcun tasto di Esportazione diretto. Sono presenti varie sottosezioni di navigazione:
 - **Classifica Generale**: La classifica completa basata sui record totali di tutti i tempi.
-- **Stato di Forma**: Una classifica filtrata utilissima che prende in esame esclusivo le ultime apparizioni per isolare la condizione atletica attuale.
-- **Sfida (Pannello Comparativo)**: Un modulo in cui si calcolano classifiche "ristrette" fra 2 o più giocatori. È possibile calcolarvi chi ha fatto meglio partendo da una specifica data di calendario mettendoli l'uno contro l'altro.
-- **Toggle "+ Guest"**: Attivando questo interruttore, si fanno emergere e contabilizzare all'interno della classifica anche i "Guest", ossia gli ospiti esterni non tesserati che hanno disputato partite nel passato.
+- **Stato di Forma**: Una classifica filtrata utilissima che prende in esame esclusivo le ultimissime partite per isolare la condizione o la crisi atletica attuale dei partecipanti.
+- **Sfida**: Un pannello in cui si elaborano sottoclassifiche circoscritte. È possibile stabilire chi ha avuto il rendimento migliore partendo da una specifica data mettendoli faccia a faccia per sfidarsi.
+- **Toggle "+ Guest"**: Tasto filtro attivabile/disattivabile. Se abilitato, fa comparire nella classifica attuale i giocatori ospiti esterni, unendoli al gruppo master.
 
 **Permessi in quest'area:**
-- **Visitatori**: Possono navigare e spulciare i dati a fondo. Hanno libero accesso all'esportazione su WhatsApp (text) e Spreadsheet (CSV). Possono calcolare e mandare alla bacheca nuove "Sfide" tra giocatori; esse però finiranno appese in attesa di nullaosta.
-- **Amministratori**: Operando assiduamente nel tab delle **Sfide**, possiedono il vaglio giudicante finale. Sta unicamente a loro controllare le sfide proposte dall'utenza e decidere se confermare la spunta dell'**Approvazione** (per l'archivio definitivo alla community) o **Eliminare** (cestinandole).
+- **Visitatori**: Possono unicamente navigare e consultare i dati. I visitatori sono abilitati, se lo desiderano, a creare delle nuove richieste di "Sfide" testa a testa. Esse però, una volta inviate al sistema, finiranno prettamente in un limbo (In attesa di nullaosta).
+- **Amministratori**: Sono i moderatori esclusivi del tab "Sfida". Vedono il pannello completo di tutte le Sfide proposte dagli utenti ospiti, prendendo la briga di varare un verdetto finale: cliccare la spunta verde di **Approvazione** (per sancirle ufficialmente e renderle pubbliche a chiunque) o bocciarle tramite **Eliminazione** (cestinandole defintivamente dal Server).
 
 ## 6. Sezione MVP
 L'arena adibita a pura bacheca e Classifica Speciale per il riconoscimento "Man of the Match".

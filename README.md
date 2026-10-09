@@ -32,9 +32,15 @@ Pannello per interagire con l'elenco generale di tutti i tesserati.
   - **Foto del Profilo Giocatori**: Aprendo le schede dei giocatori c'è un'icona fotocamera con cui gli admin possono applicare un volto ritratto all'account sostituendovi la figurina non brandizzata.
 
 ## 3. Sezione Cluster (Generazione Squadre & Avvio)
-In quest'area vengono scelte le presenze della giornata e proposte le formazioni per essere validate in partita vera.
-- **Visitatori**: Scelgono dal menu e riempiono le caselline giocatori. L'algoritmo genererà poi le squadre. La sfida creata resterà esposta in modo neutro per tutti recando il "Muro della validazione", mostrandosi con etichetta verde ("In attesa di approvazione").
-- **Amministratori**: Ricevono notifica della "Sfida Autogenerata" dal pubblico. Controllano le formazioni, applicano modifiche libere e quindi convertono la sfida con il push "Salva in Sessione Giocabile". A questo punto possono definire il colore delle pettorine squadra, avviare il pannello Live della partita e attivare un Live Timer col conteggio Gol.
+In quest'area viene generato l'equilibrio della gara e definita la partita del giorno.
+- **Visitatori**: Possono unicamente consultare passivamente l'ultima sfida o controllare visivamente la formazione generata prima di scendere in campo. Non possono in alcun modo generare sfide o modificare formazioni.
+- **Amministratori**: Sono gli unici ad avere accesso ai processi creativi:
+  - Scelgono i giocatori presenti dal roster.
+  - Azionano il calcolo dell'algoritmo per dividere le due squadre.
+  - Possono alterare manualmente le squadre se non soddisfatti ("swap").
+  - Convertono le formazioni definitivamente nel formato ufficiale tramite l'opzione "Salva in Sessione Giocabile".
+  - Possono invertire l'assegnazione dei colori/pettorine per le squadre.
+  - Aprono la schermata di partita "Live Match" dove accenderanno il Timer ed il tabellone per inserire i risultati in tempo record.
 
 ## 4. Sezione Partite
 Questa vista contiene l'albo cronologico completo delle dispute del torneo, mostrando la differenza reti e la formazione di ogni team in quell'orario.

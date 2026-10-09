@@ -48,9 +48,11 @@ Accessibile tramite l'url diretto `/live` (es. `vs-sito.app/live`), è l'interfa
 - **Amministratori**: Interfaccia essenziale ad altissimo contrasto (ottimizzata anche per schermi lillipuziani come **Smartwatch** da polso). Offre gli interruttori "Più e Meno" per aggiornare repentinamente i gol, il comando per scalare i minuti passati e dichiarare il fine partita. L'inserimento ha riscontro in real-time nei dispositivi in osservazione.
 
 ## 4. Sezione Partite
-Questa vista contiene l'albo cronologico completo delle dispute del torneo, mostrando la differenza reti e la formazione di ogni team in quell'orario.
-- **Visitatori**: Semplice navigazione cronologica del passato. Sfruttano quest'area a puro fine informativo.
-- **Amministratori**: In possesso del tab per "Modificare una partita". Questo fa sì che qualora ci si scordasse un marcatore nella foga del Live Match, si possano aprire i parametri crudi per stornare, inserire il goal corretto e salvare. Il tabellino sovrascriverà di calcolo l'intero archivio generalizzato di tutti.
+Questa vista contiene l'albo cronologico completo delle dispute del torneo, mostrando la differenza reti e la formazione di ogni team in quell'orario. Qui accade la fondamentale fase di attribuzione Pagelle.
+- **Visitatori**: Semplice navigazione cronologica del passato. Sfruttano quest'area a puro fine informativo per leggere gli esiti delle antiche schermaglie. Non possono votare né compiere azioni operative.
+- **Amministratori**: 
+  - **Inserimento Voti e MVP**: Hanno l'onere esclusivo di poter assegnare, al termine della gara, il Voto numerico in pagella a ciascun giocatore e la corona di MVP di giornata. E' l'Admin a generare la statistica che farà evolvere il database!
+  - **Modifica Storica**: In possesso del tab per "Modificare una partita". Questo fa sì che qualora ci si scordasse un marcatore nella foga del Live Match, si possano aprire i parametri crudi per stornare, inserire il goal corretto e salvare. Il tabellino aggiornerà l'intero archivio generalizzato a cascata.
 
 ## 5. Sezione Classifica e Stats 
 Il collettore dove ogni esito partorito rientra visualmente. Sono presenti varie sottosezioni e modalità di navigazione:
@@ -64,9 +66,8 @@ Il collettore dove ogni esito partorito rientra visualmente. Sono presenti varie
 - **Amministratori**: Operando assiduamente nel tab delle **Sfide**, possiedono il vaglio giudicante finale. Sta unicamente a loro controllare le sfide proposte dall'utenza e decidere se confermare la spunta dell'**Approvazione** (per l'archivio definitivo alla community) o **Eliminare** (cestinandole).
 
 ## 6. Sezione MVP
-L'arena adibita a gestire i voti extra partita per definire l'uomo d'oro del match, accessibile solo ad ore finalizzate o a gara ultimata.
-- **Visitatori**: Entrando nel tab possono visionare un menu e decretare a scorrimento, con barra su un massimo 10, lo score pagella per tutti e dichiarare la palma "MvP" a chi è stato più risolutivo. 
-- **Amministratori**: Esattamente come i giocatori possono contribuire ma, in aggiunta a quest'ultimi, all'Admin spetta il verdetto tecnico per decretare la chiusura dei ballottaggi e spingere l'accettazione voti, calcolando l'Effettivo Premio Match.
+L'arena adibita a pura bacheca e Classifica Speciale per il riconoscimento "Man of the Match".
+- **Visitatori ed Amministratori**: Al pari della schermata Awards, questa sezione funge da spazio di Visualizzazione a sola lettura (read-only). Espone il tabellone ordinato di tutti gli atleti con le relative incoronazioni MvP cumulate nel tempo e la percentuale (MVP Ratio). La votazione vera e propria NON risiede in questo quadrante.
 
 ## 7. Media Gallery 
 Cartella destinata ai ricordi di scatti video realizzati sui manti erbosi. 

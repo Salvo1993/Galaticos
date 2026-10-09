@@ -53,8 +53,15 @@ Questa vista contiene l'albo cronologico completo delle dispute del torneo, most
 - **Amministratori**: In possesso del tab per "Modificare una partita". Questo fa sì che qualora ci si scordasse un marcatore nella foga del Live Match, si possano aprire i parametri crudi per stornare, inserire il goal corretto e salvare. Il tabellino sovrascriverà di calcolo l'intero archivio generalizzato di tutti.
 
 ## 5. Sezione Classifica e Stats 
-Il collettore dove ogni esito partorito rientra visualmente.
-- **Visitatori ed Amministratori**: Sono trattati allo stesso modo su questi tab e hanno poteri affini. Vedono la generica con ordini specifici in Win Rate (o media Goal), consultano l'andamento completo per ognuno e posso azionare due metodi pratici di espansione mediatica: Copia in Text-Format da WhatsApp e Download Foglio di Calcolo (Excel/CSV Export). Nessuna modifica ammessa, la classifica è frutto oggettivo delle Partite.
+Il collettore dove ogni esito partorito rientra visualmente. Sono presenti varie sottosezioni e modalità di navigazione:
+- **Classifica Generale**: La classifica completa basata sui record totali di tutti i tempi.
+- **Stato di Forma**: Una classifica filtrata utilissima che prende in esame esclusivo le ultime apparizioni per isolare la condizione atletica attuale.
+- **Sfida (Pannello Comparativo)**: Un modulo in cui si calcolano classifiche "ristrette" fra 2 o più giocatori. È possibile calcolarvi chi ha fatto meglio partendo da una specifica data di calendario mettendoli l'uno contro l'altro.
+- **Toggle "+ Guest"**: Attivando questo interruttore, si fanno emergere e contabilizzare all'interno della classifica anche i "Guest", ossia gli ospiti esterni non tesserati che hanno disputato partite nel passato.
+
+**Permessi in quest'area:**
+- **Visitatori**: Possono navigare e spulciare i dati a fondo. Hanno libero accesso all'esportazione su WhatsApp (text) e Spreadsheet (CSV). Possono calcolare e mandare alla bacheca nuove "Sfide" tra giocatori; esse però finiranno appese in attesa di nullaosta.
+- **Amministratori**: Operando assiduamente nel tab delle **Sfide**, possiedono il vaglio giudicante finale. Sta unicamente a loro controllare le sfide proposte dall'utenza e decidere se confermare la spunta dell'**Approvazione** (per l'archivio definitivo alla community) o **Eliminare** (cestinandole).
 
 ## 6. Sezione MVP
 L'arena adibita a gestire i voti extra partita per definire l'uomo d'oro del match, accessibile solo ad ore finalizzate o a gara ultimata.

@@ -42,6 +42,11 @@ In quest'area viene generato l'equilibrio della gara e definita la partita del g
   - Possono invertire l'assegnazione dei colori/pettorine per le squadre.
   - Aprono la schermata di partita "Live Match" dove accenderanno il Timer ed il tabellone per inserire i risultati in tempo record.
 
+## 3.5. Schermata Live Match (Smartwatch / Bordo Campo)
+Accessibile tramite l'url diretto `/live` (es. `vs-sito.app/live`), è l'interfaccia principale da utilizzare durante l'esecuzione del match.
+- **Visitatori**: Aprendo il link dal proprio telefono, hanno a disposizione un tabellone per guardare passivamente i gol e il timer di gioco trascorrere in sincro.
+- **Amministratori**: Interfaccia essenziale ad altissimo contrasto (ottimizzata anche per schermi lillipuziani come **Smartwatch** da polso). Offre gli interruttori "Più e Meno" per aggiornare repentinamente i gol, il comando per scalare i minuti passati e dichiarare il fine partita. L'inserimento ha riscontro in real-time nei dispositivi in osservazione.
+
 ## 4. Sezione Partite
 Questa vista contiene l'albo cronologico completo delle dispute del torneo, mostrando la differenza reti e la formazione di ogni team in quell'orario.
 - **Visitatori**: Semplice navigazione cronologica del passato. Sfruttano quest'area a puro fine informativo.

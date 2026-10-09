@@ -76,5 +76,8 @@ Cartella destinata all'archivio visivo e ai ricordi (scatti o video) realizzati 
   - **Taggatura e Classificazione**: Ad ogni upload possono etichettare con precisione la scena. Hanno la facoltà di "taggare" direttamente i giocatori coinvolti nell'azione sportiva raffigurata e di associarvi tipologie specifiche del repertorio (come la categoria *Giocata*, un comico *Epic Fail*, un formidabile *Golazo*, ecc...) arricchendo a dismisura le funzioni di ricerca descritte poc'anzi per i visitatori.
 
 ## 8. Sezione The Awards
-Vetrina celebrativa autonoma. Traccia le figure emblematiche dominatrici o top classificatesi nell'ultimo mese giocato, separando statistiche d'effetto in vari tab "Trophy". 
-- **Visitatori ed Amministratori**: Sezione prettamente read-only per tutti i ruoli. Oltre che ai Podi Top 3 generati dal sistema, visualizza Recharts (Line Charts interattivi) sull'andamento delle ultime prestazioni. Valuta la costante decrescente e le risalite OVR permettendo ai coach di monitorare cali d'attenzione degli over performer nei grafi lineari comparativi. Niente azioni ammesse se non ispezioni da consultazione.
+Vetrina celebrativa che gestisce i premi di rendimento per il gruppo.
+- **Assegnazione Mensile**: I vincitori assoluti (Primo, Secondo e Terzo classificato) dei premi vengono decisi e congelati ufficialmente alla fine di ogni mese solare in base a specifici criteri statistici (Media Voti, Win Rate, Gol o Presenze).
+- **Proiezioni in Tempo Reale (Live)**: Nonostante la chiusura dei premi avvenga puramente a fine mese, tutti gli utenti possono visitare questa sezione in qualsiasi istante e osservare la classifica *Live* del mese in corso in tempo reale, per scoprire chi è in testa al trofeo.
+- **Grafici di Rendimento**: Oltre ai Podi Top 3 generati dal sistema, per i vincitori vengono visualizzati dei Line Charts interattivi (Recharts) che tracciano la progressione dei loro voti nel tempo. 
+- **Permessi**: Nessun utente (né Visitatore né Amministratore) possiede i tasti per alterare i verdetti. La sezione è unicamente *read-only* logico (a sola visualizzazione) ed evolve attingendo oggettivamente ai parametri del database.

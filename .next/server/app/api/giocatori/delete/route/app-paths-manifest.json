@@ -1,0 +1,3 @@
+{
+  "/api/giocatori/delete/route": "app/api/giocatori/delete/route.js"
+}

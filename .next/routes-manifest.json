@@ -1,0 +1,234 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "onMatchHeaders": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api/awards",
+      "regex": "^/api/awards(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/awards(?:/)?$"
+    },
+    {
+      "page": "/api/awards/calculate",
+      "regex": "^/api/awards/calculate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/awards/calculate(?:/)?$"
+    },
+    {
+      "page": "/api/campi",
+      "regex": "^/api/campi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/campi(?:/)?$"
+    },
+    {
+      "page": "/api/classifica",
+      "regex": "^/api/classifica(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/classifica(?:/)?$"
+    },
+    {
+      "page": "/api/giocatori",
+      "regex": "^/api/giocatori(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/giocatori(?:/)?$"
+    },
+    {
+      "page": "/api/giocatori/delete",
+      "regex": "^/api/giocatori/delete(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/giocatori/delete(?:/)?$"
+    },
+    {
+      "page": "/api/giocatori/update",
+      "regex": "^/api/giocatori/update(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/giocatori/update(?:/)?$"
+    },
+    {
+      "page": "/api/giocatori/upload-image",
+      "regex": "^/api/giocatori/upload\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/giocatori/upload\\-image(?:/)?$"
+    },
+    {
+      "page": "/api/inspect-db",
+      "regex": "^/api/inspect\\-db(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/inspect\\-db(?:/)?$"
+    },
+    {
+      "page": "/api/live-match",
+      "regex": "^/api/live\\-match(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/live\\-match(?:/)?$"
+    },
+    {
+      "page": "/api/media",
+      "regex": "^/api/media(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/media(?:/)?$"
+    },
+    {
+      "page": "/api/migrate-figurina",
+      "regex": "^/api/migrate\\-figurina(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/migrate\\-figurina(?:/)?$"
+    },
+    {
+      "page": "/api/risultati",
+      "regex": "^/api/risultati(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati(?:/)?$"
+    },
+    {
+      "page": "/api/risultati/delete",
+      "regex": "^/api/risultati/delete(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati/delete(?:/)?$"
+    },
+    {
+      "page": "/api/risultati/stadium",
+      "regex": "^/api/risultati/stadium(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati/stadium(?:/)?$"
+    },
+    {
+      "page": "/api/risultati/update",
+      "regex": "^/api/risultati/update(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati/update(?:/)?$"
+    },
+    {
+      "page": "/api/risultati/update-maglia",
+      "regex": "^/api/risultati/update\\-maglia(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati/update\\-maglia(?:/)?$"
+    },
+    {
+      "page": "/api/risultati/voti",
+      "regex": "^/api/risultati/voti(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/risultati/voti(?:/)?$"
+    },
+    {
+      "page": "/api/salva-formazione",
+      "regex": "^/api/salva\\-formazione(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/salva\\-formazione(?:/)?$"
+    },
+    {
+      "page": "/api/session",
+      "regex": "^/api/session(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/session(?:/)?$"
+    },
+    {
+      "page": "/api/session/update-maglia",
+      "regex": "^/api/session/update\\-maglia(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/session/update\\-maglia(?:/)?$"
+    },
+    {
+      "page": "/api/settings",
+      "regex": "^/api/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/settings(?:/)?$"
+    },
+    {
+      "page": "/api/settings/upload-header",
+      "regex": "^/api/settings/upload\\-header(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/settings/upload\\-header(?:/)?$"
+    },
+    {
+      "page": "/api/setup",
+      "regex": "^/api/setup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/setup(?:/)?$"
+    },
+    {
+      "page": "/api/sfide",
+      "regex": "^/api/sfide(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/sfide(?:/)?$"
+    },
+    {
+      "page": "/awards",
+      "regex": "^/awards(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/awards(?:/)?$"
+    },
+    {
+      "page": "/live",
+      "regex": "^/live(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/live(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

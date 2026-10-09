@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
@@ -497,6 +497,7 @@ export default function Home() {
   const [teamAName, setTeamAName] = useState('Falchi 🦅');
   const [teamBName, setTeamBName] = useState('Aquile 🦆');
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
+  const [headerImage, setHeaderImage] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [mergeTargetName, setMergeTargetName] = useState<string>('');
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -1393,6 +1394,9 @@ export default function Home() {
         }
         if (settingsData && settingsData.algo_settings) {
           setAlgoSettings(settingsData.algo_settings);
+        }
+        if (settingsData && settingsData.header_image) {
+          setHeaderImage(settingsData.header_image);
         }
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
@@ -2380,21 +2384,43 @@ const formatResultTime = (timeStr?: string) => {
   return (
     <div className="container">
       <header style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ width: '100%', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(107, 155, 198, 0.6)', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.8)', background: '#0a0e14' }}>
+        <div style={{ width: '100%', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(107, 155, 198, 0.6)', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.8)', background: '#0a0e14', position: 'relative' }}>
           <img 
-            src="/players/header.jpg" 
+            src={headerImage || "/players/header.jpg"} 
             alt="Post Evolution Soccer" 
             style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: '350px' }} 
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               if (target.src.endsWith('.jpg')) {
                 target.src = '/players/header.png';
-              } else {
+              } else if (!target.src.includes('base64')) {
                 target.style.display = 'none';
                 target.parentElement!.style.display = 'none';
               }
             }}
           />
+          {isAdmin && (
+            <label style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', zIndex: 10 }}>
+              <Edit size={16} /> Modifica Copertina
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setToast({ message: "Caricamento in corso...", type: "info" });
+                const fb = new FormData();
+                fb.append('file', file);
+                try {
+                  const res = await fetch('/api/settings/upload-header', { method: 'POST', body: fb });
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.url) setHeaderImage(data.url);
+                    setToast({ message: "Copertina aggiornata", type: "success" });
+                  } else {
+                    setToast({ message: "Errore caricamento", type: "error" });
+                  }
+                } catch(err) { setToast({ message: "Errore caricamento", type: "error" }); }
+              }} />
+            </label>
+          )}
         </div>
         <div className="header-top" style={{ padding: '0 10px' }}>
           <div className="logo-section">

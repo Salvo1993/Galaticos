@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "import-media": "node scripts/import-media.mjs media_pronti_per_db.txt",
+    "compila-media": "node scripts/compila-media.mjs media_recuperati.txt"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",

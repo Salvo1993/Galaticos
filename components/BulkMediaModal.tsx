@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, X, FileText, Check, AlertCircle, Trash2, Plus, Download, Copy, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Upload, X, FileText, Check, AlertCircle, Trash2, Plus, Download, Copy, Sparkles, CheckCircle2, Youtube, HelpCircle } from 'lucide-react';
 import { 
   parseMediaText, 
   extractYoutubeId, 
   normalizeCategory, 
   generateSampleTxt, 
+  YOUTUBE_STUDIO_SNIPPET,
   ParsedMediaRow, 
   MatchRef 
 } from '@/lib/media-import-utils';
@@ -36,6 +37,8 @@ export default function BulkMediaModal({
   const [rows, setRows] = useState<ParsedMediaRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedExample, setCopiedExample] = useState(false);
+  const [copiedYtScript, setCopiedYtScript] = useState(false);
+  const [showYtGuide, setShowYtGuide] = useState(false);
   const [activeTab, setActiveTab] = useState<'input' | 'preview'>('input');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +80,14 @@ export default function BulkMediaModal({
     setCopiedExample(true);
     setTimeout(() => setCopiedExample(false), 2000);
     showToast('Formato di esempio copiato negli appunti!', 'success');
+  };
+
+  // Copy YouTube Studio console script
+  const handleCopyYtScript = () => {
+    navigator.clipboard.writeText(YOUTUBE_STUDIO_SNIPPET);
+    setCopiedYtScript(true);
+    setTimeout(() => setCopiedYtScript(false), 2500);
+    showToast('Script YouTube Studio copiato! Incollalo nella Console (F12) su YouTube Studio', 'success');
   };
 
   // Download sample .txt file
@@ -219,7 +230,7 @@ export default function BulkMediaModal({
               <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#fff', fontWeight: 700 }}>Carica Media in Blocco</h2>
             </div>
             <p className="section-subtitle" style={{ margin: '0.3rem 0 0 0', fontSize: '0.85rem' }}>
-              Incolla le righe dal tuo Excel o carica un file .txt / .csv per importare i video tutti in una volta.
+              Estrai i video da YouTube Studio o incolla da Excel per importare tutti i video in un colpo solo.
             </p>
           </div>
           <button 
@@ -284,13 +295,165 @@ export default function BulkMediaModal({
         {/* Tab 1: Input & Upload */}
         {activeTab === 'input' && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '4px' }}>
+            {/* PASSO 1: SCRIPT YOUTUBE STUDIO */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(30, 41, 59, 0.75) 100%)', 
+              border: '1px solid rgba(239, 68, 68, 0.45)', 
+              borderRadius: '10px', 
+              padding: '1rem',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ 
+                    background: '#ef4444', 
+                    borderRadius: '8px', 
+                    width: '40px', 
+                    height: '40px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    color: '#fff', 
+                    flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+                  }}>
+                    <Youtube size={24} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ 
+                        background: '#ef4444', 
+                        color: '#fff', 
+                        fontSize: '0.7rem', 
+                        fontWeight: 800, 
+                        padding: '2px 6px', 
+                        borderRadius: '4px', 
+                        letterSpacing: '0.5px' 
+                      }}>
+                        PASSO 1 (CONSIGLIATO)
+                      </span>
+                      <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+                        Estrai i video da YouTube Studio in 1 Click
+                      </h3>
+                    </div>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      Copia lo script qui sotto ed eseguilo nella Console (F12) su YouTube Studio &gt; <b>Contenuti / Caricamenti</b>
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button"
+                    onClick={handleCopyYtScript}
+                    style={{ 
+                      background: copiedYtScript ? '#10b981' : '#ef4444', 
+                      color: '#fff', 
+                      border: 'none', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '6px', 
+                      fontSize: '0.82rem', 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      boxShadow: '0 2px 10px rgba(239, 68, 68, 0.4)',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {copiedYtScript ? <Check size={16} /> : <Copy size={16} />}
+                    {copiedYtScript ? 'Script Copiato negli Appunti!' : 'Copia Script YouTube Studio'}
+                  </button>
+
+                  <button 
+                    type="button"
+                    className="secondary-btn"
+                    style={{ 
+                      fontSize: '0.8rem', 
+                      padding: '0.48rem 0.8rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '5px',
+                      background: showYtGuide ? 'rgba(255,255,255,0.12)' : 'transparent',
+                      color: '#cbd5e1',
+                      border: '1px solid rgba(255,255,255,0.2)'
+                    }}
+                    onClick={() => setShowYtGuide(prev => !prev)}
+                  >
+                    <HelpCircle size={15} />
+                    {showYtGuide ? 'Nascondi Guida' : 'Come funziona? (3 Step)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Guida 3 Step YouTube */}
+              {showYtGuide && (
+                <div style={{ 
+                  marginTop: '0.85rem', 
+                  paddingTop: '0.85rem', 
+                  borderTop: '1px solid rgba(255, 68, 68, 0.25)', 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', 
+                  gap: '0.75rem' 
+                }}>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.7rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.76rem', marginBottom: '3px' }}>1. VAI SU YOUTUBE STUDIO</div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      Apri <a href="https://studio.youtube.com" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'underline' }}>studio.youtube.com</a> ➔ Sezione <b>Contenuti</b> (scheda <i>Caricamenti</i>).
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.7rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.76rem', marginBottom: '3px' }}>2. APRI LA CONSOLE (F12)</div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      Premi <b>F12</b> ➔ Scheda <b>Console</b> ➔ Incolla lo script copiato con <b>Ctrl+V</b> e premi <b>Invio</b>.
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.7rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.76rem', marginBottom: '3px' }}>3. ESTRAZIONE E INCOLLA</div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      Lo script copia i dati negli appunti e scarica <code>media_pronti_per_db.txt</code>. Torna qui sotto al <b>Passo 2</b> e premi <b>Ctrl+V</b>!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Header PASSO 2 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', marginBottom: '-0.3rem' }}>
+              <span style={{ 
+                background: 'var(--color-primary, #00b4d8)', 
+                color: '#000', 
+                fontSize: '0.7rem', 
+                fontWeight: 800, 
+                padding: '2px 6px', 
+                borderRadius: '4px', 
+                letterSpacing: '0.5px' 
+              }}>
+                PASSO 2
+              </span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff' }}>
+                Incolla il testo estratto o carica il file
+              </span>
+            </div>
+
             {/* Guide & Sample Format Box */}
             <div style={{ background: 'rgba(0, 180, 216, 0.08)', border: '1px solid rgba(0, 180, 216, 0.25)', borderRadius: '8px', padding: '0.8rem 1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.4rem' }}>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#00d4ff', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <Sparkles size={16} /> Formato Colonne Excel:
                 </span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button"
+                    className="secondary-btn" 
+                    style={{ fontSize: '0.75rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
+                    onClick={handleCopyYtScript}
+                  >
+                    <Youtube size={13} style={{ color: '#ef4444' }} /> {copiedYtScript ? 'Script Copiato!' : 'Copia Script YouTube'}
+                  </button>
                   <button 
                     type="button"
                     className="secondary-btn" 
@@ -355,17 +518,26 @@ export default function BulkMediaModal({
               />
               <FileText size={28} style={{ color: 'var(--color-primary, #00b4d8)', marginBottom: '0.4rem' }} />
               <div style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 600 }}>
-                Trascina qui il tuo file .txt o .csv, oppure clicca per sfogliare
+                Trascina qui il file media_pronti_per_db.txt, oppure clicca per sfogliare
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #88a0b5)', marginTop: '0.2rem' }}>
-                Supporta file di testo esportati da Excel con separatore Tab, virgola o punto e virgola
+                Supporta file scaricati dallo script YouTube o file da Excel (.txt, .csv, .tsv)
               </div>
             </div>
 
             {/* Textarea Paste */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
-              <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #88a0b5)', fontWeight: 600 }}>
-                Oppure incolla qui il testo da Excel:
+              <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #88a0b5)', fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Oppure incolla qui il testo (premi <b>Ctrl+V</b> se hai appena eseguito lo script su YouTube Studio):</span>
+                {rawText && (
+                  <button 
+                    type="button" 
+                    onClick={() => setRawText('')}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    Pulisci testo
+                  </button>
+                )}
               </label>
               <textarea 
                 value={rawText}

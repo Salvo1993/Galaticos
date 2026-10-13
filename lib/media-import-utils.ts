@@ -396,3 +396,99 @@ export function generateSampleTxt(): string {
     'Hollywood - Bollywood 2-17 del 12/10/2026\thttps://youtu.be/dQw4w9WgXcQ\tHollywood\tPartita Completa\t'
   ].join('\n');
 }
+
+/**
+ * 1-Click extraction script to run in YouTube Studio console.
+ */
+export const YOUTUBE_STUDIO_SNIPPET = `(() => {
+  const rows = Array.from(document.querySelectorAll('ytcp-video-row'));
+  if (!rows.length) return alert("⚠️ Nessun video trovato. Apri la schermata Contenuti/Caricamenti di YouTube Studio!");
+
+  const videos = [];
+  for (const row of rows) {
+    const titleEl = row.querySelector('#video-title, ytcp-video-title a');
+    if (!titleEl) continue;
+    const title = (titleEl.textContent || '').trim();
+    const href = titleEl.getAttribute('href') || '';
+    const idMatch = href.match(/\\/video\\/([a-zA-Z0-9_-]{11})/);
+    if (idMatch && title) {
+      videos.push({ title, url: \`https://youtu.be/\${idMatch[1]}\` });
+    }
+  }
+
+  const firstTitle = videos[0]?.title || '';
+  const dateMatch = firstTitle.match(/\\d{4}[\\s\\-_/]\\d{2}[\\s\\-_/]\\d{2}/)?.[0] || '';
+  const matchFilter = dateMatch || firstTitle.split(/\\s*[-–]\\s*/)[0]?.trim() || '';
+  const matchName = dateMatch || firstTitle.split(/\\s*[-–]\\s*/).slice(0, 2).join(' - ') || 'Ultima Partita';
+
+  const tsv = ['Partita\\tLink YouTube\\tAutore\\tCategoria\\tCo-Autori'];
+  let count = 0;
+
+  for (const v of videos) {
+    if (matchFilter && !v.title.toLowerCase().includes(matchFilter.toLowerCase())) continue;
+
+    let cat = 'Golazo';
+    if (/parata|paratona/i.test(v.title)) cat = 'Parata';
+    else if (/fail|epic/i.test(v.title)) cat = 'Epic Fail';
+    else if (/giocata/i.test(v.title)) cat = 'Giocata';
+    else if (/partita completa|\\bfull\\b/i.test(v.title)) cat = 'Partita Completa';
+
+    let coAutore = '';
+    const assistMatch = v.title.match(/assist\\s+([A-Za-z0-9\\s]+)/i);
+    if (assistMatch) {
+      coAutore = assistMatch[1].trim();
+    }
+
+    let cleanTitle = v.title.replace(new RegExp(\`\\\\s*assist\\\\s+\${coAutore}\`, 'i'), '').trim();
+
+    let autore = '';
+    if (cat === 'Partita Completa') {
+      autore = '';
+    } else {
+      const parts = cleanTitle.split(/\\s*[-–]\\s*/);
+      if (parts.length >= 4) {
+        autore = parts[parts.length - 2].trim();
+      } else if (parts.length === 3) {
+        const lastPart = parts[2].trim();
+        const midPart = parts[1].trim();
+        if (/^(golazo|gol|epic fail|fail|parata|paratona|giocata)\\b/i.test(lastPart)) {
+          autore = midPart;
+        } else {
+          autore = lastPart
+            .replace(/(\\d+\\s*)?(eurogol|golazo|gol|goals?)\\b.*$/i, '')
+            .replace(/\\b(giocata|parata|paratona|fail|epic fail)\\b.*$/i, '')
+            .replace(/\\b\\d+-\\d+\\b.*$/i, '')
+            .replace(/^[-–:\\s]+|[-–:\\s]+$/g, '')
+            .trim();
+        }
+      } else {
+        const candidate = parts[parts.length - 1].trim();
+        autore = candidate
+          .replace(/(\\d+\\s*)?(eurogol|golazo|gol|goals?)\\b.*$/i, '')
+          .replace(/\\b(giocata|parata|paratona|fail|epic fail)\\b.*$/i, '')
+          .replace(/\\b\\d+-\\d+\\b.*$/i, '')
+          .replace(/^[-–:\\s]+|[-–:\\s]+$/g, '')
+          .trim();
+      }
+    }
+
+    if (/^\\d+$/.test(autore)) {
+      autore = '';
+    }
+
+    tsv.push(\`\${matchName}\\t\${v.url}\\t\${autore}\\t\${cat}\\t\${coAutore}\`);
+    count++;
+  }
+
+  const result = tsv.join('\\n');
+  navigator.clipboard.writeText(result);
+  const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'media_pronti_per_db.txt';
+  a.click();
+
+  alert(\`✅ \${count} video dell'ultima partita estratti!\\n- Partita: \${matchName}\\n- Autori estratti dinamicamente\\n- Testo copiato negli appunti (pronto per Ctrl+V sul sito)\\n- File "media_pronti_per_db.txt" scaricato!\`);
+})();`;
+
+

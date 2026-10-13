@@ -70,10 +70,125 @@ L'arena adibita a pura bacheca e Classifica Speciale per il riconoscimento "Man 
 
 ## 7. Sezione Media 
 Cartella destinata all'archivio visivo e ai ricordi (scatti o video) realizzati sui manti erbosi. 
-- **Visitatori**: Possono visualizzare liberamente tutti i media caricati esplorando la galleria. Possono inoltre sfruttare un sistema di filtri per ricercare materiale specifico di una data o di certi giocatori.
-- **Amministratori**: Oltre alla visualizzazione, dispongono dell'arsenale per l'arricchimento della galleria.
-  - **Aggiunta Nuovo Media**: Possono caricare nuovi file (Immagini e Video) nella piattaforma.
-  - **Taggatura e Classificazione**: Ad ogni upload possono etichettare con precisione la scena. Hanno la facoltà di "taggare" direttamente i giocatori coinvolti nell'azione sportiva raffigurata e di associarvi tipologie specifiche del repertorio (come la categoria *Giocata*, un comico *Epic Fail*, un formidabile *Golazo*, ecc...) arricchendo a dismisura le funzioni di ricerca descritte poc'anzi per i visitatori.
+- **Visitatori**: Possono visualizzare liberamente tutti i video caricati esplorando la galleria suddivisa per categorie (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*). Possono inoltre sfruttare un sistema di filtri per ricercare materiale specifico di una singola partita o di certi giocatori.
+- **Amministratori**: Oltre alla visualizzazione, dispongono dell'arsenale completo per l'arricchimento e la gestione della galleria:
+  - **Aggiunta Singolo Media**: Possono caricare un singolo video YouTube associandolo alla partita e selezionando autore e categoria.
+  - **Carica Media in Blocco (Massivo)**: Funzionalità per importare decine di video in un solo click tramite testo o file `.txt` / `.tsv`.
+  - **Modifica Video (Icona Matita)**: Possono modificare in qualsiasi momento autore, co-autore (assist), categoria, partita associata e link YouTube con player di anteprima integrato.
+  - **Elimina Video (Icona Cestino)**: Possono rimuovere definitivamente qualsiasi video dall'archivio.
+
+---
+
+### 7.1. Guida: Estrazione da YouTube Studio e Caricamento sul Sito in 1 Click
+
+Questa procedura consente di estrarre in automatico tutti i video dell'ultima partita caricata su YouTube Studio (anche se impostati come *Non in elenco*), compilare i metadati e importarli sul sito in pochi secondi.
+
+#### Fase 1: Estrazione Automatica da YouTube Studio (Console 1-Click)
+1. Apri **[YouTube Studio](https://studio.youtube.com)** e vai nella sezione **Contenuti** (scheda *Caricamenti*).
+2. Premi `F12` sulla tastiera (oppure tasto destro del mouse -> **Ispeziona**) e spostati sulla scheda **Console**.
+3. Incolla il seguente script ed esegui premendo **Invio**:
+
+```javascript
+(() => {
+  // Elenco dei giocatori per il riconoscimento immediato
+  const PLAYERS = [
+    'Tommaso LG', 'Michelangelo', 'Pino', 'Davide A', 'Davide', 
+    'Pepito', 'Riccardo', 'MarcoM', 'Marco', 'Giuseppe LB', 
+    'Giuseppe G', 'SalvoM', 'Salvo', 'Luca', 'SergioF', 'Sergio', 
+    'Ale Buttitta', 'Ale LM', 'AntonioS', 'Fulì', 'Fuli', 'Pietro The Rock'
+  ];
+
+  const rows = Array.from(document.querySelectorAll('ytcp-video-row'));
+  if (!rows.length) return alert("⚠️ Nessun video trovato. Apri la schermata Contenuti/Caricamenti di YouTube Studio!");
+
+  const videos = [];
+  for (const row of rows) {
+    const titleEl = row.querySelector('#video-title, ytcp-video-title a');
+    if (!titleEl) continue;
+    const title = (titleEl.textContent || '').trim();
+    const href = titleEl.getAttribute('href') || '';
+    const idMatch = href.match(/\/video\/([a-zA-Z0-9_-]{11})/);
+    if (idMatch && title) {
+      videos.push({ title, url: `https://youtu.be/${idMatch[1]}` });
+    }
+  }
+
+  // Prende la data del primo video in cima (l'ultima partita caricata)
+  const firstTitle = videos[0]?.title || '';
+  const dateMatch = firstTitle.match(/\d{4}[\s\-_/]\d{2}[\s\-_/]\d{2}/)?.[0] || '';
+
+  const tsv = ['Partita\tLink YouTube\tAutore\tCategoria\tCo-Autori'];
+  let count = 0;
+
+  for (const v of videos) {
+    // Filtra automaticamente solo i video dell'ultima partita caricata
+    if (dateMatch && !v.title.includes(dateMatch)) continue;
+
+    // Riconoscimento Categoria
+    let cat = 'Golazo';
+    if (/parata|paratona/i.test(v.title)) cat = 'Parata';
+    else if (/fail|epic/i.test(v.title)) cat = 'Epic Fail';
+    else if (/giocata/i.test(v.title)) cat = 'Giocata';
+    else if (/partita completa/i.test(v.title)) cat = 'Partita Completa';
+
+    // Riconoscimento Autore
+    let autore = PLAYERS.find(p => new RegExp(`\\b${p.replace(/\s+/g, '\\s+')}\\b`, 'i').test(v.title)) || '';
+    if (cat === 'Partita Completa' && !autore) autore = 'Partita Completa';
+
+    // Riconoscimento Co-Autore (es. Assist)
+    let coAutore = '';
+    const assistMatch = v.title.match(/assist\s+([A-Za-z0-9\s]+)/i);
+    if (assistMatch) coAutore = assistMatch[1].trim();
+
+    tsv.push(`Ultima Partita\t${v.url}\t${autore}\t${cat}\t${coAutore}`);
+    count++;
+  }
+
+  const result = tsv.join('\n');
+
+  // 1. Copia istantanea negli appunti (Clipboard)
+  navigator.clipboard.writeText(result);
+
+  // 2. Download automatico del file media_pronti_per_db.txt
+  const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'media_pronti_per_db.txt';
+  a.click();
+
+  alert(`✅ ${count} video dell'ultima partita estratti!\n- Testo copiato negli appunti (pronto per Ctrl+V sul sito)\n- File "media_pronti_per_db.txt" scaricato!`);
+})();
+```
+
+**Cosa fa lo script:**
+- Isola esclusivamente i video appartenenti all'ultima partita caricata.
+- Estrae il link video `https://youtu.be/...` (senza confondersi con la durata o miniature).
+- Rileva in automatico l'**Autore** e la **Categoria** (*Golazo*, *Parata*, *Epic Fail*, *Giocata*, *Partita Completa*).
+- **Copia il testo negli appunti** (`Ctrl+C` automatico) e **scarica il file** `media_pronti_per_db.txt`.
+
+---
+
+#### Fase 2: Caricamento sul Sito in 1 Click
+1. Apri la pagina del sito **Archivio Media** (`/media`).
+2. Clicca sul pulsante verde **"Carica Media in Blocco"**.
+3. **Incolla il testo** con `Ctrl + V` nel campo oppure **trascina il file** `media_pronti_per_db.txt` appena scaricato.
+4. Il sistema mostrerà la tabella di anteprima:
+   - Partita abbinata in automatico con percentuale di confidenza (puoi cambiarla al volo da tendina se necessario).
+   - Tag Categoria, Autore e Co-Autore già compilati.
+5. Clicca sul bottone **"Salva Media nel DB"**. Tutti i video saranno salvati nel database all'istante!
+
+---
+
+#### Fase 3: Modifica e Rifinitura (Matita e Cestino)
+Ogni card video nell'Archivio Media offre due controlli rapidi per gli amministratori:
+- **Matita Dorata (Modifica)**: Consente di correggere al volo:
+  - Autore (con chip rapidi dei giocatori scesi in campo).
+  - Co-Autore / Assist.
+  - Categoria (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*).
+  - Partita associata.
+  - Link YouTube (con player di anteprima integrato per guardare il video mentre si modifica).
+- **Cestino Rosso (Elimina)**: Rimuove istantaneamente il video dal database.
+
 
 ## 8. Sezione The Awards
 Vetrina celebrativa che gestisce i premi di rendimento per il gruppo.

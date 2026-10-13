@@ -21,6 +21,30 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // Check if bulk insert
+    if (Array.isArray(body) || Array.isArray(body?.items)) {
+      const items = Array.isArray(body) ? body : body.items;
+      if (!items || items.length === 0) {
+        return NextResponse.json({ success: false, error: 'Nessun elemento fornito' }, { status: 400 });
+      }
+
+      let insertedCount = 0;
+      for (const item of items) {
+        const { partita_id, giocatore, co_giocatore, tipologia, youtube_id } = item;
+        if (!partita_id || !tipologia || !youtube_id) continue;
+
+        await sql`
+          INSERT INTO public."Media" (partita_id, giocatore, co_giocatore, tipologia, youtube_id)
+          VALUES (${Number(partita_id)}, ${giocatore || null}, ${co_giocatore || null}, ${tipologia}, ${youtube_id});
+        `;
+        insertedCount++;
+      }
+
+      return NextResponse.json({ success: true, count: insertedCount });
+    }
+
+    // Single item insert
     const { partita_id, giocatore, co_giocatore, tipologia, youtube_id } = body;
     
     if (!partita_id || !tipologia || !youtube_id) {
@@ -29,7 +53,7 @@ export async function POST(req: Request) {
     
     await sql`
       INSERT INTO public."Media" (partita_id, giocatore, co_giocatore, tipologia, youtube_id)
-      VALUES (${partita_id}, ${giocatore || null}, ${co_giocatore || null}, ${tipologia}, ${youtube_id})
+      VALUES (${Number(partita_id)}, ${giocatore || null}, ${co_giocatore || null}, ${tipologia}, ${youtube_id});
     `;
     
     return NextResponse.json({ success: true });
@@ -39,3 +63,23 @@ export async function POST(req: Request) {
   }
 }
 
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID mancante' }, { status: 400 });
+    }
+
+    await sql`
+      DELETE FROM public."Media"
+      WHERE id = ${Number(id)};
+    `;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete Media Error:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

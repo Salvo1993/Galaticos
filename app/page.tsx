@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload } from 'lucide-react';
+import BulkMediaModal from '@/components/BulkMediaModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
@@ -590,6 +591,7 @@ export default function Home() {
   const [newMediaTipologia, setNewMediaTipologia] = useState('');
   const [newMediaPassword, setNewMediaPassword] = useState('');
   const [isSavingMedia, setIsSavingMedia] = useState(false);
+  const [isBulkMediaModalOpen, setIsBulkMediaModalOpen] = useState(false);
   
   // Stats state
   const [statsSelectedPlayers, setStatsSelectedPlayers] = useState<string[]>([]);
@@ -4347,17 +4349,37 @@ const formatResultTime = (timeStr?: string) => {
                 Esplora i video delle partite. Puoi filtrare per partita, giocatore o tipologia.
               </p>
               {isAdmin && (
-                <button 
-                  className="create-teams-btn" 
-                  style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                  onClick={() => {
-                    if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
-                    setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
-                    setIsAddMediaModalOpen(true);
-                  }}
-                >
-                  <Plus size={16} /> Aggiungi Media
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button 
+                    className="create-teams-btn" 
+                    style={{ fontSize: '0.85rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    onClick={() => {
+                      if (!mediaFilterPartita) { showToast('Seleziona prima una partita dal filtro', 'error'); return; }
+                      setNewMediaYoutubeUrl(''); setNewMediaAutori([]); setNewMediaCoAutori([]); setNewMediaTipologia(''); setNewMediaPassword('');
+                      setIsAddMediaModalOpen(true);
+                    }}
+                  >
+                    <Plus size={16} /> Aggiungi Media
+                  </button>
+                  <button 
+                    className="secondary-btn" 
+                    style={{ 
+                      fontSize: '0.85rem', 
+                      padding: '0.4rem 1rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.4rem',
+                      borderColor: 'rgba(52, 152, 219, 0.4)',
+                      background: 'rgba(52, 152, 219, 0.15)',
+                      color: '#cfe8d8'
+                    }}
+                    onClick={() => {
+                      setIsBulkMediaModalOpen(true);
+                    }}
+                  >
+                    <Upload size={16} style={{ color: '#3498db' }} /> Carica Media in Blocco (.txt / Excel)
+                  </button>
+                </div>
               )}
             </div>
 
@@ -4385,7 +4407,7 @@ const formatResultTime = (timeStr?: string) => {
                    { value: 'Giocata', label: 'Giocata' },
                    { value: 'Epic Fail', label: 'Epic Fail' },
                    { value: 'Golazo', label: 'Golazo' },
-                   { value: 'Paratona', label: 'Paratona' }
+                   { value: 'Paratona', label: 'Parata / Paratona' }
                  ]}
                />
             </div>
@@ -4450,7 +4472,12 @@ const formatResultTime = (timeStr?: string) => {
               {(() => {
                 const filteredMedia = mediaItems.filter(m => {
                   if (mediaFilterPartita && String(m.partita_id) !== mediaFilterPartita) return false;
-                  if (mediaFilterTipologia && m.tipologia !== mediaFilterTipologia) return false;
+                  if (mediaFilterTipologia) {
+                    const matchTip = m.tipologia === mediaFilterTipologia ||
+                      (mediaFilterTipologia === 'Paratona' && m.tipologia === 'Parata') ||
+                      (mediaFilterTipologia === 'Parata' && m.tipologia === 'Paratona');
+                    if (!matchTip) return false;
+                  }
                   
                   if (mediaFilterGiocatore) {
                     let playerMatches = false;
@@ -4501,6 +4528,28 @@ const formatResultTime = (timeStr?: string) => {
                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                            {m.giocatore && <span style={{ fontSize: '0.8rem', color: '#9fd9b6', fontWeight: 600 }}>{m.giocatore}</span>}
                            {m.co_giocatore && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>& {m.co_giocatore}</span>}
+                           {isAdmin && (
+                             <button 
+                               onClick={async () => {
+                                 if (!confirm('Eliminare questo video dall\'archivio?')) return;
+                                 try {
+                                   const delRes = await fetch(`/api/media?id=${m.id}`, { method: 'DELETE' });
+                                   if (delRes.ok) {
+                                     showToast('Video eliminato!', 'success');
+                                     setMediaItems(prev => prev.filter(x => x.id !== m.id));
+                                   } else {
+                                     showToast('Errore durante l\'eliminazione', 'error');
+                                   }
+                                 } catch {
+                                   showToast('Errore di connessione', 'error');
+                                 }
+                               }}
+                               style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0 2px', marginLeft: '4px', opacity: 0.8 }}
+                               title="Elimina video"
+                             >
+                               <Trash2 size={13} />
+                             </button>
+                           )}
                          </div>
                        </div>
                        {!mediaFilterPartita && (
@@ -4750,6 +4799,22 @@ const formatResultTime = (timeStr?: string) => {
             </div>
           </div>
         </div>
+      )}
+
+      {isBulkMediaModalOpen && (
+        <BulkMediaModal 
+          isOpen={isBulkMediaModalOpen}
+          onClose={() => setIsBulkMediaModalOpen(false)}
+          matches={matches}
+          dbPlayers={dbPlayers}
+          initialMatchId={mediaFilterPartita}
+          onSuccess={async (count) => {
+            const mediaRes = await fetch('/api/media', { cache: 'no-store' });
+            const mediaData = await mediaRes.json().catch(() => []);
+            setMediaItems(Array.isArray(mediaData) ? mediaData : []);
+          }}
+          showToast={showToast}
+        />
       )}
 
 

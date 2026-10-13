@@ -63,6 +63,52 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, partita_id, giocatore, co_giocatore, tipologia, youtube_id } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID mancante' }, { status: 400 });
+    }
+
+    if (!partita_id || !tipologia || !youtube_id) {
+      return NextResponse.json({ success: false, error: 'Campi obbligatori mancanti' }, { status: 400 });
+    }
+
+    // Clean youtube_id in case a full url was passed
+    let cleanYtId = String(youtube_id).trim();
+    const ytMatch = cleanYtId.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) cleanYtId = ytMatch[1];
+
+    await sql`
+      UPDATE public."Media"
+      SET 
+        partita_id = ${Number(partita_id)},
+        giocatore = ${giocatore ? String(giocatore).trim() : null},
+        co_giocatore = ${co_giocatore ? String(co_giocatore).trim() : null},
+        tipologia = ${String(tipologia).trim()},
+        youtube_id = ${cleanYtId}
+      WHERE id = ${Number(id)};
+    `;
+
+    return NextResponse.json({ 
+      success: true, 
+      item: {
+        id: Number(id),
+        partita_id: Number(partita_id),
+        giocatore: giocatore ? String(giocatore).trim() : null,
+        co_giocatore: co_giocatore ? String(co_giocatore).trim() : null,
+        tipologia: String(tipologia).trim(),
+        youtube_id: cleanYtId
+      }
+    });
+  } catch (error: any) {
+    console.error('Update Media Error:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -83,3 +129,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload } from 'lucide-react';
 import BulkMediaModal from '@/components/BulkMediaModal';
+import EditMediaModal from '@/components/EditMediaModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // --- Types ---
@@ -592,6 +593,7 @@ export default function Home() {
   const [newMediaPassword, setNewMediaPassword] = useState('');
   const [isSavingMedia, setIsSavingMedia] = useState(false);
   const [isBulkMediaModalOpen, setIsBulkMediaModalOpen] = useState(false);
+  const [editingMedia, setEditingMedia] = useState<MediaItem | null>(null);
   
   // Stats state
   const [statsSelectedPlayers, setStatsSelectedPlayers] = useState<string[]>([]);
@@ -4529,26 +4531,35 @@ const formatResultTime = (timeStr?: string) => {
                            {m.giocatore && <span style={{ fontSize: '0.8rem', color: '#9fd9b6', fontWeight: 600 }}>{m.giocatore}</span>}
                            {m.co_giocatore && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>& {m.co_giocatore}</span>}
                            {isAdmin && (
-                             <button 
-                               onClick={async () => {
-                                 if (!confirm('Eliminare questo video dall\'archivio?')) return;
-                                 try {
-                                   const delRes = await fetch(`/api/media?id=${m.id}`, { method: 'DELETE' });
-                                   if (delRes.ok) {
-                                     showToast('Video eliminato!', 'success');
-                                     setMediaItems(prev => prev.filter(x => x.id !== m.id));
-                                   } else {
-                                     showToast('Errore durante l\'eliminazione', 'error');
+                             <>
+                               <button 
+                                 onClick={() => setEditingMedia(m)}
+                                 style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', padding: '0 2px', marginLeft: '4px', opacity: 0.9 }}
+                                 title="Modifica video"
+                               >
+                                 <Pencil size={13} />
+                               </button>
+                               <button 
+                                 onClick={async () => {
+                                   if (!confirm('Eliminare questo video dall\'archivio?')) return;
+                                   try {
+                                     const delRes = await fetch(`/api/media?id=${m.id}`, { method: 'DELETE' });
+                                     if (delRes.ok) {
+                                       showToast('Video eliminato!', 'success');
+                                       setMediaItems(prev => prev.filter(x => x.id !== m.id));
+                                     } else {
+                                       showToast('Errore durante l\'eliminazione', 'error');
+                                     }
+                                   } catch {
+                                     showToast('Errore di connessione', 'error');
                                    }
-                                 } catch {
-                                   showToast('Errore di connessione', 'error');
-                                 }
-                               }}
-                               style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0 2px', marginLeft: '4px', opacity: 0.8 }}
-                               title="Elimina video"
-                             >
-                               <Trash2 size={13} />
-                             </button>
+                                 }}
+                                 style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0 2px', marginLeft: '3px', opacity: 0.8 }}
+                                 title="Elimina video"
+                               >
+                                 <Trash2 size={13} />
+                               </button>
+                             </>
                            )}
                          </div>
                        </div>
@@ -4812,6 +4823,19 @@ const formatResultTime = (timeStr?: string) => {
             const mediaRes = await fetch('/api/media', { cache: 'no-store' });
             const mediaData = await mediaRes.json().catch(() => []);
             setMediaItems(Array.isArray(mediaData) ? mediaData : []);
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {editingMedia && (
+        <EditMediaModal
+          isOpen={!!editingMedia}
+          media={editingMedia}
+          matches={matches}
+          onClose={() => setEditingMedia(null)}
+          onSaveSuccess={(updated) => {
+            setMediaItems(prev => prev.map(m => m.id === updated.id ? updated : m));
           }}
           showToast={showToast}
         />

@@ -43,7 +43,7 @@ export const parseScorersStr = (scorersInput: any): Record<string, number> => {
       if (content) {
         if (content.includes("'")) {
           // Format (14', 35') -> split by comma to count goals
-          count = content.split(',').length;
+          count = content.split(/,|(?:' e )|(?:' )/).filter(k => k.trim() !== '').length;
         } else {
           // Legacy direct count format: (3)
           count = parseInt(content, 10) || 1;

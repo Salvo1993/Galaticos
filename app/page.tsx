@@ -473,6 +473,39 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
     return r.substring(0, 3).trim().toUpperCase();
 };
 
+export const parseScorersString = (scorersInput: any): Record<string, number> => {
+  if (!scorersInput) return {};
+  let scorersStr = '';
+  if (Array.isArray(scorersInput)) {
+    scorersStr = scorersInput.join(', ');
+  } else if (typeof scorersInput === 'string') {
+    scorersStr = scorersInput;
+  } else {
+    return {};
+  }
+
+  const map: Record<string, number> = {};
+  scorersStr.split(/,\s*(?![^()]*\))/).forEach((s: string) => {
+    const trimmed = s.trim();
+    if (!trimmed) return;
+    const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
+    if (match) {
+      const name = match[1].trim();
+      let count = 1;
+      const content = match[2];
+      if (content) {
+        if (content.includes("'")) {
+          count = content.split(/,|(?:' e )|(?:' )/).filter(k => k.trim() !== '').length;
+        } else {
+          count = parseInt(content, 10) || 1;
+        }
+      }
+      map[name] = (map[name] || 0) + count;
+    }
+  });
+  return map;
+};
+
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
   const [dbCampi, setDbCampi] = useState<{id: number, nome: string, posizione_url: string | null}[]>([]);
@@ -649,7 +682,11 @@ export default function Home() {
 
   const computeSfida = () => {
     if (sfidaPlayers.length < 2) return showToast('Seleziona almeno 2 giocatori', 'error');
-    let filteredMatches = matches.filter(m => m.risultato && m.risultato !== '' && m.risultato !== '0-0');
+    let filteredMatches = matches.filter(m => {
+      const mDate = new Date(m.data);
+      const isInterruptedMatch = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
+      return !isInterruptedMatch && m.risultato && m.risultato !== '' && m.risultato !== '0-0';
+    });
     if (sfidaDataDa) {
       filteredMatches = filteredMatches.filter(m => {
         if (!m.data) return true;
@@ -697,29 +734,22 @@ export default function Home() {
         }
       });
 
-      const parseGoals = (str: string | null) => {
-        if (!str) return;
-        const pts = str.split(/,\s*(?![^()]*\))/);
-        pts.forEach(pt => {
-           let np = pt.replace(/\(.*?\)/g, "").trim();
-           if (stats[np]) {
-              let cnt = 1;
-              const match = pt.match(/\((.*?)\)/);
-              if (match) {
-                 const min = match[1];
-                 const splits = min.split(/,|(?:' e )|(?:' )/).filter(k => k.trim() !== "");
-                 if (splits.every(x => isNaN(parseInt(x, 10)))) {
-                    cnt = parseInt(min, 10) || 1;
-                 } else {
-                    cnt = splits.length;
-                 }
-              }
-              stats[np].gol += cnt;
-           }
+      const addGoals = (scorersInput: any) => {
+        const scorersMap = parseScorersString(scorersInput);
+        Object.entries(scorersMap).forEach(([name, count]) => {
+          if (stats[name]) {
+            stats[name].gol += count;
+          } else {
+            const foundKey = Object.keys(stats).find(k => k.toLowerCase() === name.toLowerCase());
+            if (foundKey) {
+              stats[foundKey].gol += count;
+            }
+          }
         });
       };
-      parseGoals(m.marcatori_a);
-      parseGoals(m.marcatori_b);
+
+      addGoals(m.marcatori_a);
+      addGoals(m.marcatori_b);
     });
 
     const res = Object.values(stats).map(d => {
@@ -728,7 +758,13 @@ export default function Home() {
        return d;
     });
 
-    res.sort((a, b) => b.punti_assoluti - a.punti_assoluti);
+    res.sort((a, b) => {
+      if (b.punti_assoluti !== a.punti_assoluti) return b.punti_assoluti - a.punti_assoluti;
+      if (b.pt_partita !== a.pt_partita) return b.pt_partita - a.pt_partita;
+      if (b.media_voto !== a.media_voto) return b.media_voto - a.media_voto;
+      if (b.gol !== a.gol) return b.gol - a.gol;
+      return a.nome.localeCompare(b.nome);
+    });
     setSfidaSortConfig(null);
     setSfidaLeaderboard(res);
   };
@@ -895,30 +931,7 @@ export default function Home() {
     return sortableItems;
   }, [leaderboard, sortConfig, showGuests, dbPlayers]);
 
-  const parseScorers = (scorersInput: any) => {
-    if (!scorersInput) return {};
-    let scorersStr = '';
-    if (Array.isArray(scorersInput)) {
-      scorersStr = scorersInput.join(', ');
-    } else if (typeof scorersInput === 'string') {
-      scorersStr = scorersInput;
-    } else {
-      return {};
-    }
-
-    const map: Record<string, number> = {};
-    scorersStr.split(/,\s*(?![^()]*\))/).forEach(s => {
-      const trimmed = s.trim();
-      if (!trimmed) return;
-      const match = trimmed.match(/^(.*?)(?:\s*\((\d+)\))?$/);
-      if (match) {
-        const name = match[1].trim();
-        const count = match[2] ? parseInt(match[2], 10) : 1;
-        map[name] = (map[name] || 0) + count;
-      }
-    });
-    return map;
-  };
+  const parseScorers = (scorersInput: any) => parseScorersString(scorersInput);
 
   const stringifyScorers = (map: Record<string, number>) => {
     return Object.entries(map)

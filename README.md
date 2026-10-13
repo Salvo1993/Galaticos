@@ -145,8 +145,9 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
       .replace(/^[-–:\s]+|[-–:\s]+$/g, '')
       .trim();
 
-    if (cat === 'Partita Completa' && !autore) {
-      autore = 'Partita Completa';
+    // Se è la Partita Completa o se l'autore è solo un numero (es. "17" da "2-17"), lascia vuoto
+    if (cat === 'Partita Completa' || /^\d+$/.test(autore)) {
+      autore = '';
     }
 
     tsv.push(`Ultima Partita\t${v.url}\t${autore}\t${cat}\t${coAutore}`);

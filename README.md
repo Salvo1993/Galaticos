@@ -90,14 +90,6 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
 
 ```javascript
 (() => {
-  // Elenco dei giocatori per il riconoscimento immediato
-  const PLAYERS = [
-    'Tommaso LG', 'Michelangelo', 'Pino', 'Davide A', 'Davide', 
-    'Pepito', 'Riccardo', 'MarcoM', 'Marco', 'Giuseppe LB', 
-    'Giuseppe G', 'SalvoM', 'Salvo', 'Luca', 'SergioF', 'Sergio', 
-    'Ale Buttitta', 'Ale LM', 'AntonioS', 'Fulì', 'Fuli', 'Pietro The Rock'
-  ];
-
   const rows = Array.from(document.querySelectorAll('ytcp-video-row'));
   if (!rows.length) return alert("⚠️ Nessun video trovato. Apri la schermata Contenuti/Caricamenti di YouTube Studio!");
 
@@ -113,32 +105,49 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
     }
   }
 
-  // Prende la data del primo video in cima (l'ultima partita caricata)
+  // Prende la data o la prima parte del titolo del primo video in cima (l'ultima partita caricata)
   const firstTitle = videos[0]?.title || '';
   const dateMatch = firstTitle.match(/\d{4}[\s\-_/]\d{2}[\s\-_/]\d{2}/)?.[0] || '';
+  const matchFilter = dateMatch || firstTitle.split(/\s*[-–]\s*/)[0]?.trim() || '';
 
   const tsv = ['Partita\tLink YouTube\tAutore\tCategoria\tCo-Autori'];
   let count = 0;
 
   for (const v of videos) {
     // Filtra automaticamente solo i video dell'ultima partita caricata
-    if (dateMatch && !v.title.includes(dateMatch)) continue;
+    if (matchFilter && !v.title.toLowerCase().includes(matchFilter.toLowerCase())) continue;
 
-    // Riconoscimento Categoria
+    // 1. Riconoscimento Categoria
     let cat = 'Golazo';
     if (/parata|paratona/i.test(v.title)) cat = 'Parata';
     else if (/fail|epic/i.test(v.title)) cat = 'Epic Fail';
     else if (/giocata/i.test(v.title)) cat = 'Giocata';
-    else if (/partita completa/i.test(v.title)) cat = 'Partita Completa';
+    else if (/partita completa|\d+-\d+/i.test(v.title)) cat = 'Partita Completa';
 
-    // Riconoscimento Autore
-    let autore = PLAYERS.find(p => new RegExp(`\\b${p.replace(/\s+/g, '\\s+')}\\b`, 'i').test(v.title)) || '';
-    if (cat === 'Partita Completa' && !autore) autore = 'Partita Completa';
+    // 2. Estrazione DINAMICA dell'Autore (funziona per QUALSIASI giocatore di El Futbol e Galaticos!)
+    // Isola la parte finale dopo il trattino: es. "Hollywood - Bollywood - Tommaso LG 3 Gol" -> "Tommaso LG 3 Gol"
+    const parts = v.title.split(/\s*[-–]\s*/);
+    let candidate = parts.length > 1 ? parts[parts.length - 1] : v.title;
 
-    // Riconoscimento Co-Autore (es. Assist)
+    // Riconoscimento eventuale Co-Autore / Assist (es. "assist Salvo")
     let coAutore = '';
-    const assistMatch = v.title.match(/assist\s+([A-Za-z0-9\s]+)/i);
-    if (assistMatch) coAutore = assistMatch[1].trim();
+    const assistMatch = candidate.match(/assist\s+([A-Za-z0-9\s]+)/i);
+    if (assistMatch) {
+      coAutore = assistMatch[1].trim();
+      candidate = candidate.replace(new RegExp(`\\s*assist\\s+${coAutore}`, 'i'), '').trim();
+    }
+
+    // Pulisce termini di categoria e contatori (es. "3 Gol", "Eurogol", "Giocata", ecc.)
+    let autore = candidate
+      .replace(/(\d+\s*)?(eurogol|gol|goals?)\b.*$/i, '')
+      .replace(/\b(giocata|parata|paratona|fail|epic fail)\b.*$/i, '')
+      .replace(/\b\d+-\d+\b.*$/i, '')
+      .replace(/^[-–:\s]+|[-–:\s]+$/g, '')
+      .trim();
+
+    if (cat === 'Partita Completa' && !autore) {
+      autore = 'Partita Completa';
+    }
 
     tsv.push(`Ultima Partita\t${v.url}\t${autore}\t${cat}\t${coAutore}`);
     count++;
@@ -156,15 +165,16 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
   a.download = 'media_pronti_per_db.txt';
   a.click();
 
-  alert(`✅ ${count} video dell'ultima partita estratti!\n- Testo copiato negli appunti (pronto per Ctrl+V sul sito)\n- File "media_pronti_per_db.txt" scaricato!`);
+  alert(`✅ ${count} video dell'ultima partita estratti!\n- Riconoscimento dinamico autori (qualsiasi giocatore di El Futbol e Galaticos)\n- Testo copiato negli appunti (pronto per Ctrl+V sul sito)\n- File "media_pronti_per_db.txt" scaricato!`);
 })();
 ```
 
 **Cosa fa lo script:**
-- Isola esclusivamente i video appartenenti all'ultima partita caricata.
-- Estrae il link video `https://youtu.be/...` (senza confondersi con la durata o miniature).
-- Rileva in automatico l'**Autore** e la **Categoria** (*Golazo*, *Parata*, *Epic Fail*, *Giocata*, *Partita Completa*).
-- **Copia il testo negli appunti** (`Ctrl+C` automatico) e **scarica il file** `media_pronti_per_db.txt`.
+- **Riconoscimento Dinamico degli Autori**: Non si basa su una lista fissa, ma analizza la struttura del titolo (`Partita - Giocatore Azione/Gol`). Riconosce **qualsiasi giocatore** di El Futbol e di Galaticos, inclusi nuovi iscritti, ospiti o riserve!
+- **Isolamento dell'ultima partita**: Filtra automaticamente solo i clip dell'ultima partita caricata.
+- **Link Ufficiali**: Estrae il link video `https://youtu.be/...` pulito a 11 caratteri.
+- **Tag Categoria & Assist**: Rileva la categoria (*Golazo*, *Parata*, *Epic Fail*, *Giocata*, *Partita Completa*) e l'eventuale assistman.
+- **Download & Appunti**: Scarica `media_pronti_per_db.txt` e copia simultaneamente il testo negli appunti per il `Ctrl + V`.
 
 ---
 

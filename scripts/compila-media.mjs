@@ -51,6 +51,23 @@ export function parseClipTitle(title, url, defaultMatch = 'Hollywood - Bollywood
     }
   }
 
+  // Dynamic author extraction fallback (works for all players in El Futbol and Galaticos)
+  if (!autore) {
+    const parts = clean.split(/\s*[-–]\s*/);
+    let candidate = parts.length > 1 ? parts[parts.length - 1] : clean;
+    const assistMatch = candidate.match(/assist\s+([A-Za-z0-9\s]+)/i);
+    if (assistMatch) {
+      coAutore = assistMatch[1].trim();
+      candidate = candidate.replace(new RegExp(`\\s*assist\\s+${coAutore}`, 'i'), '').trim();
+    }
+    autore = candidate
+      .replace(/(\d+\s*)?(eurogol|gol|goals?)\b.*$/i, '')
+      .replace(/\b(giocata|parata|paratona|fail|epic fail)\b.*$/i, '')
+      .replace(/\b\d+-\d+\b.*$/i, '')
+      .replace(/^[-–:\s]+|[-–:\s]+$/g, '')
+      .trim();
+  }
+
   // Fallback for full match
   if (categoria === 'Partita Completa' && !autore) {
     autore = 'Hollywood';

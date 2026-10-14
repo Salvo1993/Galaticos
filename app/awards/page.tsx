@@ -22,6 +22,7 @@ export default function AwardsPage() {
   const [awardsData, setAwardsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  const [chartViewMode, setChartViewMode] = useState<'top5' | 'all'>('top5');
   
   // Genera mesi da Settembre 2026 fino ad un anno avanti
   const months = useMemo(() => {
@@ -296,8 +297,14 @@ export default function AwardsPage() {
 
     if (!Array.isArray(stats) || stats.length === 0) return null;
 
-    const chartStats = stats.slice(0, 5);
-    const colors = ['#ffd700', '#c0c0c0', '#cd7f32', '#34d680', '#5de4ff'];
+    const isAll = chartViewMode === 'all';
+    const chartStats = isAll ? stats : stats.slice(0, 5);
+    const colors = [
+      '#ffd700', '#c0c0c0', '#cd7f32', '#34d680', '#5de4ff',
+      '#f43f5e', '#a855f7', '#fb923c', '#38bdf8', '#e879f9',
+      '#4ade80', '#facc15', '#818cf8', '#fb7185', '#2dd4bf',
+      '#f97316', '#06b6d4', '#ec4899', '#84cc16', '#6366f1'
+    ];
 
     const dateMap: Record<string, any> = {};
     if (stats && Array.isArray(stats)) {
@@ -319,91 +326,172 @@ export default function AwardsPage() {
        return d1 - d2;
     });
 
+    const isNarrow = chartStats.length > 5;
+
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '3rem' }}>
-        
-        {/* MVP Chart */}
-        <div className="chart-card">
-          <h4><Star size={16} /> N° MVP Ottenuti</h4>
-          <div style={{ height: '220px', padding: '10px 0' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                <Bar dataKey="mvp" radius={[4, 4, 0, 0]}>
-                  {chartStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      <div style={{ marginTop: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📊 Grafici Rendimento Mensile
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+              {isAll ? `Visualizzazione completa di tutti i ${stats.length} partecipanti` : 'Visualizzazione dei Top 5 giocatori della classifica mensile'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', padding: '3px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setChartViewMode('top5')}
+              style={{
+                padding: '5px 14px',
+                borderRadius: '16px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                background: !isAll ? 'var(--color-primary)' : 'transparent',
+                color: !isAll ? '#000' : 'var(--color-text-muted)',
+                transition: 'all 0.2s',
+                outline: 'none'
+              }}
+            >
+              Top 5
+            </button>
+            <button
+              onClick={() => setChartViewMode('all')}
+              style={{
+                padding: '5px 14px',
+                borderRadius: '16px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                background: isAll ? 'var(--color-primary)' : 'transparent',
+                color: isAll ? '#000' : 'var(--color-text-muted)',
+                transition: 'all 0.2s',
+                outline: 'none'
+              }}
+            >
+              Tutti ({stats.length})
+            </button>
           </div>
         </div>
 
-        {/* Media Voto Chart */}
-        <div className="chart-card">
-          <h4><TrendingUp size={16} /> Media Voto</h4>
-          <div style={{ height: '220px', padding: '10px 0' }}>
-              {timeSeriesData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                    <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#ccc', paddingTop: '15px' }} />
-                    {chartStats.slice(0, 3).map((p, index) => (
-                      <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={3} dot={{r: 5, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 2}} activeDot={{r: 7}} connectNulls={true} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+          
+          {/* MVP Chart */}
+          <div className="chart-card">
+            <h4><Star size={16} /> N° MVP Ottenuti</h4>
+            <div style={{ height: isNarrow ? '260px' : '220px', padding: '10px 0' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: isNarrow ? 35 : 15 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    interval={0} 
+                    stroke="var(--color-text-muted)" 
+                    fontSize={isNarrow ? 10 : 11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    angle={isNarrow ? -35 : 0}
+                    textAnchor={isNarrow ? 'end' : 'middle'}
+                    height={isNarrow ? 45 : 25}
+                  />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                  <Bar dataKey="mvp" radius={[4, 4, 0, 0]}>
+                    {chartStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                     ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem'}}>
-                  Nessuno storico voti disponibile nel mese.<br/><br/>Per vederlo, ricalcola i dati visitando<br/>/api/awards/calculate?month=MESE
-                </div>
-              )}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
 
-        {/* Punti Ottenuti Chart */}
-        <div className="chart-card">
-          <h4><Medal size={16} /> Punti Squadra</h4>
-          <div style={{ height: '220px', padding: '10px 0' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                <Bar dataKey="punti" radius={[4, 4, 0, 0]}>
-                  {chartStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.8} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Media Voto Chart */}
+          <div className="chart-card">
+            <h4><TrendingUp size={16} /> Media Voto</h4>
+            <div style={{ height: isNarrow ? '280px' : '230px', padding: '10px 0' }}>
+                {timeSeriesData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                      <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+                      <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                      <Legend verticalAlign="bottom" height={isNarrow ? 55 : 36} iconType="circle" wrapperStyle={{ fontSize: isNarrow ? '11px' : '12px', color: '#ccc', paddingTop: '10px' }} />
+                      {chartStats.map((p, index) => (
+                        <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={2.5} dot={{r: 4, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 1.5}} activeDot={{r: 6}} connectNulls={true} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem'}}>
+                    Nessuno storico voti disponibile nel mese.<br/><br/>Per vederlo, ricalcola i dati visitando<br/>/api/awards/calculate?month=MESE
+                  </div>
+                )}
+            </div>
           </div>
-        </div>
 
-        {/* Gol Segnati */}
-        <div className="chart-card">
-          <h4><Target size={16} /> Gol Segnati</h4>
-          <div style={{ height: '220px', padding: '10px 0' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                <Bar dataKey="gol" radius={[4, 4, 0, 0]}>
-                  {chartStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.6} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Punti Ottenuti Chart */}
+          <div className="chart-card">
+            <h4><Medal size={16} /> Punti Squadra</h4>
+            <div style={{ height: isNarrow ? '260px' : '220px', padding: '10px 0' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: isNarrow ? 35 : 15 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    interval={0} 
+                    stroke="var(--color-text-muted)" 
+                    fontSize={isNarrow ? 10 : 11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    angle={isNarrow ? -35 : 0}
+                    textAnchor={isNarrow ? 'end' : 'middle'}
+                    height={isNarrow ? 45 : 25}
+                  />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                  <Bar dataKey="punti" radius={[4, 4, 0, 0]}>
+                    {chartStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.8} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Gol Segnati */}
+          <div className="chart-card">
+            <h4><Target size={16} /> Gol Segnati</h4>
+            <div style={{ height: isNarrow ? '260px' : '220px', padding: '10px 0' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartStats} margin={{ top: 10, right: 10, left: -25, bottom: isNarrow ? 35 : 15 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    interval={0} 
+                    stroke="var(--color-text-muted)" 
+                    fontSize={isNarrow ? 10 : 11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    angle={isNarrow ? -35 : 0}
+                    textAnchor={isNarrow ? 'end' : 'middle'}
+                    height={isNarrow ? 45 : 25}
+                  />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
+                  <Bar dataKey="gol" radius={[4, 4, 0, 0]}>
+                    {chartStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} opacity={0.6} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

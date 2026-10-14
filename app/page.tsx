@@ -85,6 +85,20 @@ export const defaultPredictionSettings: PredictionSettings = {
   }
 };
 
+export interface ModuloSettings {
+  modulo7TeamA: '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
+  modulo7TeamB: '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
+  modulo8TeamA: '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
+  modulo8TeamB: '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
+}
+
+export const defaultModuloSettings: ModuloSettings = {
+  modulo7TeamA: '2-3-1',
+  modulo7TeamB: '2-3-1',
+  modulo8TeamA: '3-3-1',
+  modulo8TeamB: '3-3-1'
+};
+
 export const getMatchFormatSize = (m: { team_a_players?: string[]; team_b_players?: string[] }): number => {
   const lenA = m.team_a_players?.length || 0;
   const lenB = m.team_b_players?.length || 0;
@@ -907,11 +921,55 @@ export default function Home() {
     role: string;
   } | null>(null);
 
-  // Moduli tattici per 7vs7 e 8vs8
-  const [modulo8TeamA, setModulo8TeamA] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>('3-3-1');
-  const [modulo8TeamB, setModulo8TeamB] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>('3-3-1');
-  const [modulo7TeamA, setModulo7TeamA] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>('2-3-1');
-  const [modulo7TeamB, setModulo7TeamB] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>('2-3-1');
+  // Moduli tattici per 7vs7 e 8vs8 (persistiti su localStorage e database)
+  const [modulo8TeamA, setModulo8TeamA] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('modulo_settings');
+        if (cached) {
+          const p = JSON.parse(cached);
+          if (p.modulo8TeamA) return p.modulo8TeamA;
+        }
+      } catch {}
+    }
+    return '3-3-1';
+  });
+  const [modulo8TeamB, setModulo8TeamB] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('modulo_settings');
+        if (cached) {
+          const p = JSON.parse(cached);
+          if (p.modulo8TeamB) return p.modulo8TeamB;
+        }
+      } catch {}
+    }
+    return '3-3-1';
+  });
+  const [modulo7TeamA, setModulo7TeamA] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('modulo_settings');
+        if (cached) {
+          const p = JSON.parse(cached);
+          if (p.modulo7TeamA) return p.modulo7TeamA;
+        }
+      } catch {}
+    }
+    return '2-3-1';
+  });
+  const [modulo7TeamB, setModulo7TeamB] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('modulo_settings');
+        if (cached) {
+          const p = JSON.parse(cached);
+          if (p.modulo7TeamB) return p.modulo7TeamB;
+        }
+      } catch {}
+    }
+    return '2-3-1';
+  });
   const [isModuloModalOpen, setIsModuloModalOpen] = useState(false);
   const [moduloModalTargetTeam, setModuloModalTargetTeam] = useState<'both' | 'A' | 'B'>('both');
 
@@ -1269,6 +1327,41 @@ export default function Home() {
       showToast('Impostazioni salvate nel browser', 'info');
     }
     setIsPredictionModalOpen(false);
+  };
+
+  const saveModuloSettings = async (updates: Partial<ModuloSettings>) => {
+    let next7A = modulo7TeamA;
+    let next7B = modulo7TeamB;
+    let next8A = modulo8TeamA;
+    let next8B = modulo8TeamB;
+
+    if (updates.modulo7TeamA) { next7A = updates.modulo7TeamA; setModulo7TeamA(updates.modulo7TeamA); }
+    if (updates.modulo7TeamB) { next7B = updates.modulo7TeamB; setModulo7TeamB(updates.modulo7TeamB); }
+    if (updates.modulo8TeamA) { next8A = updates.modulo8TeamA; setModulo8TeamA(updates.modulo8TeamA); }
+    if (updates.modulo8TeamB) { next8B = updates.modulo8TeamB; setModulo8TeamB(updates.modulo8TeamB); }
+
+    const combined: ModuloSettings = {
+      modulo7TeamA: next7A,
+      modulo7TeamB: next7B,
+      modulo8TeamA: next8A,
+      modulo8TeamB: next8B
+    };
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('modulo_settings', JSON.stringify(combined));
+      } catch {}
+    }
+
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modulo_settings: combined })
+      });
+    } catch (e) {
+      console.warn('Network error saving modulo_settings:', e);
+    }
   };
 
   let sortedSfidaLeaderboard = [...sfidaLeaderboard];
@@ -1885,6 +1978,41 @@ export default function Home() {
         } else if (predSettingsToApply) {
           setPredictionSettings(predSettingsToApply);
           setTempPredictionSettings(predSettingsToApply);
+        }
+
+        // Gestione Modulo Settings
+        let moduloSettingsToApply: ModuloSettings | null = null;
+        if (settingsData && settingsData.modulo_settings) {
+          moduloSettingsToApply = settingsData.modulo_settings;
+        }
+
+        if (typeof window !== 'undefined') {
+          try {
+            const cached = localStorage.getItem('modulo_settings');
+            const parsed = cached ? JSON.parse(cached) : null;
+            if (moduloSettingsToApply) {
+              if (moduloSettingsToApply.modulo7TeamA) setModulo7TeamA(moduloSettingsToApply.modulo7TeamA);
+              if (moduloSettingsToApply.modulo7TeamB) setModulo7TeamB(moduloSettingsToApply.modulo7TeamB);
+              if (moduloSettingsToApply.modulo8TeamA) setModulo8TeamA(moduloSettingsToApply.modulo8TeamA);
+              if (moduloSettingsToApply.modulo8TeamB) setModulo8TeamB(moduloSettingsToApply.modulo8TeamB);
+              localStorage.setItem('modulo_settings', JSON.stringify(moduloSettingsToApply));
+            } else if (parsed) {
+              if (parsed.modulo7TeamA) setModulo7TeamA(parsed.modulo7TeamA);
+              if (parsed.modulo7TeamB) setModulo7TeamB(parsed.modulo7TeamB);
+              if (parsed.modulo8TeamA) setModulo8TeamA(parsed.modulo8TeamA);
+              if (parsed.modulo8TeamB) setModulo8TeamB(parsed.modulo8TeamB);
+              fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modulo_settings: parsed })
+              }).catch(() => {});
+            }
+          } catch {}
+        } else if (moduloSettingsToApply) {
+          if (moduloSettingsToApply.modulo7TeamA) setModulo7TeamA(moduloSettingsToApply.modulo7TeamA);
+          if (moduloSettingsToApply.modulo7TeamB) setModulo7TeamB(moduloSettingsToApply.modulo7TeamB);
+          if (moduloSettingsToApply.modulo8TeamA) setModulo8TeamA(moduloSettingsToApply.modulo8TeamA);
+          if (moduloSettingsToApply.modulo8TeamB) setModulo8TeamB(moduloSettingsToApply.modulo8TeamB);
         }
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
@@ -4707,25 +4835,23 @@ const formatResultTime = (timeStr?: string) => {
                       if (matchFormat === 8) {
                         const mid = mod.id as '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
                         if (moduloModalTargetTeam === 'both') {
-                          setModulo8TeamA(mid);
-                          setModulo8TeamB(mid);
+                          saveModuloSettings({ modulo8TeamA: mid, modulo8TeamB: mid });
                         } else if (moduloModalTargetTeam === 'A') {
-                          setModulo8TeamA(mid);
+                          saveModuloSettings({ modulo8TeamA: mid });
                         } else {
-                          setModulo8TeamB(mid);
+                          saveModuloSettings({ modulo8TeamB: mid });
                         }
                       } else {
                         const mid = mod.id as '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
                         if (moduloModalTargetTeam === 'both') {
-                          setModulo7TeamA(mid);
-                          setModulo7TeamB(mid);
+                          saveModuloSettings({ modulo7TeamA: mid, modulo7TeamB: mid });
                         } else if (moduloModalTargetTeam === 'A') {
-                          setModulo7TeamA(mid);
+                          saveModuloSettings({ modulo7TeamA: mid });
                         } else {
-                          setModulo7TeamB(mid);
+                          saveModuloSettings({ modulo7TeamB: mid });
                         }
                       }
-                      showToast(`Modulo ${mod.name} impostato con successo!`, 'success');
+                      showToast(`Modulo ${mod.name} impostato e salvato!`, 'success');
                     }}
                     style={{
                       padding: '0.85rem 1rem',

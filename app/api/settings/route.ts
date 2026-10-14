@@ -15,11 +15,14 @@ export async function GET() {
     try {
       await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS prediction_settings JSONB DEFAULT '{"mode": "all"}'::jsonb`;
     } catch (e) {}
+    try {
+      await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS modulo_settings JSONB DEFAULT '{"modulo7TeamA": "2-3-1", "modulo7TeamB": "2-3-1", "modulo8TeamA": "3-3-1", "modulo8TeamB": "3-3-1"}'::jsonb`;
+    } catch (e) {}
     
     // Fetch settings row (try id = 1 first, or first existing row)
-    let rows = await sql`SELECT id, match_label, algo_settings, header_image, prediction_settings FROM public."SiteSettings" WHERE id = 1`;
+    let rows = await sql`SELECT id, match_label, algo_settings, header_image, prediction_settings, modulo_settings FROM public."SiteSettings" WHERE id = 1`;
     if (!rows || rows.length === 0) {
-      rows = await sql`SELECT id, match_label, algo_settings, header_image, prediction_settings FROM public."SiteSettings" ORDER BY id ASC LIMIT 1`;
+      rows = await sql`SELECT id, match_label, algo_settings, header_image, prediction_settings, modulo_settings FROM public."SiteSettings" ORDER BY id ASC LIMIT 1`;
     }
 
     const row = rows && rows.length > 0 ? rows[0] : null;
@@ -29,7 +32,8 @@ export async function GET() {
         match_label: 'Venerdì 19 giugno - Ore 21', 
         algo_settings: { wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true },
         header_image: null,
-        prediction_settings: null
+        prediction_settings: null,
+        modulo_settings: null
       });
     }
 
@@ -37,7 +41,8 @@ export async function GET() {
       match_label: row.match_label || 'Venerdì 19 giugno - Ore 21', 
       algo_settings: row.algo_settings || { wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true },
       header_image: row.header_image || null,
-      prediction_settings: row.prediction_settings || null
+      prediction_settings: row.prediction_settings || null,
+      modulo_settings: row.modulo_settings || null
     });
   } catch (error: any) {
     console.error('Fetch Settings Error:', error);
@@ -45,7 +50,8 @@ export async function GET() {
       match_label: 'Venerdì 19 giugno - Ore 21', 
       algo_settings: { wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true },
       header_image: null,
-      prediction_settings: null
+      prediction_settings: null,
+      modulo_settings: null
     });
   }
 }
@@ -53,10 +59,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const { match_label, algo_settings, prediction_settings } = data;
+    const { match_label, algo_settings, prediction_settings, modulo_settings } = data;
 
     try {
       await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS prediction_settings JSONB DEFAULT '{"mode": "all"}'::jsonb`;
+    } catch (e) {}
+    try {
+      await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS modulo_settings JSONB DEFAULT '{"modulo7TeamA": "2-3-1", "modulo7TeamB": "2-3-1", "modulo8TeamA": "3-3-1", "modulo8TeamB": "3-3-1"}'::jsonb`;
     } catch (e) {}
 
     // Find existing row or insert a new one
@@ -67,12 +76,13 @@ export async function POST(req: Request) {
 
     if (!existing || existing.length === 0) {
       await sql`
-        INSERT INTO public."SiteSettings" (id, match_label, algo_settings, prediction_settings, updated_at)
+        INSERT INTO public."SiteSettings" (id, match_label, algo_settings, prediction_settings, modulo_settings, updated_at)
         VALUES (
           1,
           ${match_label || 'Venerdì 19 giugno - Ore 21'},
           ${JSON.stringify(algo_settings || { wVoto: 40, wWinRate: 30, wGolRatio: 30, wMvp: 15, balanceRoles: true })}::jsonb,
           ${JSON.stringify(prediction_settings || { mode: 'all' })}::jsonb,
+          ${JSON.stringify(modulo_settings || { modulo7TeamA: '2-3-1', modulo7TeamB: '2-3-1', modulo8TeamA: '3-3-1', modulo8TeamB: '3-3-1' })}::jsonb,
           NOW()
         )
       `;
@@ -87,9 +97,12 @@ export async function POST(req: Request) {
       if (prediction_settings !== undefined) {
         await sql`UPDATE public."SiteSettings" SET prediction_settings = ${JSON.stringify(prediction_settings)}::jsonb, updated_at = NOW() WHERE id = ${targetId}`;
       }
+      if (modulo_settings !== undefined) {
+        await sql`UPDATE public."SiteSettings" SET modulo_settings = ${JSON.stringify(modulo_settings)}::jsonb, updated_at = NOW() WHERE id = ${targetId}`;
+      }
     }
 
-    return NextResponse.json({ success: true, prediction_settings });
+    return NextResponse.json({ success: true, prediction_settings, modulo_settings });
   } catch (error: any) {
     console.error('Save Settings Error:', error);
     return NextResponse.json({ error: 'Failed to save settings', details: error?.message || String(error) }, { status: 500 });

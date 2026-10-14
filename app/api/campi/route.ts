@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
+import { assertAdmin } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -12,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { id, nome, posizione_url } = await req.json();
     
@@ -45,6 +49,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { id } = await req.json();
     if (!id) {
@@ -59,3 +66,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: error.message || 'Failed to delete campo' }, { status: 500 });
   }
 }
+

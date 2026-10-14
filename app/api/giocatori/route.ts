@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
 import { recalculateAndSaveClassifica } from '../../../lib/classifica-utils';
+import { assertAdmin } from '@/lib/auth';
 
 export const revalidate = 0;
 
@@ -19,6 +20,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { Nome, Ruolo, RuoloSecondario, stats, mergeTarget } = await req.json();
     const sanitizedNome = Nome?.trim();

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
+import { assertAdmin } from '@/lib/auth';
 
 const months: Record<string, string> = {
   'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04',
@@ -8,6 +9,9 @@ const months: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     // Parse match_label per ottenere la chiave univoca (data + ora)
     const { team_a_name, team_b_name, teamAPlayers, teamBPlayers, stadium, matchLabel: inputMatchLabel, maglia_chiara } = await req.json();

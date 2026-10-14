@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../../lib/db';
 import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
+import { assertAdmin } from '@/lib/auth';
 
 export async function POST(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { id, risultato, marcatori_a, marcatori_b, voti_giocatori, mvps } = await req.json();
 

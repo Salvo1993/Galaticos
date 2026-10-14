@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { assertAdmin } from '@/lib/auth';
 
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
+
 
 export async function GET() {
   try {
@@ -57,6 +59,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const data = await req.json();
     const { match_label, algo_settings, prediction_settings, modulo_settings } = data;

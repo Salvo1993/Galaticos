@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
+import { assertAdmin, getAdminSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,16 +31,23 @@ export async function POST(req: Request) {
   try {
     const { titolo, giocatori, data_da, is_approved } = await req.json();
     
-    if (!is_approved) {
-        const countRes = await sql`SELECT COUNT(*) as c FROM public."Sfide" WHERE is_approved = false`;
-        if (parseInt(countRes[0].c) >= 5) {
-            return NextResponse.json({ success: false, error: 'Limite di 5 sfide in attesa raggiunto.' }, { status: 400 });
-        }
+    // Check if user is trying to auto-approve
+    let approved = false;
+    if (is_approved) {
+      const { isAdmin } = await getAdminSession(req);
+      approved = isAdmin;
+    }
+
+    if (!approved) {
+      const countRes = await sql`SELECT COUNT(*) as c FROM public."Sfide" WHERE is_approved = false`;
+      if (parseInt(countRes[0].c) >= 5) {
+        return NextResponse.json({ success: false, error: 'Limite di 5 sfide in attesa raggiunto.' }, { status: 400 });
+      }
     }
 
     await sql`
       INSERT INTO public."Sfide" (titolo, giocatori, data_da, is_approved)
-      VALUES (${titolo}, ${JSON.stringify(giocatori)}::jsonb, ${data_da || null}, ${is_approved ? true : false})
+      VALUES (${titolo}, ${JSON.stringify(giocatori)}::jsonb, ${data_da || null}, ${approved})
     `;
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -49,6 +57,9 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -63,6 +74,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const authError = await assertAdmin(req);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -75,3 +89,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }
+

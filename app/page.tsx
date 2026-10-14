@@ -251,9 +251,10 @@ interface MultiSelectDropdownProps {
   options: { label: string; value: string }[];
   onChange: (values: string[]) => void;
   placeholder: string;
+  hasAllOption?: boolean;
 }
 
-function MultiSelectDropdown({ selectedValues, options, onChange, placeholder }: MultiSelectDropdownProps) {
+function MultiSelectDropdown({ selectedValues, options, onChange, placeholder, hasAllOption = false }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -271,7 +272,7 @@ function MultiSelectDropdown({ selectedValues, options, onChange, placeholder }:
   const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
   
   const displayText = selectedValues.length === 0 
-    ? 'Tutti i Giocatori' 
+    ? (hasAllOption ? 'Tutti i Giocatori' : placeholder) 
     : selectedValues.length === 1 
       ? selectedValues[0] 
       : `${selectedValues.length} Selezionati`;
@@ -283,7 +284,7 @@ function MultiSelectDropdown({ selectedValues, options, onChange, placeholder }:
         onClick={() => setIsOpen(!isOpen)}
         tabIndex={0}
       >
-        <span className={`selected-value`}>
+        <span className="selected-value">
           {displayText}
         </span>
         <ChevronDown size={18} className={`chevron ${isOpen ? 'rotated' : ''}`} />
@@ -303,30 +304,39 @@ function MultiSelectDropdown({ selectedValues, options, onChange, placeholder }:
              />
           </div>
           <div className="dropdown-options" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-            <div 
-              className={`dropdown-option ${selectedValues.length === 0 ? 'selected' : ''}`}
-              onClick={(e) => {
-                  e.stopPropagation();
-                  onChange([]);
-                  setIsOpen(false);
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <input type="checkbox" checked={selectedValues.length === 0} readOnly style={{ pointerEvents: 'none' }} />
-              Tutti (Predefinito)
-            </div>
+            {hasAllOption && (
+              <div 
+                className={`dropdown-option ${selectedValues.length === 0 ? 'selected' : ''}`}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onChange([]);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <input type="checkbox" checked={selectedValues.length === 0} readOnly style={{ pointerEvents: 'none' }} />
+                Tutti (Predefinito)
+              </div>
+            )}
             {filteredOptions.map((opt) => {
-              const isSelected = selectedValues.includes(opt.value);
+              const isSelected = hasAllOption && selectedValues.length === 0 ? true : selectedValues.includes(opt.value);
               return (
                 <div 
                   key={opt.value}
                   className={`dropdown-option ${isSelected ? 'selected' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isSelected) {
-                        onChange(selectedValues.filter(v => v !== opt.value));
+                    if (hasAllOption && selectedValues.length === 0) {
+                      const remaining = options.map(o => o.value).filter(v => v !== opt.value);
+                      onChange(remaining);
+                    } else if (selectedValues.includes(opt.value)) {
+                      onChange(selectedValues.filter(v => v !== opt.value));
                     } else {
-                        onChange([...selectedValues, opt.value]);
+                      const next = [...selectedValues, opt.value];
+                      if (hasAllOption && next.length === options.length) {
+                        onChange([]);
+                      } else {
+                        onChange(next);
+                      }
                     }
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -597,8 +607,17 @@ export default function Home() {
   
   // Stats state
   const [statsSelectedPlayers, setStatsSelectedPlayers] = useState<string[]>([]);
+  const [hiddenTrendPlayers, setHiddenTrendPlayers] = useState<string[]>([]);
   const [showSynergyA, setShowSynergyA] = useState(false);
   const [showSynergyB, setShowSynergyB] = useState(false);
+
+  const toggleTrendPlayer = (playerName: string) => {
+    setHiddenTrendPlayers(prev => 
+      prev.includes(playerName) 
+        ? prev.filter(p => p !== playerName) 
+        : [...prev, playerName]
+    );
+  };
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -4651,13 +4670,17 @@ const formatResultTime = (timeStr?: string) => {
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#cfe8d8' }}>Andamento Media Voto</h3>
                 <MultiSelectDropdown 
                   selectedValues={statsSelectedPlayers} 
-                  onChange={setStatsSelectedPlayers}
-                  placeholder="Seleziona Giocatori"
+                  onChange={(vals) => {
+                    setStatsSelectedPlayers(vals);
+                    setHiddenTrendPlayers([]);
+                  }}
+                  placeholder="Tutti i Giocatori"
+                  hasAllOption={true}
                   options={statsData.map(p => ({ value: p.name, label: p.name }))}
                 />
               </div>
               
-              <div style={{ width: '100%', height: 300, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '1rem' }}>
+              <div style={{ width: '100%', height: 320, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '1rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   {statsSelectedPlayers.length === 1 ? (
                     <LineChart data={statsData.find(p => p.name === statsSelectedPlayers[0])?.votiTrend || []} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -4668,9 +4691,31 @@ const formatResultTime = (timeStr?: string) => {
                         contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
                         itemStyle={{ color: '#e8b339' }}
                       />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Line type="monotone" dataKey="voto" name={`Voto ${statsSelectedPlayers[0]}`} stroke="#3498db" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                      <Line type="monotone" dataKey="mediaCumulativa" name="Media Cumulativa" stroke="#e8b339" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '12px', paddingTop: '10px', cursor: 'pointer', userSelect: 'none' }}
+                        onClick={(e: any) => {
+                          const name = e?.dataKey || e?.value;
+                          if (name) toggleTrendPlayer(name);
+                        }}
+                        formatter={(value: string) => {
+                          const isHidden = hiddenTrendPlayers.includes(value);
+                          return (
+                            <span 
+                              style={{ 
+                                color: isHidden ? '#667788' : '#cfe8d8', 
+                                textDecoration: isHidden ? 'line-through' : 'none',
+                                opacity: isHidden ? 0.45 : 1,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              {value}
+                            </span>
+                          );
+                        }}
+                      />
+                      <Line type="monotone" dataKey="voto" name={`Voto ${statsSelectedPlayers[0]}`} stroke="#3498db" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} hide={hiddenTrendPlayers.includes(`Voto ${statsSelectedPlayers[0]}`) || hiddenTrendPlayers.includes('voto')} />
+                      <Line type="monotone" dataKey="mediaCumulativa" name="Media Cumulativa" stroke="#e8b339" strokeWidth={2} strokeDasharray="5 5" dot={false} hide={hiddenTrendPlayers.includes('Media Cumulativa') || hiddenTrendPlayers.includes('mediaCumulativa')} />
                     </LineChart>
                   ) : (
                     <LineChart data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -4681,7 +4726,29 @@ const formatResultTime = (timeStr?: string) => {
                         contentStyle={{ backgroundColor: '#1a2a3a', borderColor: '#3a4a5a', color: '#cfe8d8' }}
                         itemStyle={{ color: '#cfe8d8' }}
                       />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '12px', paddingTop: '10px', cursor: 'pointer', userSelect: 'none' }}
+                        onClick={(e: any) => {
+                          const name = e?.dataKey || e?.value;
+                          if (name) toggleTrendPlayer(name);
+                        }}
+                        formatter={(value: string) => {
+                          const isHidden = hiddenTrendPlayers.includes(value);
+                          return (
+                            <span 
+                              style={{ 
+                                color: isHidden ? '#667788' : '#cfe8d8', 
+                                textDecoration: isHidden ? 'line-through' : 'none',
+                                opacity: isHidden ? 0.45 : 1,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              {value}
+                            </span>
+                          );
+                        }}
+                      />
                       {(statsSelectedPlayers.length > 0 
                         ? statsSelectedPlayers 
                         : statsData.filter(p => p.partiteGiocate >= (trendChartData.length / 2)).map(p => p.name)
@@ -4696,7 +4763,7 @@ const formatResultTime = (timeStr?: string) => {
                           dot={statsSelectedPlayers.length > 0 ? { r: 3 } : false} 
                           activeDot={{ r: 5 }} 
                           connectNulls={true}
-                          opacity={1}
+                          hide={hiddenTrendPlayers.includes(playerName)}
                         />
                       ))}
                     </LineChart>

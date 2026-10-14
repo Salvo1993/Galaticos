@@ -4019,35 +4019,6 @@ const formatResultTime = (timeStr?: string) => {
                         {formatResultDate(m.data)}
                       </span>
                       <span className="match-meta match-meta-time">{formatResultTime(m.ora)}</span>
-                      {mediaItems.some(x => x.partita_id === m.id) && (
-                        <button
-                          type="button"
-                          style={{
-                            marginLeft: 'auto',
-                            marginRight: '6px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: 'rgba(37, 211, 102, 0.12)',
-                            border: '1px solid rgba(37, 211, 102, 0.4)',
-                            color: '#25D366',
-                            borderRadius: '4px',
-                            padding: '2px 8px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            zIndex: 2
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyMatchMediaToClipboard(m);
-                          }}
-                          title="Copia link video WhatsApp"
-                        >
-                          <Copy size={12} />
-                          <span>Copia Link</span>
-                        </button>
-                      )}
                     </div>
                     {isInterruptedMatch && (
                       <div style={{ textAlign: 'center', color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '4px', marginBottom: '4px' }}>
@@ -4185,7 +4156,7 @@ const formatResultTime = (timeStr?: string) => {
                             }}
                           >
                             <Copy size={14} />
-                            <span>Copia Link Video (WhatsApp)</span>
+                            <span>Copia Link Video</span>
                           </button>
                         </div>
                       )}
@@ -4617,34 +4588,10 @@ const formatResultTime = (timeStr?: string) => {
 
             {selectedMatch && (
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(52, 152, 219, 0.2)', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#6f9c81', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#6f9c81' }}>
                   <span>{selectedMatch.Stadium || 'Campo'}</span>
                   <span>{new Date(selectedMatch.data).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>{selectedMatch.ora ? selectedMatch.ora.substring(0, 5) : ''}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyMatchMediaToClipboard(selectedMatch)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'rgba(37, 211, 102, 0.15)',
-                        border: '1px solid rgba(37, 211, 102, 0.4)',
-                        color: '#25D366',
-                        borderRadius: '4px',
-                        padding: '2px 8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      title="Copia messaggio WhatsApp con tutti i link dei video"
-                    >
-                      <Copy size={12} />
-                      <span>Copia Link</span>
-                    </button>
-                  </div>
+                  <span>{selectedMatch.ora ? selectedMatch.ora.substring(0, 5) : ''}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginBottom: '0.8rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '1rem', color: '#cfe8d8', textAlign: 'right', flex: 1 }}>{selectedMatch.team_a_name}</span>
@@ -4713,7 +4660,7 @@ const formatResultTime = (timeStr?: string) => {
                     }}
                   >
                     <Copy size={15} />
-                    <span>Copia Link (WhatsApp)</span>
+                    <span>Copia Link Video</span>
                   </button>
                 </div>
               </div>

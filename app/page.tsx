@@ -11,6 +11,9 @@ import AlgoSettingsModal from '@/components/admin/AlgoSettingsModal';
 import ManagePlayersModal from '@/components/admin/ManagePlayersModal';
 import EditPlayerModal from '@/components/admin/EditPlayerModal';
 import AddPlayerModal from '@/components/admin/AddPlayerModal';
+import MatchArchive from '@/components/matches/MatchArchive';
+import UpdateResultModal from '@/components/matches/UpdateResultModal';
+import DeleteMatchModal from '@/components/matches/DeleteMatchModal';
 
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -755,7 +758,6 @@ export default function Home() {
   const [campoPassword, setCampoPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
-  const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
   const [editingStadiumId, setEditingStadiumId] = useState<number | null>(null);
   const [stadiumInput, setStadiumInput] = useState('');
   const [userOverrideMaglia, setUserOverrideMaglia] = useState<'A'|'B'|null>(null);
@@ -849,19 +851,11 @@ export default function Home() {
     return defaultPredictionSettings;
   });
 
-  // Update Result state
+  // Update & Delete Match state
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [updatingMatchId, setUpdatingMatchId] = useState<number | null>(null);
-  const [updateScoreA, setUpdateScoreA] = useState('');
-  const [updateScoreB, setUpdateScoreB] = useState('');
-  const [updateScorersA, setUpdateScorersA] = useState<Record<string, number>>({});
-  const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
-  const [goalMode, setGoalMode] = useState<Record<string, 'G' | 'AG'>>({});
-  const [updateVoti, setUpdateVoti] = useState<Record<string, number | 's.v.'>>({});
-  const [updateMVPs, setUpdateMVPs] = useState<string[]>([]);
-  const [touchedVoti, setTouchedVoti] = useState<Set<string>>(new Set());
-  const [updatePassword, setUpdatePassword] = useState('');
+  const [selectedMatchForUpdate, setSelectedMatchForUpdate] = useState<MatchResult | null>(null);
+  const [selectedMatchForDelete, setSelectedMatchForDelete] = useState<MatchResult | null>(null);
   
   // Media Archive state
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -896,36 +890,6 @@ export default function Home() {
   };
 
 
-  useEffect(() => {
-    if (isUpdateModalOpen && updatingMatchId) {
-      const m = matches.find(x => x.id === updatingMatchId);
-      if (m) {
-        const [sA, sB] = (m.risultato || '0-0').split('-').map(s => s.trim());
-        const originalSA = sA || '0';
-        const originalSB = sB || '0';
-        const isScoreChanged = updateScoreA !== originalSA || updateScoreB !== originalSB;
-
-        if (!m.voti_giocatori || Object.keys(m.voti_giocatori).length === 0 || isScoreChanged || m.risultato === '0-0') {
-          const scoreA = parseInt(updateScoreA) || 0;
-          const scoreB = parseInt(updateScoreB) || 0;
-          let defA = 6, defB = 6;
-          if (scoreA > scoreB) { defA = 7; defB = 5; }
-          else if (scoreB > scoreA) { defA = 5; defB = 7; }
-          
-          setUpdateVoti(prev => {
-            const next = { ...prev };
-            m.team_a_players?.forEach((p: string) => {
-              if (!touchedVoti.has(p)) next[p] = defA;
-            });
-            m.team_b_players?.forEach((p: string) => {
-              if (!touchedVoti.has(p)) next[p] = defB;
-            });
-            return next;
-          });
-        }
-      }
-    }
-  }, [updateScoreA, updateScoreB, isUpdateModalOpen, updatingMatchId, matches, touchedVoti]);
 
   // Save Formation state
   const [isSaveFormationModalOpen, setIsSaveFormationModalOpen] = useState(false);
@@ -938,11 +902,6 @@ export default function Home() {
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [showGuests, setShowGuests] = useState(false);
 
-  // Archivio Filtri
-  const [archiveMonthFilter, setArchiveMonthFilter] = useState('');
-  const [archiveYearFilter, setArchiveYearFilter] = useState('');
-  const [archivePlayerFilter, setArchivePlayerFilter] = useState('');
-  const [activeFilterDropdown, setActiveFilterDropdown] = useState<'month'|'year'|'player'|null>(null);
 
   // Sfida State
   const [isSfidaModalOpen, setIsSfidaModalOpen] = useState(false);
@@ -1214,31 +1173,6 @@ export default function Home() {
     });
   }
 
-  const filteredArchiveMatches = useMemo(() => {
-    return matches.filter(m => {
-      const date = new Date(m.data);
-      const mMonth = date.toLocaleDateString('it-IT', { month: 'long' }).toLowerCase();
-      const mYear = date.getFullYear().toString();
-      
-      const pF = archivePlayerFilter.toLowerCase().trim();
-      const monthF = archiveMonthFilter.toLowerCase().trim();
-      const yearF = archiveYearFilter.trim();
-      
-      if (monthF && !mMonth.includes(monthF)) return false;
-      if (yearF && mYear !== yearF) return false;
-      
-      if (pF) {
-          const matchPlayers = [
-            ...(m.team_a_players || []),
-            ...(m.team_b_players || []),
-          ].map((p: string) => p.toLowerCase());
-          
-          if (!matchPlayers.some(p => p.includes(pF))) return false;
-      }
-      
-      return true;
-    });
-  }, [matches, archiveMonthFilter, archiveYearFilter, archivePlayerFilter]);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -1493,49 +1427,6 @@ export default function Home() {
 
 
 
-  const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
-    if (team === 'A') {
-      setUpdateScorersA(prev => {
-        const val = Math.max(0, (prev[player] || 0) + delta);
-        const next = { ...prev };
-        if (val === 0) delete next[player]; else next[player] = val;
-        return next;
-      });
-    } else {
-      setUpdateScorersB(prev => {
-        const val = Math.max(0, (prev[player] || 0) + delta);
-        const next = { ...prev };
-        if (val === 0) delete next[player]; else next[player] = val;
-        return next;
-      });
-    }
-  };
-
-  const handleUpdateVoteModal = (player: string, delta: number) => {
-    setTouchedVoti(prev => new Set(prev).add(player));
-    setUpdateVoti(prev => {
-      let current = prev[player];
-      if (current === 's.v.' || current === 0 || typeof current === 'string') current = 6;
-      else if (current === undefined) current = 6;
-      
-      let nextVote = Number(current) + delta;
-      if (nextVote > 10) nextVote = 10;
-      if (nextVote <= 0) return { ...prev, [player]: 's.v.' };
-      
-      return { ...prev, [player]: nextVote };
-    });
-  };
-
-  const handleSetVoteSV = (player: string) => {
-    setTouchedVoti(prev => new Set(prev).add(player));
-    setUpdateVoti(prev => ({ ...prev, [player]: 's.v.' }));
-  };
-
-  const handleToggleMVP = (player: string) => {
-    setUpdateMVPs(prev => prev.includes(player) ? prev.filter(p => p !== player) : [...prev, player]);
-  };
-
-  const updatingMatch = matches.find(m => m.id === updatingMatchId);
 
   const { data: session } = useSession();
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase());
@@ -1947,25 +1838,20 @@ export default function Home() {
   };
 
 
-  const handleUpdateResult = async () => {
-    if (!updatingMatchId) return;
-
-    const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
-    const strScorersA = stringifyScorers(updateScorersA);
-    const strScorersB = stringifyScorers(updateScorersB);
-
+  const handleUpdateResult = async (payload: {
+    id: number;
+    risultato: string;
+    marcatori_a: string;
+    marcatori_b: string;
+    voti_giocatori: Record<string, number | 's.v.'>;
+    mvps: string[];
+  }) => {
+    setIsSaving(true);
     try {
       const res = await fetch('/api/risultati/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: updatingMatchId,
-          risultato,
-          marcatori_a: strScorersA,
-          marcatori_b: strScorersB,
-          voti_giocatori: updateVoti,
-          mvps: updateMVPs
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -1973,9 +1859,10 @@ export default function Home() {
 
       showToast('Risultato aggiornato!', 'success');
       setIsUpdateModalOpen(false);
+      setSelectedMatchForUpdate(null);
 
       // Aggiorna lo stato dei match localmente
-      setMatches(prev => prev.map(m => m.id === updatingMatchId ? data.match : m));
+      setMatches(prev => prev.map(m => m.id === payload.id ? data.match : m));
 
       // Usa la classifica già calcolata e restituita dal backend (nessuna seconda fetch)
       if (data.leaderboard && Array.isArray(data.leaderboard)) {
@@ -1983,23 +1870,25 @@ export default function Home() {
       }
     } catch (err: any) {
       showToast(err.message || 'Errore aggiornamento risultato', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteMatch = async () => {
-    if (!updatingMatchId) return;
+    const matchId = selectedMatchForDelete?.id || selectedMatchForUpdate?.id;
+    if (!matchId) return;
 
     if (!confirm('Sei sicuro di voler eliminare questa partita? Questa operazione è irreversibile.')) {
       return;
     }
 
+    setIsSaving(true);
     try {
       const res = await fetch('/api/risultati/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: updatingMatchId
-        })
+        body: JSON.stringify({ id: matchId })
       });
 
       const data = await res.json();
@@ -2008,16 +1897,19 @@ export default function Home() {
       showToast('Partita eliminata!', 'success');
       setIsUpdateModalOpen(false);
       setIsDeleteModalOpen(false);
+      setSelectedMatchForUpdate(null);
+      setSelectedMatchForDelete(null);
 
       // Remove from state
-      setMatches(prev => prev.filter(m => m.id !== updatingMatchId));
+      setMatches(prev => prev.filter(m => m.id !== matchId));
 
-      // Usa la classifica già calcolata e restituita dal backend (nessuna seconda fetch)
       if (data.leaderboard && Array.isArray(data.leaderboard)) {
         setLeaderboard(data.leaderboard);
       }
     } catch (err: any) {
       showToast(err.message || 'Errore eliminazione partita', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -4457,325 +4349,23 @@ const formatResultTime = (timeStr?: string) => {
         );
       })()}
 
-      <section className="archive-typography" id="archivio">
-        <h2><Trophy size={20} style={{verticalAlign:'-3px', marginRight:'0.4rem', color:'#e8b339'}} />Archivio Partite</h2>
-        
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-           <div style={{ position: 'relative', flex: '1 1 120px' }}>
-             <input 
-                type="text" 
-                placeholder="Mese (es. Giugno)" 
-                value={archiveMonthFilter} 
-                onChange={e => setArchiveMonthFilter(e.target.value)}
-                onFocus={() => setActiveFilterDropdown('month')}
-                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
-                style={{ 
-                    width: '100%',
-                    padding: '0.6rem 1rem',
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-text)',
-                    outline: 'none',
-                    fontSize: '0.9rem',
-                    colorScheme: theme
-                }}
-             />
-             {activeFilterDropdown === 'month' && (
-                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                   {['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
-                     .filter(m => m.toLowerCase().includes(archiveMonthFilter.toLowerCase()))
-                     .map(m => (
-                        <div key={m} className="dropdown-option" onClick={() => { setArchiveMonthFilter(m); setActiveFilterDropdown(null); }}>{m}</div>
-                     ))}
-                </div>
-             )}
-           </div>
-
-           <div style={{ position: 'relative', flex: '1 1 100px' }}>
-             <input 
-                type="text" 
-                placeholder="Anno (es. 2026)" 
-                value={archiveYearFilter} 
-                onChange={e => setArchiveYearFilter(e.target.value)}
-                onFocus={() => setActiveFilterDropdown('year')}
-                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
-                style={{ 
-                    width: '100%',
-                    padding: '0.6rem 1rem',
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-text)',
-                    outline: 'none',
-                    fontSize: '0.9rem',
-                    colorScheme: theme
-                }}
-             />
-             {activeFilterDropdown === 'year' && (
-                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                   {Array.from(new Set(matches.map(m => new Date(m.data).getFullYear()))).sort((a,b)=>b-a)
-                     .filter(y => y.toString().includes(archiveYearFilter.trim()))
-                     .map(y => (
-                        <div key={y} className="dropdown-option" onClick={() => { setArchiveYearFilter(y.toString()); setActiveFilterDropdown(null); }}>{y}</div>
-                     ))}
-                </div>
-             )}
-           </div>
-
-           <div style={{ position: 'relative', flex: '1 1 120px' }}>
-             <input 
-                type="text" 
-                placeholder="Giocatore (es. Mattia)" 
-                value={archivePlayerFilter} 
-                onChange={e => setArchivePlayerFilter(e.target.value)}
-                onFocus={() => setActiveFilterDropdown('player')}
-                onBlur={() => setTimeout(() => setActiveFilterDropdown(null), 200)}
-                style={{ 
-                    width: '100%',
-                    padding: '0.6rem 1rem',
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-text)',
-                    outline: 'none',
-                    fontSize: '0.9rem',
-                    colorScheme: theme
-                }}
-             />
-             {activeFilterDropdown === 'player' && (
-                <div className="dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, width: '100%', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
-                   {dbPlayers && [...dbPlayers].sort((a,b)=>a.Nome.localeCompare(b.Nome))
-                     .filter(p => p.Nome.toLowerCase().includes(archivePlayerFilter.toLowerCase().trim()))
-                     .map(p => (
-                        <div key={p.Nome} className="dropdown-option" onClick={() => { setArchivePlayerFilter(p.Nome); setActiveFilterDropdown(null); }}>{p.Nome}</div>
-                     ))}
-                </div>
-             )}
-           </div>
-        </div>
-
-        {filteredArchiveMatches.length === 0 ? (
-          <p className="section-subtitle">Nessuna partita trovata</p>
-        ) : (
-          <div className="matches-list">
-            {filteredArchiveMatches.map(m => {
-              const isExpanded = expandedMatchId === m.id;
-              const isEditing = editingStadiumId === m.id;
-              const isLightOnA = (m.maglia_chiara || 'A') === 'A';
-              const scorersA = normalizeScorers(m.marcatori_a);
-              const scorersB = normalizeScorers(m.marcatori_b);
-              const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => s.trim());
-
-              const mDate = new Date(m.data);
-              const isInterruptedMatch = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
-
-              return (
-                <div key={m.id} className={`match-card ${isExpanded ? 'expanded' : ''}`} style={isInterruptedMatch ? { filter: 'grayscale(1)', opacity: 0.6 } : {}}>
-                  <div
-                    className="match-summary"
-                    onClick={() => setExpandedMatchId(isExpanded ? null : m.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && setExpandedMatchId(isExpanded ? null : m.id)}
-                  >
-                    <div className="match-meta-row">
-                      <span className="match-meta" style={{color: 'var(--color-primary)'}}>
-                         {m.Stadium || 'Seidita'}
-                      </span>
-                      <span className="match-meta">
-                        <Calendar size={13} />
-                        {formatResultDate(m.data)}
-                      </span>
-                      <span className="match-meta match-meta-time">{formatResultTime(m.ora)}</span>
-                    </div>
-                    {isInterruptedMatch && (
-                      <div style={{ textAlign: 'center', color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '4px', marginBottom: '4px' }}>
-                        Non valida ai fini della classifica
-                      </div>
-                    )}
-
-                    <div className="match-score-area">
-                      <div className="match-team match-team-a">
-                        <span className="match-team-name">{m.team_a_name}</span>
-                        <span className="match-tag">
-                            {isLightOnA ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}
-                        </span>
-                      </div>
-
-                      <div className="match-scoreboard">
-                        <span className="score-num">{scoreA}</span>
-                        <span className="score-sep">–</span>
-                        <span className="score-num">{scoreB}</span>
-                      </div>
-
-                      <div className="match-team match-team-b">
-                        <span className="match-team-name">{m.team_b_name}</span>
-                        <span className="match-tag">
-                            {isLightOnA ? 'MAGLIE SCURE' : 'MAGLIE CHIARE'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <ChevronDown size={18} className={`match-chevron ${isExpanded ? 'rotated' : ''}`} />
-                  </div>
-
-                  {isExpanded && (
-                    <div className="match-details">
-                      {hasScorers(m) && (
-                        <div className="scorers-detail">
-                          <span className="scorers-label">⚽ Marcatori</span>
-                          <div className="scorers-row">
-                            <span className="scorers-team">{scorersA || '—'}</span>
-                            <span className="scorers-divider" />
-                            <span className="scorers-team">{scorersB || '—'}</span>
-                          </div>
-                        </div>
-                      )}
-                      <div className="formations-detail">
-                        <div className="formation-team">
-                          <span className="formation-title">{m.team_a_name}</span>
-                          <ul className="formation-players">
-                            {m.team_a_players.map(name => {
-                              const vote = m.voti_giocatori?.[name];
-                              return (
-                                <li key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>{name}</span>
-                                  {m.risultato && m.risultato !== '0-0' && (() => {
-                                    let matchMVPs: string[] = [];
-                                    if (m.mvps && m.mvps.length > 0) {
-                                      matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
-                                    } else {
-                                      const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
-                                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
-                                      if (maxV > 0 && m.voti_giocatori) {
-                                        matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === maxV);
-                                      }
-                                    }
-                                    const isMvp = matchMVPs.includes(name);
-                                    return (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                                        {isMvp && <span title="MVP" style={{ display: 'flex' }}><Medal size={14} style={{ color: '#FFD700' }} /></span>}
-                                        <span style={{ fontWeight: 'bold', minWidth: '16px', textAlign: 'center', color: getVoteColor(vote) }}>{vote ?? '-'}</span>
-                                      </div>
-                                    );
-                                  })()}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                        <div className="formation-team formation-team-b">
-                          <span className="formation-title">{m.team_b_name}</span>
-                          <ul className="formation-players">
-                            {m.team_b_players.map(name => {
-                              const vote = m.voti_giocatori?.[name];
-                              return (
-                                <li key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>{name}</span>
-                                  {m.risultato && m.risultato !== '0-0' && (() => {
-                                    let matchMVPs: string[] = [];
-                                    if (m.mvps && m.mvps.length > 0) {
-                                      matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
-                                    } else {
-                                      const allVotes = Object.values(m.voti_giocatori || {}).map(v => Number(v) || 0);
-                                      const maxV = allVotes.length > 0 ? Math.max(...allVotes) : 0;
-                                      if (maxV > 0 && m.voti_giocatori) {
-                                        matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === maxV);
-                                      }
-                                    }
-                                    const isMvp = matchMVPs.includes(name);
-                                    return (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                                        {isMvp && <span title="MVP" style={{ display: 'flex' }}><Medal size={14} style={{ color: '#FFD700' }} /></span>}
-                                        <span style={{ fontWeight: 'bold', minWidth: '16px', textAlign: 'center', color: getVoteColor(vote) }}>{vote ?? '-'}</span>
-                                      </div>
-                                    );
-                                  })()}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      </div>
-                      {historicalPredictions.preds[m.id]?.correct && (
-                        <div style={{ textAlign: 'center', color: '#69f0ae', fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0 1rem 0', padding: '0.5rem', background: 'rgba(105, 240, 174, 0.1)', borderRadius: '6px' }}>
-                          ✨ Partita indovinata dall'algoritmo
-                        </div>
-                      )}
-                      {mediaItems.some(x => x.partita_id === m.id) && (
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '0.8rem 0' }}>
-                          <button
-                            type="button"
-                            className="secondary-btn"
-                            style={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center', 
-                              gap: '6px', 
-                              fontSize: '0.85rem', 
-                              padding: '0.45rem 1.1rem', 
-                              borderColor: 'rgba(37, 211, 102, 0.4)', 
-                              color: '#25D366',
-                              background: 'rgba(37, 211, 102, 0.12)',
-                              cursor: 'pointer'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyMatchMediaToClipboard(m);
-                            }}
-                          >
-                            <Copy size={14} />
-                            <span>Copia Link Video</span>
-                          </button>
-                        </div>
-                      )}
-                      {isAdmin && (
-                      <div className="match-footer" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                        <button
-                          type="button"
-                          className="swap-shirts-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUpdatingMatchId(m.id);
-                            const [sA, sB] = (m.risultato || '0-0').split('-').map(s => s.trim());
-                            setUpdateScoreA(sA || '0');
-                            setUpdateScoreB(sB || '0');
-                            setUpdateScorersA(parseScorers(m.marcatori_a));
-                            setUpdateScorersB(parseScorers(m.marcatori_b));
-                            setUpdateVoti(m.voti_giocatori || {});
-                            setUpdateMVPs(Array.isArray(m.mvps) ? m.mvps : (typeof m.mvps === 'string' ? JSON.parse(m.mvps) : []));
-                            setTouchedVoti(new Set());
-                            setUpdatePassword('');
-                            setIsUpdateModalOpen(true);
-                          }}
-                        >
-                          <Pencil size={14} />
-                          <span>Aggiorna Risultato</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="swap-shirts-btn"
-                          style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUpdatingMatchId(m.id);
-                            setUpdatePassword('');
-                            setIsDeleteModalOpen(true);
-                          }}
-                        >
-                          <Trash2 size={14} />
-                          <span>Elimina Partita</span>
-                        </button>
-                      </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <MatchArchive
+        matches={matches}
+        dbPlayers={dbPlayers}
+        theme={theme}
+        isAdmin={isAdmin}
+        mediaItems={mediaItems}
+        historicalPredictions={historicalPredictions}
+        onOpenUpdateModal={(m) => {
+          setSelectedMatchForUpdate(m);
+          setIsUpdateModalOpen(true);
+        }}
+        onOpenDeleteModal={(m) => {
+          setSelectedMatchForDelete(m);
+          setIsDeleteModalOpen(true);
+        }}
+        onCopyMedia={copyMatchMediaToClipboard}
+      />
 
       <section className="weekly-stats-section" style={{ marginTop: '2rem' }}>
         <div className="weekly-stats-grid">
@@ -5654,193 +5244,31 @@ const formatResultTime = (timeStr?: string) => {
         />
       )}
 
+      <UpdateResultModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => {
+          setIsUpdateModalOpen(false);
+          setSelectedMatchForUpdate(null);
+        }}
+        match={selectedMatchForUpdate}
+        onSave={handleUpdateResult}
+        onDelete={() => {
+          setSelectedMatchForDelete(selectedMatchForUpdate);
+          setIsDeleteModalOpen(true);
+        }}
+        isSaving={isSaving}
+      />
 
-      {isUpdateModalOpen && (
-          <div className="modal-overlay">
-              <div className="modal-content" style={{ maxWidth: '450px' }}>
-                  <h3>Aggiorna Risultato</h3>
-                  <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
-                    Modifica il risultato e i marcatori della partita
-                  </p>
-                  
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.4rem', textAlign: 'center' }}>
-                            {updatingMatch?.team_a_name}
-                          </span>
-                          <input 
-                            type="number" 
-                            min="0" 
-                            value={updateScoreA} 
-                            onChange={e => setUpdateScoreA(e.target.value)} 
-                            style={{ width: '70px', textAlign: 'center', fontSize: '1.2rem', padding: '0.5rem' }} 
-                            className="modal-input" 
-                          />
-                      </div>
-                      <span style={{ fontSize: '1.5rem', color: '#4f7560', alignSelf: 'flex-end', marginBottom: '0.5rem' }}>-</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9fd9b6', marginBottom: '0.4rem', textAlign: 'center' }}>
-                            {updatingMatch?.team_b_name}
-                          </span>
-                          <input 
-                            type="number" 
-                            min="0" 
-                            value={updateScoreB} 
-                            onChange={e => setUpdateScoreB(e.target.value)} 
-                            style={{ width: '70px', textAlign: 'center', fontSize: '1.2rem', padding: '0.5rem' }} 
-                            className="modal-input" 
-                          />
-                      </div>
-                  </div>
+      <DeleteMatchModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedMatchForDelete(null);
+        }}
+        onConfirm={handleDeleteMatch}
+        isDeleting={isSaving}
+      />
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                          <label style={{ fontSize: '0.8rem', color: '#6f9c81' }}>
-                            Formazione e Voti {updatingMatch?.team_a_name}
-                          </label>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {updatingMatch?.team_a_players?.map(player => {
-                          const mode = goalMode[player] || 'G';
-                          const playerKey = mode === 'G' ? player : `${player} (AG)`;
-                          const targetTeam = mode === 'G' ? 'A' : 'B';
-                          const count = (targetTeam === 'A' ? updateScorersA : updateScorersB)[playerKey] || 0;
-                          const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
-                          return (
-                            <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
-                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
-                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '0.8rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                   <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
-                                   <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
-                                   <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
-                                 </div>
-                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                   <div style={{ display: 'flex', gap: '2px', marginBottom: '2px' }}>
-                                     <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'G'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #9fd9b6', background: mode === 'G' ? '#9fd9b6' : 'transparent', color: mode === 'G' ? '#0a1922' : '#9fd9b6', cursor: 'pointer' }}>G</button>
-                                     <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'AG'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #ff6b6b', background: mode === 'AG' ? '#ff6b6b' : 'transparent', color: mode === 'AG' ? '#0a1922' : '#ff6b6b', cursor: 'pointer' }}>AG</button>
-                                   </div>
-                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                     <span style={{ width: '16px', textAlign: 'center', fontWeight: 'bold', color: count > 0 ? (mode === 'G' ? '#34d680' : '#ff6b6b') : '#cfe8d8' }}>{count}</span>
-                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   </div>
-                                 </div>
-                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                  </div>
-
-                  <div style={{ marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                          <label style={{ fontSize: '0.8rem', color: '#6f9c81' }}>
-                            Formazione e Voti {updatingMatch?.team_b_name}
-                          </label>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {updatingMatch?.team_b_players?.map(player => {
-                          const mode = goalMode[player] || 'G';
-                          const playerKey = mode === 'G' ? player : `${player} (AG)`;
-                          const targetTeam = mode === 'G' ? 'B' : 'A';
-                          const count = (targetTeam === 'B' ? updateScorersB : updateScorersA)[playerKey] || 0;
-                          const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
-                          return (
-                            <div key={player} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
-                               <span style={{ fontSize: '0.9rem', color: '#cfe8d8', fontWeight: 500, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player}</span>
-                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '0.8rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                   <span style={{ fontSize: '0.7rem', color: '#9fd9b6', marginRight: '2px' }}>Voto</span>
-                                   <button type="button" onClick={() => handleUpdateVoteModal(player, -0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                   <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold', color: getVoteColor(vote) }}>{vote === 0 ? 's.v.' : vote}</span>
-                                   <button type="button" onClick={() => handleUpdateVoteModal(player, 0.5)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   <button type="button" onClick={() => handleSetVoteSV(player)} style={{ background: (vote === 's.v.' || vote === 0) ? '#34d680' : 'rgba(255,255,255,0.1)', border: 'none', color: (vote === 's.v.' || vote === 0) ? '#0a1922' : 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '4px' }}>SV</button>
-                                 </div>
-                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                   <div style={{ display: 'flex', gap: '2px', marginBottom: '2px' }}>
-                                     <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'G'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #9fd9b6', background: mode === 'G' ? '#9fd9b6' : 'transparent', color: mode === 'G' ? '#0a1922' : '#9fd9b6', cursor: 'pointer' }}>G</button>
-                                     <button type="button" onClick={() => setGoalMode({...goalMode, [player]: 'AG'})} style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '4px', border: '1px solid #ff6b6b', background: mode === 'AG' ? '#ff6b6b' : 'transparent', color: mode === 'AG' ? '#0a1922' : '#ff6b6b', cursor: 'pointer' }}>AG</button>
-                                   </div>
-                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, -1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>-</button>
-                                     <span style={{ width: '16px', textAlign: 'center', fontWeight: 'bold', color: count > 0 ? (mode === 'G' ? '#34d680' : '#ff6b6b') : '#cfe8d8' }}>{count}</span>
-                                     <button type="button" onClick={() => handleUpdateGoal(targetTeam, playerKey, 1)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '0 6px', fontSize: '1rem' }}>+</button>
-                                   </div>
-                                 </div>
-                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                  </div>
-
-                  <div style={{ marginBottom: '1.5rem', borderTop: '0.5px solid rgba(52, 214, 128, 0.16)', paddingTop: '1.2rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.8rem', fontSize: '0.8rem', color: '#6f9c81', fontWeight: 600 }}>
-                        Scegli MVP della partita
-                      </label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {[...(updatingMatch?.team_a_players || []), ...(updatingMatch?.team_b_players || [])].map(player => (
-                          <div 
-                            key={`mvp-${player}`}
-                            onClick={() => handleToggleMVP(player)}
-                            style={{ 
-                              padding: '0.4rem 0.8rem', 
-                              borderRadius: '20px', 
-                              fontSize: '0.8rem', 
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              background: updateMVPs.includes(player) ? '#ffd700' : 'rgba(255,255,255,0.05)',
-                              color: updateMVPs.includes(player) ? '#0a1922' : '#cfe8d8',
-                              border: updateMVPs.includes(player) ? '1px solid #ffd700' : '1px solid rgba(255,255,255,0.1)',
-                              userSelect: 'none',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            <span>{player}</span>
-                            {updateMVPs.includes(player) && <span>🏅</span>}
-                          </div>
-                        ))}
-                      </div>
-                  </div>
-
-
-
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button className="secondary-btn" onClick={handleDeleteMatch} style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)', padding: '0.6rem 1rem' }}>
-                        <Trash2 size={16} style={{ display: 'inline', verticalAlign: '-3px', marginRight: '4px' }} />
-                        Elimina
-                      </button>
-                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                        <button className="secondary-btn" onClick={() => setIsUpdateModalOpen(false)}>Annulla</button>
-                        <button className="create-teams-btn" onClick={handleUpdateResult}>Salva</button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {isDeleteModalOpen && (
-          <div className="modal-overlay">
-              <div className="modal-content" style={{ maxWidth: '400px' }}>
-                  <h3 style={{ color: '#ff6b6b', marginBottom: '1rem' }}>Elimina Partita</h3>
-                  <p className="section-subtitle" style={{ marginBottom: '1.5rem' }}>
-                    Sei sicuro di voler eliminare questa partita? L'operazione è irreversibile.
-                  </p>
-                  
-
-
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
-                      <button className="secondary-btn" onClick={() => setIsDeleteModalOpen(false)}>Annulla</button>
-                      <button className="create-teams-btn" style={{ background: '#ff6b6b', boxShadow: '0 10px 15px -3px rgba(255, 107, 107, 0.3)' }} onClick={handleDeleteMatch}>Elimina</button>
-                  </div>
-              </div>
-          </div>
-      )}
 
       {isSaveFormationModalOpen && (
           <div className="modal-overlay">

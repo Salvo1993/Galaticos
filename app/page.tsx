@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload, LayoutGrid, Check } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload, LayoutGrid, Check, Sliders } from 'lucide-react';
 import BulkMediaModal from '@/components/BulkMediaModal';
 import EditMediaModal from '@/components/EditMediaModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -57,6 +57,56 @@ interface MatchResult {
   mvps?: string[];
   maglia_chiara?: string;
 }
+
+export interface PredictionSettings {
+  mode: 'all' | 'tracks' | 'strict' | 'custom';
+  customMatrix?: {
+    5?: number[];
+    6?: number[];
+    7?: number[];
+    8?: number[];
+  };
+}
+
+export const defaultPredictionSettings: PredictionSettings = {
+  mode: 'all',
+  customMatrix: {
+    5: [5, 6, 7, 8],
+    6: [5, 6, 7, 8],
+    7: [5, 6, 7, 8],
+    8: [5, 6, 7, 8]
+  }
+};
+
+export const getMatchFormatSize = (m: { team_a_players?: string[]; team_b_players?: string[] }): number => {
+  const lenA = m.team_a_players?.length || 0;
+  const lenB = m.team_b_players?.length || 0;
+  const size = Math.max(lenA, lenB) || 5;
+  return (size >= 5 && size <= 8) ? size : 5;
+};
+
+export const isMatchAllowedForPrediction = (
+  pastMatch: { team_a_players?: string[]; team_b_players?: string[] },
+  targetFormat: number,
+  settings: PredictionSettings
+): boolean => {
+  const pastSize = getMatchFormatSize(pastMatch);
+  if (!settings || settings.mode === 'all') return true;
+  if (settings.mode === 'tracks') {
+    return (targetFormat >= 7) === (pastSize >= 7);
+  }
+  if (settings.mode === 'strict') {
+    return pastSize === targetFormat;
+  }
+  if (settings.mode === 'custom') {
+    const allowed = settings.customMatrix?.[targetFormat as 5 | 6 | 7 | 8];
+    if (Array.isArray(allowed)) {
+      return allowed.includes(pastSize);
+    }
+    return true;
+  }
+  return true;
+};
 
 interface MediaItem {
   id: number;
@@ -473,8 +523,8 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
     if (!ruolo) return '';
     const r = ruolo.toUpperCase();
     if (r.includes('PORTIERE')) return 'GK';
-    if (r.includes('TERZINO DESTRO')) return 'RB';
-    if (r.includes('TERZINO SINISTRO')) return 'LB';
+    if (r.includes('TERZINO DESTRO') || r.includes('TERZINO D')) return 'RB';
+    if (r.includes('TERZINO SINISTRO') || r.includes('TERZINO S')) return 'LB';
     if (r.includes('TERZINO')) return 'SB';
     if (r.includes('DIFENSORE')) return 'CB';
     if (r.includes('MEDIANO')) return 'DMF';
@@ -585,6 +635,11 @@ export default function Home() {
   const [isModuloModalOpen, setIsModuloModalOpen] = useState(false);
   const [moduloModalTargetTeam, setModuloModalTargetTeam] = useState<'both' | 'A' | 'B'>('both');
 
+  // Gestione Previsione e Storico
+  const [predictionSettings, setPredictionSettings] = useState<PredictionSettings>(defaultPredictionSettings);
+  const [isPredictionModalOpen, setIsPredictionModalOpen] = useState(false);
+  const [tempPredictionSettings, setTempPredictionSettings] = useState<PredictionSettings>(defaultPredictionSettings);
+
   // Update Result state
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -665,7 +720,7 @@ export default function Home() {
   // Save Formation state
   const [isSaveFormationModalOpen, setIsSaveFormationModalOpen] = useState(false);
   const [saveFormationPassword, setSaveFormationPassword] = useState('');
-  const [selectedStadium, setSelectedStadium] = useState('Campi Sole');
+  const [selectedStadium, setSelectedStadium] = useState('Seidita');
 
   // Classifica state
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -873,6 +928,30 @@ export default function Home() {
     } catch(e) {
       showToast('Errore salvataggio impostazioni', 'error');
     }
+  };
+
+  const savePredictionSettings = async (newSettings: PredictionSettings) => {
+    setPredictionSettings(newSettings);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('prediction_settings', JSON.stringify(newSettings));
+      } catch {}
+    }
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prediction_settings: newSettings })
+      });
+      if (res.ok) {
+        showToast('Impostazioni previsione salvate', 'success');
+      } else {
+        showToast('Impostazioni salvate localmente', 'info');
+      }
+    } catch (e) {
+      showToast('Impostazioni salvate localmente', 'info');
+    }
+    setIsPredictionModalOpen(false);
   };
 
   let sortedSfidaLeaderboard = [...sfidaLeaderboard];
@@ -1178,17 +1257,16 @@ export default function Home() {
         uniqueMatchesMap.add(key);
         return true;
     }).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean, track: '5-6' | '7-8' }> = {};
+    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean, track: '5-6' | '7-8', formatSize: number }> = {};
     let correctCount = 0;
     let totalCount = 0;
 
     validMatches.forEach((match, index) => {
-       const matchTrack = getMatchTrack(match);
-       // Prendi solo le partite passate dello STESSO binario (5vs5 e 6vs6 insieme, 7vs7 e 8vs8 insieme)
-       const pastMatches = validMatches.slice(0, index).filter(m => getMatchTrack(m) === matchTrack);
-       if (pastMatches.length === 0) return; // Non abbastanza dati storici per il binario di questa partita
-       
        const matchFormatSize = Math.max(match.team_a_players?.length || 0, match.team_b_players?.length || 0) || 5;
+       const matchTrack = getMatchTrack(match);
+       // Prendi le partite passate idonee in base alle impostazioni di previsione attive
+       const pastMatches = validMatches.slice(0, index).filter(m => isMatchAllowedForPrediction(m, matchFormatSize, predictionSettings));
+       if (pastMatches.length === 0) return; // Non abbastanza dati storici per questa partita
        
        const data: Record<string, any> = {};
        const mvps: Record<string, number> = {};
@@ -1259,7 +1337,9 @@ export default function Home() {
              if (overlapA >= 2 || overlapB >= 2) {
                 const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
                 const isOnSideA = overlapA >= overlapB;
-                const weight = Math.pow(bestOverlap / matchFormatSize, 2);
+                const pastSize = Math.max(teamAP.length, teamBP.length) || 5;
+                const maxPossibleOverlap = Math.min(matchFormatSize, pastSize);
+                const weight = Math.pow(bestOverlap / Math.max(maxPossibleOverlap, 2), 2);
                 const gF = isOnSideA ? sA : sB;
                 const gS = isOnSideA ? sB : sA;
                 if (gF > gS) wWins += weight;
@@ -1314,7 +1394,7 @@ export default function Home() {
        const [actA, actB] = (match.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
        const actual = actA > actB ? 'A' : actB > actA ? 'B' : 'X';
        
-       preds[match.id] = { favorite, correct: favorite === actual, track: matchTrack };
+       preds[match.id] = { favorite, correct: favorite === actual, track: matchTrack, formatSize: matchFormatSize };
        
        if (favorite === actual) correctCount++;
        totalCount++;
@@ -1326,7 +1406,8 @@ export default function Home() {
       correctCount,
       totalCount
     };
-  }, [matches]);
+  }, [matches, predictionSettings]);
+
 
   const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
     if (team === 'A') {
@@ -1459,6 +1540,19 @@ export default function Home() {
         if (settingsData && settingsData.header_image) {
           setHeaderImage(settingsData.header_image);
         }
+        if (settingsData && settingsData.prediction_settings) {
+          setPredictionSettings(settingsData.prediction_settings);
+          setTempPredictionSettings(settingsData.prediction_settings);
+        } else if (typeof window !== 'undefined') {
+          try {
+            const cached = localStorage.getItem('prediction_settings');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              setPredictionSettings(parsed);
+              setTempPredictionSettings(parsed);
+            }
+          } catch {}
+        }
 
         const savedMatch = Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
 
@@ -1528,11 +1622,9 @@ export default function Home() {
         return;
     }
     if (!newPlayerStats.Ruolo?.trim()) {
-        showToast("Ruolo obbligatorio", "error");
+        showToast("Ruolo Preferito obbligatorio", "error");
         return;
     }
-
-
 
     try {
       const res = await fetch('/api/giocatori', {
@@ -2109,7 +2201,7 @@ const formatResultTime = (timeStr?: string) => {
       categorized.forEach(c => {
         if (!c.macro) {
           const r = (c.role || '').toLowerCase();
-          if (r.includes('difensor') || r.includes('portiere') || r.includes('terzino')) c.macro = 'Difensivo';
+          if (r.includes('difensor') || r.includes('terzino') || r.includes('portiere')) c.macro = 'Difensivo';
           else if (r.includes('attaccante') || r.includes('trequartista') || r.includes('punta')) c.macro = 'Offensivo';
           else c.macro = 'Centrocampo';
         }
@@ -2258,7 +2350,7 @@ const formatResultTime = (timeStr?: string) => {
         categorized.forEach(c => {
             if (!c.macro) {
                 const r = (c.role || '').toLowerCase();
-                if (r.includes('difensor') || r.includes('portiere')) c.macro = 'Difensivo';
+                if (r.includes('difensor') || r.includes('terzino') || r.includes('portiere')) c.macro = 'Difensivo';
                 else if (r.includes('attaccante') || r.includes('trequartista') || r.includes('punta')) c.macro = 'Offensivo';
                 else c.macro = 'Centrocampo';
             }
@@ -2449,12 +2541,12 @@ const formatResultTime = (timeStr?: string) => {
     const e_black = String.fromCodePoint(0x26AB);
 
     const latestMatch = matches.length > 0 ? matches[0] : null;
-    let matchHeader = `${e_soccer} GALATICOS ${e_dash} Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
+    let matchHeader = `${e_soccer} *EL FUTBOL* ${e_dash} Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
     
     if (latestMatch) {
        const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
        const formattedDate = new Date(latestMatch.data).toLocaleDateString('it-IT', dateOptions);
-       matchHeader = `${e_soccer} GALATICOS ${e_dash} ${matches.length}${e_ord} Giornata\n${e_cal} *${formattedDate}* - ${e_clock} *${latestMatch.ora}*\n`;
+       matchHeader = `${e_soccer} *EL FUTBOL* ${e_dash} ${matches.length}${e_ord} Giornata\n${e_cal} *${formattedDate}* - ${e_clock} *${latestMatch.ora}*\n`;
        if (latestMatch.Stadium) {
            matchHeader += `${e_stadium} Stadio: *${latestMatch.Stadium}*\n`;
            const matchCampo = dbCampi.find(c => c.nome === latestMatch.Stadium);
@@ -2478,7 +2570,7 @@ const formatResultTime = (timeStr?: string) => {
                  `\n\n*${teamBName.toUpperCase()}*\n` +
                  `${getShirtInfo('B')}\n` +
                  results.teamB.map((n, i) => `${i + 1}. ${n}`).join('\n') +
-                 `\n\nMaggiori informazioni disponibili su https://galaticos-eta.vercel.app/`;
+                 `\n\nMaggiori informazioni disponibili su https://el-futbol-ten.vercel.app/`;
 
     navigator.clipboard.writeText(text).then(() => showToast('Risultato copiato!', 'success'));
   };
@@ -2518,13 +2610,12 @@ const formatResultTime = (timeStr?: string) => {
     }
   };
 
-  const handleSaveStadium = async (m: MatchResult, overrideVal?: string) => {
+  const handleSaveStadium = async (m: MatchResult) => {
     try {
-      const finalStadium = overrideVal !== undefined ? overrideVal : stadiumInput;
       const res = await fetch('/api/risultati/stadium', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: m.data, ora: m.ora, stadium: finalStadium })
+        body: JSON.stringify({ data: m.data, ora: m.ora, stadium: stadiumInput })
       });
 
       const payload = await res.json();
@@ -2972,8 +3063,8 @@ const formatResultTime = (timeStr?: string) => {
                                         fontSize: '0.68rem', 
                                         padding: '1px 6px', 
                                         borderRadius: '4px', 
-                                        background: role.includes('Difensor') ? 'rgba(52, 152, 219, 0.2)' : role.includes('Attaccan') || role.includes('Punta') ? 'rgba(231, 76, 60, 0.2)' : role.includes('Portiere') ? 'rgba(243, 156, 18, 0.2)' : 'rgba(46, 204, 113, 0.2)',
-                                        color: role.includes('Difensor') ? '#3498db' : role.includes('Attaccan') || role.includes('Punta') ? '#e74c3c' : role.includes('Portiere') ? '#f39c12' : '#2ecc71',
+                                        background: (role.includes('Difensor') || role.includes('Terzino')) ? 'rgba(52, 152, 219, 0.2)' : role.includes('Attaccan') || role.includes('Punta') ? 'rgba(231, 76, 60, 0.2)' : role.includes('Portiere') ? 'rgba(243, 156, 18, 0.2)' : 'rgba(46, 204, 113, 0.2)',
+                                        color: (role.includes('Difensor') || role.includes('Terzino')) ? '#3498db' : role.includes('Attaccan') || role.includes('Punta') ? '#e74c3c' : role.includes('Portiere') ? '#f39c12' : '#2ecc71',
                                         fontWeight: 600
                                       }}>
                                         {role}
@@ -3161,7 +3252,10 @@ const formatResultTime = (timeStr?: string) => {
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                     <span>{p.Nome}</span>
-                                    {p.Ruolo && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>{p.Ruolo}</span>}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      {p.Ruolo && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>{p.Ruolo}</span>}
+                                      {p.RuoloSecondario && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>• {p.RuoloSecondario}</span>}
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
                                     <span 
@@ -3928,6 +4022,274 @@ const formatResultTime = (timeStr?: string) => {
         </div>
       )}
 
+      {isPredictionModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsPredictionModalOpen(false)}>
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '680px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(93, 228, 255, 0.2) 0%, rgba(30, 144, 255, 0.3) 100%)', 
+                  padding: '8px', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(93, 228, 255, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#5de4ff'
+                }}>
+                  <Sliders size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
+                    Gestisci Previsione & Storico
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary, #888)' }}>
+                    Scegli quali partite archiviate considerare per le previsioni
+                  </p>
+                </div>
+              </div>
+              <button 
+                className="secondary-btn" 
+                style={{ padding: '0.4rem', display: 'flex', borderRadius: '50%' }} 
+                onClick={() => setIsPredictionModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Informative Note */}
+            <div style={{ background: 'rgba(93, 228, 255, 0.06)', border: '1px solid rgba(93, 228, 255, 0.2)', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1.2rem', fontSize: '0.82rem', color: '#ccc', lineHeight: 1.4 }}>
+              ℹ️ Puoi scegliere se far valere lo storico del Calcio a 5 anche per 6vs6, 7vs7 e 8vs8 (opzione ideale per comitive che giocano spesso a 5), oppure dividere le statistiche per formati separati.
+            </div>
+
+            {/* Modal Options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
+              
+              {/* Option 1: ALL (Default) */}
+              <div 
+                onClick={() => setTempPredictionSettings(prev => ({ ...prev, mode: 'all' }))}
+                style={{
+                  border: `2px solid ${tempPredictionSettings.mode === 'all' ? '#5de4ff' : 'var(--color-border)'}`,
+                  background: tempPredictionSettings.mode === 'all' ? 'rgba(93, 228, 255, 0.08)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.95rem', color: tempPredictionSettings.mode === 'all' ? '#5de4ff' : '#fff' }}>
+                    <span>🌐</span>
+                    <span>Tutti i Formati Uniti (Predefinito)</span>
+                    <span style={{ fontSize: '0.68rem', background: '#5de4ff', color: '#000', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                      CONSIGLIATO
+                    </span>
+                  </div>
+                  <input 
+                    type="radio" 
+                    name="predictionMode" 
+                    checked={tempPredictionSettings.mode === 'all'} 
+                    onChange={() => {}} 
+                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
+                  />
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#aaa', lineHeight: 1.4 }}>
+                  Le statistiche di qualsiasi modalità (5, 6, 7, 8) valgono per tutte le altre. Quando giochi a 8 o a 7, le sinergie e i voti del Calcio a 5 vengono utilizzati direttamente per formulare la previsione.
+                </p>
+              </div>
+
+              {/* Option 2: TRACKS (Due Binari) */}
+              <div 
+                onClick={() => setTempPredictionSettings(prev => ({ ...prev, mode: 'tracks' }))}
+                style={{
+                  border: `2px solid ${tempPredictionSettings.mode === 'tracks' ? '#5de4ff' : 'var(--color-border)'}`,
+                  background: tempPredictionSettings.mode === 'tracks' ? 'rgba(93, 228, 255, 0.08)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.95rem', color: tempPredictionSettings.mode === 'tracks' ? '#5de4ff' : '#fff' }}>
+                    <span>🛤️</span>
+                    <span>Due Binari Separati (5&6 vs 7&8)</span>
+                  </div>
+                  <input 
+                    type="radio" 
+                    name="predictionMode" 
+                    checked={tempPredictionSettings.mode === 'tracks'} 
+                    onChange={() => {}} 
+                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
+                  />
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#aaa', lineHeight: 1.4 }}>
+                  Separa i campi piccoli (Calcio a 5 e a 6) dai campi grandi (Calcio a 7 e a 8). Le partite a 8 useranno solo partite archiviate a 7 e a 8.
+                </p>
+              </div>
+
+              {/* Option 3: STRICT (Rigido) */}
+              <div 
+                onClick={() => setTempPredictionSettings(prev => ({ ...prev, mode: 'strict' }))}
+                style={{
+                  border: `2px solid ${tempPredictionSettings.mode === 'strict' ? '#5de4ff' : 'var(--color-border)'}`,
+                  background: tempPredictionSettings.mode === 'strict' ? 'rgba(93, 228, 255, 0.08)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.95rem', color: tempPredictionSettings.mode === 'strict' ? '#5de4ff' : '#fff' }}>
+                    <span>🎯</span>
+                    <span>Rigoroso per Singolo Formato</span>
+                  </div>
+                  <input 
+                    type="radio" 
+                    name="predictionMode" 
+                    checked={tempPredictionSettings.mode === 'strict'} 
+                    onChange={() => {}} 
+                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
+                  />
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#aaa', lineHeight: 1.4 }}>
+                  Ciascuna modalità è completamente isolata: le partite 8vs8 considerano solo partite 8vs8, 7vs7 solo 7vs7, 5vs5 solo 5vs5.
+                </p>
+              </div>
+
+              {/* Option 4: CUSTOM (Personalizzato) */}
+              <div 
+                onClick={() => setTempPredictionSettings(prev => ({ 
+                  ...prev, 
+                  mode: 'custom',
+                  customMatrix: prev.customMatrix || { 5: [5, 6, 7, 8], 6: [5, 6, 7, 8], 7: [5, 6, 7, 8], 8: [5, 6, 7, 8] }
+                }))}
+                style={{
+                  border: `2px solid ${tempPredictionSettings.mode === 'custom' ? '#5de4ff' : 'var(--color-border)'}`,
+                  background: tempPredictionSettings.mode === 'custom' ? 'rgba(93, 228, 255, 0.08)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.95rem', color: tempPredictionSettings.mode === 'custom' ? '#5de4ff' : '#fff' }}>
+                    <span>⚙️</span>
+                    <span>Personalizzato per Formato</span>
+                  </div>
+                  <input 
+                    type="radio" 
+                    name="predictionMode" 
+                    checked={tempPredictionSettings.mode === 'custom'} 
+                    onChange={() => {}} 
+                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
+                  />
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#aaa', lineHeight: 1.4 }}>
+                  Scegli manualmente con le checkbox quali formati storici attivare per ogni modalità di gioco.
+                </p>
+
+                {/* Custom Matrix UI */}
+                {tempPredictionSettings.mode === 'custom' && (
+                  <div 
+                    onClick={e => e.stopPropagation()} 
+                    style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <div style={{ fontSize: '0.78rem', color: '#ffcc00', marginBottom: '0.6rem', fontWeight: 600 }}>
+                      Seleziona quali storici includere per ciascun formato di match:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {[5, 6, 7, 8].map(targetF => {
+                        const currentAllowed = tempPredictionSettings.customMatrix?.[targetF as 5|6|7|8] || [5, 6, 7, 8];
+                        return (
+                          <div key={targetF} style={{ background: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', minWidth: '110px' }}>
+                              Partita a {targetF}vs{targetF}:
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {[5, 6, 7, 8].map(sourceF => {
+                                const isChecked = currentAllowed.includes(sourceF);
+                                return (
+                                  <button
+                                    key={sourceF}
+                                    type="button"
+                                    onClick={() => {
+                                      setTempPredictionSettings(prev => {
+                                        const mat = { ...(prev.customMatrix || { 5: [5,6,7,8], 6: [5,6,7,8], 7: [5,6,7,8], 8: [5,6,7,8] }) };
+                                        const list = mat[targetF as 5|6|7|8] || [];
+                                        const nextList = list.includes(sourceF)
+                                          ? (list.length > 1 ? list.filter(x => x !== sourceF) : list)
+                                          : [...list, sourceF].sort();
+                                        mat[targetF as 5|6|7|8] = nextList;
+                                        return { ...prev, customMatrix: mat };
+                                      });
+                                    }}
+                                    style={{
+                                      background: isChecked ? 'rgba(93, 228, 255, 0.25)' : 'rgba(255,255,255,0.05)',
+                                      color: isChecked ? '#5de4ff' : '#666',
+                                      border: `1px solid ${isChecked ? '#5de4ff' : 'rgba(255,255,255,0.1)'}`,
+                                      borderRadius: '4px',
+                                      padding: '3px 8px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {isChecked ? '✓ ' : ''}{sourceF}vs{sourceF}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => setTempPredictionSettings(defaultPredictionSettings)}
+                style={{ fontSize: '0.8rem', color: '#ffcc00' }}
+              >
+                Ripristina Predefinito
+              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setIsPredictionModalOpen(false)}
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  className="create-teams-btn"
+                  onClick={() => savePredictionSettings(tempPredictionSettings)}
+                  style={{ padding: '0.6rem 1.4rem' }}
+                >
+                  💾 Salva Impostazioni
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {results && (() => {
         const latestMatch = matches.length > 0 ? matches[0] : null;
         const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
@@ -4273,26 +4635,44 @@ const formatResultTime = (timeStr?: string) => {
           </div>
           
           {(() => {
-            const targetTrack: '5-6' | '7-8' = matchFormat >= 7 ? '7-8' : '5-6';
-            const targetTrackLabel = targetTrack === '7-8' ? 'Calcio a 7 / a 8' : 'Calcio a 5 / a 6';
+            // Determina la modalità attiva e l'etichetta descrittiva
+            let modeBadgeLabel = '';
+            let modeDescription = '';
+            if (predictionSettings.mode === 'all') {
+              modeBadgeLabel = '🌐 Storico Unificato (Tutti i Formati)';
+              modeDescription = 'Tutti i formati (5, 6, 7 e 8)';
+            } else if (predictionSettings.mode === 'tracks') {
+              const trackName = matchFormat >= 7 ? 'Calcio a 7 / 8' : 'Calcio a 5 / 6';
+              modeBadgeLabel = `🛤️ Binario ${trackName}`;
+              modeDescription = `Binario separato (${trackName})`;
+            } else if (predictionSettings.mode === 'strict') {
+              modeBadgeLabel = `🎯 Rigido (Solo Calcio a ${matchFormat})`;
+              modeDescription = `Solo partite a ${matchFormat}vs${matchFormat}`;
+            } else {
+              const customList = (predictionSettings.customMatrix?.[matchFormat as 5|6|7|8] || [matchFormat]).map(f => `${f}vs${f}`).join(', ');
+              modeBadgeLabel = `⚙️ Personalizzato (${customList})`;
+              modeDescription = `Formati selezionati (${customList})`;
+            }
 
-            // Partite storiche appartenenti unicamente al binario attivo
-            const trackMatches = matches.filter(m => getMatchTrack(m) === targetTrack);
-
-            // Deduplica e valida le partite del binario
-            const uniqueTrackMatchesMap = new Set<string>();
-            const validTrackMatches = trackMatches.filter(m => {
+            // Partite storiche idonee secondo le impostazioni di previsione attive
+            const eligibleMatches = matches.filter(m => {
               if (!m.risultato || m.risultato === '0-0') return false;
+              return isMatchAllowedForPrediction(m, matchFormat, predictionSettings);
+            });
+
+            // Deduplica e valida le partite
+            const uniqueMatchesMap = new Set<string>();
+            const validHistoricalMatches = eligibleMatches.filter(m => {
               const tA = (m.team_a_name || '').trim();
               const tB = (m.team_b_name || '').trim();
-              const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
+              const [scoreA, scoreB] = m.risultato!.split('-').map(s => s.trim());
               let key = tA < tB ? `${tA}_${tB}_${scoreA}-${scoreB}` : `${tB}_${tA}_${scoreB}-${scoreA}`;
-              if (uniqueTrackMatchesMap.has(key)) return false;
-              uniqueTrackMatchesMap.add(key);
+              if (uniqueMatchesMap.has(key)) return false;
+              uniqueMatchesMap.add(key);
               return true;
             });
 
-            // Statistiche e MVP ricavati esclusivamente dal binario corrente
+            // Statistiche e MVP ricavati esclusivamente dalle partite storiche idonee
             const trackPlayerStats: Record<string, {
               partiteGiocate: number;
               golFattiSquadra: number;
@@ -4302,7 +4682,7 @@ const formatResultTime = (timeStr?: string) => {
               mvpCount: number;
             }> = {};
 
-            validTrackMatches.forEach(m => {
+            validHistoricalMatches.forEach(m => {
               const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
 
               let matchMaxVote = 0;
@@ -4366,9 +4746,9 @@ const formatResultTime = (timeStr?: string) => {
               });
 
               return {
-                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : (validTrackMatches.length > 0 ? '6.00' : '-'),
-                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : (validTrackMatches.length > 0 ? '0.00' : '-'),
-                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : (validTrackMatches.length > 0 ? '0.00' : '-'),
+                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '6.00' : '-'),
+                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '0.00' : '-'),
+                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '0.00' : '-'),
                 mvp: totalMvp,
                 hasTrackMatches: validGolCount > 0
               };
@@ -4377,9 +4757,9 @@ const formatResultTime = (timeStr?: string) => {
             const statsA = getTeamStats(results.teamA);
             const statsB = getTeamStats(results.teamB);
 
-            const hasTrackHistory = validTrackMatches.length > 0;
+            const hasTrackHistory = validHistoricalMatches.length > 0;
 
-            // Calcola la sinergia storica per una squadra (esclusivamente dal binario attivo)
+            // Calcola la sinergia storica per una squadra (pesata sui formati idonei)
             const getTeamSynergy = (teamPlayers: string[]) => {
               let weightedWins = 0;
               let weightedDraws = 0;
@@ -4387,9 +4767,9 @@ const formatResultTime = (timeStr?: string) => {
               let weightedGolFatti = 0;
               let weightedGolSubiti = 0;
               let totalWeight = 0;
-              const matchDetails: { overlap: number, result: string, originalResult: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
+              const matchDetails: { overlap: number, maxOverlap: number, pastFormat: number, result: string, originalResult: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
 
-              validTrackMatches.forEach(m => {
+              validHistoricalMatches.forEach(m => {
                 const mDate = new Date(m.data);
                 const isInterrupted = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
                 if (isInterrupted) return;
@@ -4406,8 +4786,10 @@ const formatResultTime = (timeStr?: string) => {
                   const isOnSideA = overlapA >= overlapB;
                   const commonPlayers = teamPlayers.filter(p => (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
                   
-                  // Peso: normalizzato sulla dimensione squadra del formato attuale (matchFormat)
-                  const weight = Math.pow(bestOverlap / matchFormat, 2);
+                  // Peso: normalizzato sulla sovrapposizione massima possibile tra la partita passata e il match corrente
+                  const pastMatchSize = Math.max(teamAPlayers.length, teamBPlayers.length) || 5;
+                  const maxPossibleOverlap = Math.min(matchFormat, pastMatchSize);
+                  const weight = Math.pow(bestOverlap / Math.max(maxPossibleOverlap, 2), 2);
                   
                   const golFatti = isOnSideA ? scoreA : scoreB;
                   const golSubiti = isOnSideA ? scoreB : scoreA;
@@ -4424,6 +4806,8 @@ const formatResultTime = (timeStr?: string) => {
                   
                   matchDetails.push({ 
                     overlap: bestOverlap, 
+                    maxOverlap: maxPossibleOverlap,
+                    pastFormat: pastMatchSize,
                     result: `${golFatti}-${golSubiti}`, 
                     originalResult: m.risultato || '0-0',
                     weight,
@@ -4531,23 +4915,24 @@ const formatResultTime = (timeStr?: string) => {
             
             if (unknownPlayersCount === 1) {
                 if (reliabilityText === 'Alta') {
-                    reliabilityText = 'Media (1 debuttante nel binario)';
+                    reliabilityText = 'Media (1 debuttante nello storico)';
                     reliabilityColor = '#ffcc00';
                 } else {
-                    reliabilityText = 'Bassa (1 debuttante nel binario)';
+                    reliabilityText = 'Bassa (1 debuttante nello storico)';
                     reliabilityColor = '#ff4444';
                 }
             } else if (unknownPlayersCount > 1) {
-                reliabilityText = `Molto Bassa (${unknownPlayersCount} debuttanti nel binario)`;
+                reliabilityText = `Molto Bassa (${unknownPlayersCount} debuttanti nello storico)`;
                 reliabilityColor = '#ff4444';
             }
 
-            const trackHistoricalTotal = Object.values(historicalPredictions.preds).filter(p => p.track === targetTrack).length;
-            const trackHistoricalCorrect = Object.values(historicalPredictions.preds).filter(p => p.track === targetTrack && p.correct).length;
+            const eligiblePredictions = Object.values(historicalPredictions.preds).filter(p => isMatchAllowedForPrediction({ team_a_players: Array(p.formatSize || 5).fill('x') }, matchFormat, predictionSettings));
+            const trackHistoricalTotal = eligiblePredictions.length;
+            const trackHistoricalCorrect = eligiblePredictions.filter(p => p.correct).length;
             const trackAccuracy = trackHistoricalTotal > 0 ? Math.round((trackHistoricalCorrect / trackHistoricalTotal) * 100) : historicalPredictions.accuracy;
 
             const copyStats = () => {
-              const title = `📊 *STATISTICHE & PREVISIONE (Binario ${targetTrackLabel} - Calcio a ${matchFormat})*`;
+              const title = `📊 *STATISTICHE & PREVISIONE (${modeBadgeLabel} - Calcio a ${matchFormat})*`;
               let text = `${title}\n\n` +
                 `*${teamAName.toUpperCase()}*\n` +
                 `Media Voto: ${statsA.mediaVoto}\n` +
@@ -4564,7 +4949,7 @@ const formatResultTime = (timeStr?: string) => {
                 text += `\n\n🔮 *Esito Stimato:* ${teamAName} ${Math.round(predGolA)} - ${Math.round(predGolB)} ${teamBName}\n` +
                   `Probabilità: 1 (${pctA}%) | X (${pctX}%) | 2 (${pctB}%)`;
               } else {
-                text += `\n\nℹ️ *Previsione:* In attesa della prima partita archiviata nel Binario ${targetTrackLabel}.`;
+                text += `\n\nℹ️ *Previsione:* In attesa di partite archiviate idonee per il Calcio a ${matchFormat}.`;
               }
 
               navigator.clipboard.writeText(text);
@@ -4573,9 +4958,16 @@ const formatResultTime = (timeStr?: string) => {
 
             return (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem', textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem', textAlign: 'center', flexWrap: 'wrap' }}>
                   <Info size={14} />
-                  <span>Statistiche calcolate esclusivamente sullo storico del <strong>Binario {targetTrackLabel}</strong>.</span>
+                  <span>Statistiche calcolate su: <strong>{modeBadgeLabel}</strong> ({validHistoricalMatches.length} partite storiche idonee).</span>
+                  <button
+                    type="button"
+                    onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
+                    style={{ background: 'rgba(93, 228, 255, 0.15)', border: '1px solid rgba(93, 228, 255, 0.3)', color: '#5de4ff', borderRadius: '4px', cursor: 'pointer', fontSize: '0.72rem', padding: '2px 8px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Sliders size={12} /> Modifica
+                  </button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #5de4ff', fontSize: '0.85rem' }}>
@@ -4594,7 +4986,7 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                 </div>
 
-                {/* --- PREVISIONE MATCH A BINARI SEPARATI --- */}
+                {/* --- PREVISIONE MATCH --- */}
                 {!hasTrackHistory ? (
                   <div style={{
                     background: 'linear-gradient(135deg, rgba(61, 165, 245, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
@@ -4606,18 +4998,29 @@ const formatResultTime = (timeStr?: string) => {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#5de4ff', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
                       <Info size={18} />
-                      <span>🔮 Binario {targetTrackLabel}: In attesa di storico</span>
+                      <span>🔮 Nessuna partita storica idonea ({modeBadgeLabel})</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: '#aaa', lineHeight: 1.5, maxWidth: '620px', marginInline: 'auto' }}>
-                      L'algoritmo predittivo per il <strong>Binario {targetTrackLabel}</strong> (7vs7 e 8vs8) si attiverà automaticamente non appena verrà registrata e archiviata la prima partita in questo formato. Come da regolamento, lo storico del Calcio a 5/6 rimane rigorosamente separato per garantire la massima attendibilità.
+                      Con la configurazione attuale non risultano partite archiviate idonee per il Calcio a {matchFormat}. 
+                      Puoi cliccare su <strong>"Gestisci Previsione"</strong> per abilitare lo storico unificato o includere le partite a 5, 6, 7 o 8.
                     </p>
+                    <div style={{ marginTop: '0.8rem' }}>
+                      <button 
+                        type="button"
+                        className="secondary-btn" 
+                        onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
+                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Sliders size={14} /> Gestisci Previsione
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ 
                     background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
                     borderRadius: '10px', 
                     padding: '1.2rem', 
-                    marginTop: '1rem',
+                    marginTop: '1rem', 
                     border: '1px solid rgba(255,255,255,0.1)'
                   }}>
                     <h4 style={{ 
@@ -4632,13 +5035,17 @@ const formatResultTime = (timeStr?: string) => {
                       🔮 PREVISIONE MATCH
                     </h4>
                     <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                      <span style={{ fontSize: '0.72rem', background: 'rgba(93, 228, 255, 0.15)', color: '#5de4ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                        Binario {targetTrackLabel} ({validTrackMatches.length} partite storiche)
+                      <span 
+                        onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
+                        style={{ fontSize: '0.72rem', background: 'rgba(93, 228, 255, 0.15)', color: '#5de4ff', padding: '3px 10px', borderRadius: '4px', fontWeight: 600, cursor: 'pointer', border: '1px solid rgba(93, 228, 255, 0.3)' }}
+                        title="Clicca per gestire lo storico della previsione"
+                      >
+                        {modeBadgeLabel} ({validHistoricalMatches.length} partite) ⚙️
                       </span>
                     </div>
                     
                     <div style={{ textAlign: 'center', fontSize: '0.75rem', marginBottom: '1.5rem', color: '#aaa', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
-                      Affidabilità Previsione: <strong style={{ color: reliabilityColor }}>{reliabilityText}</strong> <span style={{ opacity: 0.7 }}>(basata su {totalStorico} incroci storici nel binario)</span>
+                      Affidabilità Previsione: <strong style={{ color: reliabilityColor }}>{reliabilityText}</strong> <span style={{ opacity: 0.7 }}>(basata su {totalStorico} incroci storici idonei)</span>
                     </div>
                     
                     {/* Barra probabilità */}
@@ -4696,7 +5103,7 @@ const formatResultTime = (timeStr?: string) => {
                                           <strong style={{ color: md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameB}</strong>
                                         </span>
                                       </span>
-                                      <span style={{ color: '#5de4ff' }}>{md.overlap}/{matchFormat} (Ris: {md.result})</span>
+                                      <span style={{ color: '#5de4ff' }}>{md.overlap}/{md.maxOverlap} {md.pastFormat !== matchFormat ? `(${md.pastFormat}v${md.pastFormat})` : ''} (Ris: {md.result})</span>
                                     </div>
                                     <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
                                   </div>
@@ -4733,7 +5140,7 @@ const formatResultTime = (timeStr?: string) => {
                                           <strong style={{ color: md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameB}</strong>
                                         </span>
                                       </span>
-                                      <span style={{ color: '#ffcc00' }}>{md.overlap}/{matchFormat} (Ris: {md.result})</span>
+                                      <span style={{ color: '#ffcc00' }}>{md.overlap}/{md.maxOverlap} {md.pastFormat !== matchFormat ? `(${md.pastFormat}v${md.pastFormat})` : ''} (Ris: {md.result})</span>
                                     </div>
                                     <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
                                   </div>
@@ -4749,13 +5156,13 @@ const formatResultTime = (timeStr?: string) => {
 
                     {trackHistoricalTotal > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', color: '#69f0ae', marginTop: '1rem', fontWeight: 600 }}>
-                         <span>🔮 Precisione Storica Algoritmo ({targetTrackLabel}): {trackAccuracy}% ({trackHistoricalCorrect} indovinate su {trackHistoricalTotal})</span>
+                         <span>🔮 Precisione Storica Algoritmo: {trackAccuracy}% ({trackHistoricalCorrect} indovinate su {trackHistoricalTotal})</span>
                       </div>
                     )}
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.6rem' }}>
                       <Info size={12} />
-                      <span>Algoritmo: 60% stats individuali del binario + 40% sinergia storica. Peso sinergia: (overlap/{matchFormat})²</span>
+                      <span>Algoritmo: 60% stats individuali idonee + 40% sinergia storica. Peso sinergia: (overlap/dimensione)²</span>
                     </div>
                   </div>
                 )}
@@ -4797,6 +5204,13 @@ const formatResultTime = (timeStr?: string) => {
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>
                   <button className="secondary-btn" onClick={downloadFormationImage}><Download size={18} /> Scarica JPEG</button>
+                  <button 
+                    className="secondary-btn" 
+                    onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
+                    title="Configura se unificare le statistiche a 5 con 6vs6, 7vs7, 8vs8 o separarle"
+                  >
+                    <Sliders size={18} /> Gestisci Previsione
+                  </button>
                 </div>
 
                 {isAdmin && (
@@ -4937,7 +5351,7 @@ const formatResultTime = (timeStr?: string) => {
                   >
                     <div className="match-meta-row">
                       <span className="match-meta" style={{color: 'var(--color-primary)'}}>
-                         {m.Stadium || 'Campi Sole'}
+                         {m.Stadium || 'Seidita'}
                       </span>
                       <span className="match-meta">
                         <Calendar size={13} />
@@ -5669,7 +6083,7 @@ const formatResultTime = (timeStr?: string) => {
                                        showToast('Video eliminato!', 'success');
                                        setMediaItems(prev => prev.filter(x => x.id !== m.id));
                                      } else {
-                                       showToast('Errore durante l\'eliminazione', 'error');
+                                       showToast('Errore eliminazione', 'error');
                                      }
                                    } catch {
                                      showToast('Errore di connessione', 'error');
@@ -6225,6 +6639,7 @@ const formatResultTime = (timeStr?: string) => {
             <div className="pes-modal-content" onClick={e => e.stopPropagation()}>
               <div className="pes-modal-header">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h3>{selectedPlayerForCard}</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.85rem', color: '#9fd9b6', textTransform: 'uppercase', fontWeight: 600 }}>{role}</span>
                     {playerObj?.RuoloSecondario && (

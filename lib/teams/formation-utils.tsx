@@ -28,6 +28,124 @@ export const getRoleAbbreviation = (ruolo: string | undefined): string => {
   return r.substring(0, 3).trim().toUpperCase();
 };
 
+/**
+ * Converte il codice ruolo del campo tattico (POR, DC, TS, TD, CC, MED, ES, ED, ATT, etc.)
+ * nel nome del ruolo in italiano e nella sua abbreviazione PES.
+ */
+export const getAssignedRoleInfo = (
+  roleCode: string | undefined
+): { name: string; abbr: string } => {
+  if (!roleCode) return { name: '', abbr: '' };
+  const r = roleCode.toUpperCase().trim();
+  switch (r) {
+    case 'POR':
+      return { name: 'Portiere', abbr: 'GK' };
+    case 'TS':
+      return { name: 'Terzino Sinistro', abbr: 'LB' };
+    case 'TD':
+      return { name: 'Terzino Destro', abbr: 'RB' };
+    case 'DC':
+      return { name: 'Difensore Centrale', abbr: 'CB' };
+    case 'DIF':
+      return { name: 'Difensore', abbr: 'CB' };
+    case 'MED':
+      return { name: 'Mediano', abbr: 'DMF' };
+    case 'CC':
+      return { name: 'Centrocampista Centrale', abbr: 'CMF' };
+    case 'ES':
+    case 'CLS':
+      return { name: 'Esterno Sinistro', abbr: 'LMF' };
+    case 'ED':
+    case 'CLD':
+      return { name: 'Esterno Destro', abbr: 'RMF' };
+    case 'LAT':
+      return { name: 'Laterale', abbr: 'SMF' };
+    case 'ATT':
+      return { name: 'Attaccante', abbr: 'CF' };
+    default:
+      return { name: roleCode, abbr: roleCode.substring(0, 3).toUpperCase() };
+  }
+};
+
+/**
+ * Verifica se il ruolo assegnato in campo coincide con il ruolo primario del giocatore.
+ */
+export const isRoleMatchingPrimary = (
+  primaryRole: string | undefined,
+  assignedRoleCode: string | undefined
+): boolean => {
+  if (!primaryRole || !assignedRoleCode) return false;
+  const p = primaryRole.trim().toLowerCase();
+  const a = assignedRoleCode.trim().toUpperCase();
+
+  switch (a) {
+    case 'POR':
+      return p.includes('portier') || p === 'gk' || p === 'por';
+    case 'TS':
+      return p.includes('terzino sinistro') || p === 'lb' || p === 'ts';
+    case 'TD':
+      return p.includes('terzino destro') || p === 'rb' || p === 'td';
+    case 'DC':
+      return (
+        p.includes('difensore centrale') ||
+        p === 'difensore' ||
+        p === 'cb' ||
+        p === 'dc'
+      );
+    case 'DIF':
+      return p.includes('difensor') || p.includes('terzino') || p === 'cb' || p === 'sb';
+    case 'MED':
+      return (
+        p.includes('mediano') ||
+        p.includes('centrocampista') ||
+        p === 'dmf' ||
+        p === 'med'
+      );
+    case 'CC':
+      return (
+        p.includes('centrocampista centrale') ||
+        p === 'centrocampista' ||
+        p === 'mezzala' ||
+        p === 'cmf' ||
+        p === 'cc'
+      );
+    case 'ES':
+    case 'CLS':
+      return (
+        p.includes('esterno sinistro') ||
+        p.includes('ala sinistra') ||
+        (p.includes('ala') && !p.includes('destra')) ||
+        p === 'lmf' ||
+        p === 'lwf' ||
+        p === 'es' ||
+        p === 'cls'
+      );
+    case 'ED':
+    case 'CLD':
+      return (
+        p.includes('esterno destro') ||
+        p.includes('ala destra') ||
+        (p.includes('ala') && !p.includes('sinistra')) ||
+        p === 'rmf' ||
+        p === 'rwf' ||
+        p === 'ed' ||
+        p === 'cld'
+      );
+    case 'LAT':
+      return p.includes('esterno') || p.includes('ala') || p.includes('terzino') || p === 'smf';
+    case 'ATT':
+      return (
+        p.includes('attaccante') ||
+        p.includes('punta') ||
+        p === 'cf' ||
+        p === 'ss' ||
+        p === 'att'
+      );
+    default:
+      return p === a.toLowerCase();
+  }
+};
+
 export const getPitchPositionsForTeam = (
   teamSize: number, 
   modulo7?: string, 

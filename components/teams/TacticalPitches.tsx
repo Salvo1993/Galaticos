@@ -5,9 +5,12 @@ import {
   hashStringToHue,
   getRoleAbbreviation,
   getPitchPositionsForTeam,
+  getAssignedRoleInfo,
+  isRoleMatchingPrimary,
   PesMorale,
   getPlayerMorale
 } from '@/lib/teams/formation-utils';
+import { isGoalkeeper } from '@/lib/algorithm/team-balancer';
 
 export interface TacticalPitchesProps {
   results: Results;
@@ -99,16 +102,38 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
             </label>
 
             <ul className="team-list">
-              {t.list.map(name => {
+              {t.list.map((name, idx) => {
                 const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
                 const hue = hashStringToHue(name);
                 
                 const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
                 const isSwapSource = isAdmin && activeSwapSource?.name === name;
                 const playerObj = dbPlayers.find(p => p.Nome === name);
-                const ruolo = playerObj?.Ruolo;
-                const ruoloSec = playerObj?.RuoloSecondario;
+                const isGk = isGoalkeeper(name, dbPlayers);
+                const primaryRuolo = playerObj?.Ruolo || (isGk ? 'Portiere' : undefined);
                 const morale = getPlayerMorale(name, matches);
+
+                const pos = positions[idx];
+                const isSmallFormat = t.list.length <= 6;
+                const assignedRoleInfo = getAssignedRoleInfo(pos?.role);
+
+                let displayRoleName = primaryRuolo;
+                let displayAbbr = primaryRuolo ? getRoleAbbreviation(primaryRuolo) : '';
+                let roleColor = '#6f9c81';
+                let isCoincident = true;
+
+                if (!isSmallFormat && pos?.role) {
+                  // In 7vs7 e 8vs8: mostra il ruolo assegnato in campo
+                  displayRoleName = assignedRoleInfo.name;
+                  displayAbbr = assignedRoleInfo.abbr;
+                  isCoincident = isRoleMatchingPrimary(primaryRuolo, pos.role);
+                  roleColor = isCoincident ? '#6f9c81' : '#ffb74d';
+                } else {
+                  // In 5vs5 e 6vs6: mostra solo il ruolo primario
+                  displayRoleName = primaryRuolo;
+                  displayAbbr = primaryRuolo ? getRoleAbbreviation(primaryRuolo) : '';
+                  roleColor = '#6f9c81';
+                }
 
                 return (
                   <li 
@@ -135,27 +160,40 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                           <span className="player-name">{name}</span>
-                          {ruolo && (
-                            <span style={{ 
-                              background: 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(30,40,50,0.6) 100%)', 
-                              padding: '2px 5px', 
-                              borderRadius: '2px', 
-                              fontSize: '0.6rem', 
-                              fontWeight: 'bold', 
-                              color: '#e0e0e0',
-                              border: '1px solid rgba(255,255,255,0.2)',
-                              boxShadow: 'inset 0 0 5px rgba(0,0,0,0.5)'
-                            }}>
-                              {getRoleAbbreviation(ruolo)}
+                          {displayAbbr && (
+                            <span 
+                              title={!isCoincident && primaryRuolo ? `Ruolo assegnato: ${displayRoleName} (Ruolo primario: ${primaryRuolo})` : undefined}
+                              style={{ 
+                                background: isCoincident 
+                                  ? 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(30,40,50,0.6) 100%)' 
+                                  : 'linear-gradient(135deg, rgba(60,35,10,0.7) 0%, rgba(30,20,10,0.7) 100%)', 
+                                padding: '2px 5px', 
+                                borderRadius: '2px', 
+                                fontSize: '0.6rem', 
+                                fontWeight: 'bold', 
+                                color: isCoincident ? '#e0e0e0' : '#ffb74d',
+                                border: isCoincident ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255, 183, 77, 0.5)',
+                                boxShadow: isCoincident ? 'inset 0 0 5px rgba(0,0,0,0.5)' : '0 0 6px rgba(255, 183, 77, 0.25)'
+                              }}
+                            >
+                              {displayAbbr}
                             </span>
                           )}
                           <span title={morale.title} style={{ display: 'flex' }}>
                             <PesMorale condition={morale.condition} />
                           </span>
                         </div>
-                        {ruolo && (
-                          <span style={{ fontSize: '0.75rem', color: '#6f9c81', marginTop: '0.1rem' }}>
-                            {ruolo}{ruoloSec ? ` (Sec: ${ruoloSec})` : ''}
+                        {displayRoleName && (
+                          <span 
+                            title={!isCoincident && primaryRuolo ? `Ruolo primario: ${primaryRuolo}` : undefined}
+                            style={{ 
+                              fontSize: '0.75rem', 
+                              color: roleColor, 
+                              marginTop: '0.1rem',
+                              fontWeight: isCoincident ? 400 : 600
+                            }}
+                          >
+                            {displayRoleName}
                           </span>
                         )}
                       </div>

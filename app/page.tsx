@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload } from 'lucide-react';
+import { Sun, Moon, RotateCcw, Copy, Plus, X, Pencil, Trophy, ChevronDown, Calendar, ArrowLeftRight, Trash2, Medal, Download, Video, BarChart2, MessageCircle, Info, Edit, Upload, LayoutGrid, Check } from 'lucide-react';
 import BulkMediaModal from '@/components/BulkMediaModal';
 import EditMediaModal from '@/components/EditMediaModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -573,6 +573,14 @@ export default function Home() {
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
+
+  // Moduli tattici per 7vs7 e 8vs8
+  const [modulo8TeamA, setModulo8TeamA] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>('3-3-1');
+  const [modulo8TeamB, setModulo8TeamB] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>('3-3-1');
+  const [modulo7TeamA, setModulo7TeamA] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>('2-3-1');
+  const [modulo7TeamB, setModulo7TeamB] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>('2-3-1');
+  const [isModuloModalOpen, setIsModuloModalOpen] = useState(false);
+  const [moduloModalTargetTeam, setModuloModalTargetTeam] = useState<'both' | 'A' | 'B'>('both');
 
   // Update Result state
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -3513,6 +3521,37 @@ const formatResultTime = (timeStr?: string) => {
           <option value={7}>7vs7</option>
           <option value={8}>8vs8</option>
         </select>
+        {(matchFormat === 7 || matchFormat === 8) && (
+          <button
+            type="button"
+            onClick={() => setIsModuloModalOpen(true)}
+            style={{
+              padding: '0.4rem 0.75rem',
+              borderRadius: '4px',
+              background: 'linear-gradient(135deg, rgba(52, 152, 219, 0.15) 0%, rgba(41, 128, 185, 0.25) 100%)',
+              color: '#3498db',
+              border: '1px solid rgba(52, 152, 219, 0.4)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
+            }}
+            title="Scegli il modulo tattico di gioco"
+          >
+            <LayoutGrid size={15} />
+            <span>
+              Modulo: {matchFormat === 8 
+                ? (modulo8TeamA === modulo8TeamB ? modulo8TeamA : `${modulo8TeamA}/${modulo8TeamB}`)
+                : (modulo7TeamA === modulo7TeamB ? modulo7TeamA : `${modulo7TeamA}/${modulo7TeamB}`)}
+            </span>
+            <ChevronDown size={13} style={{ opacity: 0.7 }} />
+          </button>
+        )}
         <button 
           onClick={() => {
             setCampoModalMode('add');
@@ -3529,6 +3568,324 @@ const formatResultTime = (timeStr?: string) => {
         </button>
       </div>
       </>
+      )}
+
+      {isModuloModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsModuloModalOpen(false)}>
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '640px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(52, 152, 219, 0.2) 0%, rgba(41, 128, 185, 0.3) 100%)', 
+                  padding: '8px', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(52, 152, 219, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#3498db'
+                }}>
+                  <LayoutGrid size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
+                    Moduli Tattici • Calcio a {matchFormat}
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary, #888)' }}>
+                    Seleziona lo schema tattico per la disposizione in campo
+                  </p>
+                </div>
+              </div>
+              <button 
+                className="secondary-btn" 
+                style={{ padding: '0.4rem', display: 'flex', borderRadius: '50%' }} 
+                onClick={() => setIsModuloModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Target Team Selector */}
+            <div style={{ marginBottom: '1.2rem', background: 'var(--color-surface-2, rgba(255,255,255,0.03))', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary, #aaa)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
+                Applica a:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setModuloModalTargetTeam('both')}
+                  style={{
+                    padding: '0.5rem 0.6rem',
+                    borderRadius: '6px',
+                    border: moduloModalTargetTeam === 'both' ? '2px solid #3498db' : '1px solid var(--color-border)',
+                    background: moduloModalTargetTeam === 'both' ? 'rgba(52, 152, 219, 0.15)' : 'transparent',
+                    color: moduloModalTargetTeam === 'both' ? '#3498db' : 'var(--color-text)',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Entrambe le Squadre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModuloModalTargetTeam('A')}
+                  style={{
+                    padding: '0.5rem 0.6rem',
+                    borderRadius: '6px',
+                    border: moduloModalTargetTeam === 'A' ? '2px solid #3498db' : '1px solid var(--color-border)',
+                    background: moduloModalTargetTeam === 'A' ? 'rgba(52, 152, 219, 0.15)' : 'transparent',
+                    color: moduloModalTargetTeam === 'A' ? '#3498db' : 'var(--color-text)',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                  title={teamAName}
+                >
+                  {teamAName}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModuloModalTargetTeam('B')}
+                  style={{
+                    padding: '0.5rem 0.6rem',
+                    borderRadius: '6px',
+                    border: moduloModalTargetTeam === 'B' ? '2px solid #3498db' : '1px solid var(--color-border)',
+                    background: moduloModalTargetTeam === 'B' ? 'rgba(52, 152, 219, 0.15)' : 'transparent',
+                    color: moduloModalTargetTeam === 'B' ? '#3498db' : 'var(--color-text)',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                  title={teamBName}
+                >
+                  {teamBName}
+                </button>
+              </div>
+            </div>
+
+            {/* Formations Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(matchFormat === 8 ? [
+                {
+                  id: '3-3-1' as const,
+                  name: '3-3-1',
+                  tag: 'CONSIGLIATO',
+                  tagColor: '#2ecc71',
+                  tagBg: 'rgba(46, 204, 113, 0.15)',
+                  tagBorder: 'rgba(46, 204, 113, 0.4)',
+                  breakdown: '3 Difensori • 3 Centrocampisti • 1 Punta',
+                  desc: 'Lo schema classico del Calcio a 8. Triangolo difensivo solido, mediana a 3 con ali che coprono la fascia e perno centrale d’attacco.',
+                  ruoli: ['POR', 'TS', 'DC', 'TD', 'ES', 'CC', 'ED', 'ATT']
+                },
+                {
+                  id: '2-3-2' as const,
+                  name: '2-3-2',
+                  tag: 'OFFENSIVO',
+                  tagColor: '#e74c3c',
+                  tagBg: 'rgba(231, 76, 60, 0.15)',
+                  tagBorder: 'rgba(231, 76, 60, 0.4)',
+                  breakdown: '2 Difensori • 3 Centrocampisti • 2 Punte',
+                  desc: 'Assetto a trazione anteriore con due attaccanti che dialogano in area, supportati da una linea di centrocampo a tre e due centrali difensivi.',
+                  ruoli: ['POR', 'DC', 'DC', 'ES', 'CC', 'ED', 'ATT', 'ATT']
+                },
+                {
+                  id: '3-2-2' as const,
+                  name: '3-2-2',
+                  tag: 'DOPPIA PUNTA',
+                  tagColor: '#3498db',
+                  tagBg: 'rgba(52, 152, 219, 0.15)',
+                  tagBorder: 'rgba(52, 152, 219, 0.4)',
+                  breakdown: '3 Difensori • 2 Centrocampisti • 2 Punte',
+                  desc: 'Massima solidità arretrata con 3 difensori, diga a due davanti alla difesa e tandem offensivo per colpire velocemente.',
+                  ruoli: ['POR', 'TS', 'DC', 'TD', 'CC', 'CC', 'ATT', 'ATT']
+                },
+                {
+                  id: '2-4-1' as const,
+                  name: '2-4-1',
+                  tag: 'POSSESSO PALLA',
+                  tagColor: '#9b59b6',
+                  tagBg: 'rgba(155, 89, 182, 0.15)',
+                  tagBorder: 'rgba(155, 89, 182, 0.4)',
+                  breakdown: '2 Difensori • 4 Centrocampisti • 1 Punta',
+                  desc: 'Dominio del centro del campo e possesso palla con 4 interpreti a centrocampo (due centrali e due cursori laterali) a supporto dell’unica punta.',
+                  ruoli: ['POR', 'DC', 'DC', 'CLS', 'MED', 'MED', 'CLD', 'ATT']
+                }
+              ] : [
+                {
+                  id: '2-3-1' as const,
+                  name: '2-3-1',
+                  tag: 'CONSIGLIATO',
+                  tagColor: '#2ecc71',
+                  tagBg: 'rgba(46, 204, 113, 0.15)',
+                  tagBorder: 'rgba(46, 204, 113, 0.4)',
+                  breakdown: '2 Difensori • 3 Centrocampisti • 1 Punta',
+                  desc: 'Il modulo universale e più equilibrato nel Calcio a 7. Ampiezza sulle corsie esterne, cervello centrale e attaccante mobile.',
+                  ruoli: ['POR', 'DC', 'DC', 'ES', 'CC', 'ED', 'ATT']
+                },
+                {
+                  id: '3-2-1' as const,
+                  name: '3-2-1',
+                  tag: 'ALBERO DI NATALE',
+                  tagColor: '#3498db',
+                  tagBg: 'rgba(52, 152, 219, 0.15)',
+                  tagBorder: 'rgba(52, 152, 219, 0.4)',
+                  breakdown: '3 Difensori • 2 Centrocampisti • 1 Punta',
+                  desc: 'Formazione compatta e impenetrabile. 3 difensori puri, 2 centrocampisti di contenimento e punta di sfondamento pronta alle ripartenze.',
+                  ruoli: ['POR', 'TS', 'DC', 'TD', 'CC', 'CC', 'ATT']
+                },
+                {
+                  id: '2-2-2' as const,
+                  name: '2-2-2',
+                  tag: 'A COPPIE',
+                  tagColor: '#f39c12',
+                  tagBg: 'rgba(243, 156, 18, 0.15)',
+                  tagBorder: 'rgba(243, 156, 18, 0.4)',
+                  breakdown: '2 Difensori • 2 Centrocampisti • 2 Punte',
+                  desc: 'Schema simmetrico con 2 giocatori per linea. Ottimo per pressing alto e verticalizzazioni dirette sulle due punte.',
+                  ruoli: ['POR', 'DC', 'DC', 'CC', 'CC', 'ATT', 'ATT']
+                },
+                {
+                  id: '3-1-2' as const,
+                  name: '3-1-2',
+                  tag: 'DOPPIA PUNTA',
+                  tagColor: '#e74c3c',
+                  tagBg: 'rgba(231, 76, 60, 0.15)',
+                  tagBorder: 'rgba(231, 76, 60, 0.4)',
+                  breakdown: '3 Difensori • 1 Mediano • 2 Punte',
+                  desc: 'Solidità difensiva con schermo davanti alla difesa e coppia di punte libere di svariare su tutto il fronte offensivo.',
+                  ruoli: ['POR', 'TS', 'DC', 'TD', 'MED', 'ATT', 'ATT']
+                }
+              ]).map((mod) => {
+                const isSelected = matchFormat === 8
+                  ? (moduloModalTargetTeam === 'both' ? (modulo8TeamA === mod.id && modulo8TeamB === mod.id) : (moduloModalTargetTeam === 'A' ? modulo8TeamA === mod.id : modulo8TeamB === mod.id))
+                  : (moduloModalTargetTeam === 'both' ? (modulo7TeamA === mod.id && modulo7TeamB === mod.id) : (moduloModalTargetTeam === 'A' ? modulo7TeamA === mod.id : modulo7TeamB === mod.id));
+
+                return (
+                  <div
+                    key={mod.id}
+                    onClick={() => {
+                      if (matchFormat === 8) {
+                        const mid = mod.id as '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
+                        if (moduloModalTargetTeam === 'both') {
+                          setModulo8TeamA(mid);
+                          setModulo8TeamB(mid);
+                        } else if (moduloModalTargetTeam === 'A') {
+                          setModulo8TeamA(mid);
+                        } else {
+                          setModulo8TeamB(mid);
+                        }
+                      } else {
+                        const mid = mod.id as '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
+                        if (moduloModalTargetTeam === 'both') {
+                          setModulo7TeamA(mid);
+                          setModulo7TeamB(mid);
+                        } else if (moduloModalTargetTeam === 'A') {
+                          setModulo7TeamA(mid);
+                        } else {
+                          setModulo7TeamB(mid);
+                        }
+                      }
+                      showToast(`Modulo ${mod.name} impostato con successo!`, 'success');
+                    }}
+                    style={{
+                      padding: '0.85rem 1rem',
+                      borderRadius: '8px',
+                      border: isSelected ? '2px solid #3498db' : '1px solid var(--color-border)',
+                      background: isSelected ? 'rgba(52, 152, 219, 0.12)' : 'var(--color-surface, rgba(255,255,255,0.02))',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 0 12px rgba(52, 152, 219, 0.3)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.15rem', fontWeight: 800, color: isSelected ? '#3498db' : 'var(--color-text)' }}>
+                          {mod.name}
+                        </span>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          color: mod.tagColor,
+                          background: mod.tagBg,
+                          border: `1px solid ${mod.tagBorder}`,
+                          letterSpacing: '0.5px'
+                        }}>
+                          {mod.tag}
+                        </span>
+                      </div>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: isSelected ? '2px solid #3498db' : '2px solid var(--color-border)',
+                        background: isSelected ? '#3498db' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff'
+                      }}>
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.3rem' }}>
+                      {mod.breakdown}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary, #999)', lineHeight: 1.35, marginBottom: '0.5rem' }}>
+                      {mod.desc}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {mod.ruoli.map((r, i) => (
+                        <span 
+                          key={i}
+                          style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            background: r === 'POR' ? 'rgba(243, 156, 18, 0.2)' : r.includes('D') || r === 'TS' || r === 'TD' ? 'rgba(52, 152, 219, 0.2)' : r === 'ATT' ? 'rgba(231, 76, 60, 0.2)' : 'rgba(46, 204, 113, 0.2)',
+                            color: r === 'POR' ? '#f39c12' : r.includes('D') || r === 'TS' || r === 'TD' ? '#3498db' : r === 'ATT' ? '#e74c3c' : '#2ecc71',
+                            border: '1px solid rgba(255,255,255,0.08)'
+                          }}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border)', paddingTop: '0.8rem' }}>
+              <button 
+                type="button"
+                className="primary-btn" 
+                style={{ padding: '0.5rem 1.4rem', fontWeight: 700, fontSize: '0.9rem' }} 
+                onClick={() => setIsModuloModalOpen(false)}
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {results && (() => {
@@ -3626,9 +3983,38 @@ const formatResultTime = (timeStr?: string) => {
                 </ul>
                 <div className="pes-pitch">
                   <div style={{ position: 'absolute', top: '10px', left: '15px', right: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      {t.name}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {t.name}
+                      </span>
+                      {(t.list.length === 7 || t.list.length === 8) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModuloModalTargetTeam(t.team === 'A' ? 'A' : 'B');
+                            setIsModuloModalOpen(true);
+                          }}
+                          style={{
+                            background: 'rgba(52, 152, 219, 0.2)',
+                            border: '1px solid rgba(52, 152, 219, 0.5)',
+                            color: '#60b5ff',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            letterSpacing: '0.5px'
+                          }}
+                          title="Clicca per cambiare modulo tattico"
+                        >
+                          <LayoutGrid size={11} />
+                          <span>MODULO {t.team === 'A' ? (t.list.length === 8 ? modulo8TeamA : modulo7TeamA) : (t.list.length === 8 ? modulo8TeamB : modulo7TeamB)}</span>
+                        </button>
+                      )}
+                    </div>
                     <span className="match-tag" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', cursor: 'default', transform: 'scale(0.9)', transformOrigin: 'right center', color: '#cfe8d8', fontSize: '0.65rem' }}>
                       {t.team === currentLightTeam ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}
                     </span>
@@ -3640,45 +4026,135 @@ const formatResultTime = (timeStr?: string) => {
                     const isSwapSource = isAdmin && activeSwapSource?.name === name;
                     const morale = getPlayerMorale(name);
                     
-                    let positions: { top: string; left: string }[] = [];
+                    let positions: { top: string; left: string; role?: string }[] = [];
                     if (t.list.length === 5) {
                       positions = [
-                        { top: '87%', left: '50%' }, // GK
-                        { top: '65%', left: '50%' }, // CB
-                        { top: '42%', left: '20%' }, // LM
-                        { top: '42%', left: '80%' }, // RM
-                        { top: '15%', left: '50%' }  // CF
+                        { top: '87%', left: '50%', role: 'POR' }, // GK
+                        { top: '65%', left: '50%', role: 'DIF' }, // CB
+                        { top: '42%', left: '20%', role: 'LAT' }, // LM
+                        { top: '42%', left: '80%', role: 'LAT' }, // RM
+                        { top: '15%', left: '50%', role: 'ATT' }  // CF
                       ];
                     } else if (t.list.length === 6) {
                       positions = [
-                        { top: '87%', left: '50%' }, // GK
-                        { top: '65%', left: '30%' }, // CB (L)
-                        { top: '65%', left: '70%' }, // CB (R)
-                        { top: '42%', left: '20%' }, // LM
-                        { top: '42%', left: '80%' }, // RM
-                        { top: '15%', left: '50%' }  // CF
+                        { top: '87%', left: '50%', role: 'POR' }, // GK
+                        { top: '65%', left: '30%', role: 'DIF' }, // CB (L)
+                        { top: '65%', left: '70%', role: 'DIF' }, // CB (R)
+                        { top: '42%', left: '20%', role: 'LAT' }, // LM
+                        { top: '42%', left: '80%', role: 'LAT' }, // RM
+                        { top: '15%', left: '50%', role: 'ATT' }  // CF
                       ];
                     } else if (t.list.length === 7) {
-                      positions = [
-                        { top: '87%', left: '50%' }, // GK
-                        { top: '65%', left: '20%' }, // LB
-                        { top: '65%', left: '50%' }, // CB
-                        { top: '65%', left: '80%' }, // RB
-                        { top: '42%', left: '30%' }, // CM
-                        { top: '42%', left: '70%' }, // CM
-                        { top: '15%', left: '50%' }  // CF
-                      ];
+                      const activeModulo7 = t.team === 'A' ? modulo7TeamA : modulo7TeamB;
+                      if (activeModulo7 === '2-3-1') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '32%', role: 'DC' },  // CB (L)
+                          { top: '66%', left: '68%', role: 'DC' },  // CB (R)
+                          { top: '42%', left: '18%', role: 'ES' },  // LM
+                          { top: '44%', left: '50%', role: 'CC' },  // CM
+                          { top: '42%', left: '82%', role: 'ED' },  // RM
+                          { top: '15%', left: '50%', role: 'ATT' }  // CF
+                        ];
+                      } else if (activeModulo7 === '3-2-1') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '20%', role: 'TS' },  // LB
+                          { top: '68%', left: '50%', role: 'DC' },  // CB
+                          { top: '66%', left: '80%', role: 'TD' },  // RB
+                          { top: '42%', left: '35%', role: 'CC' },  // CM (L)
+                          { top: '42%', left: '65%', role: 'CC' },  // CM (R)
+                          { top: '15%', left: '50%', role: 'ATT' }  // CF
+                        ];
+                      } else if (activeModulo7 === '2-2-2') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '32%', role: 'DC' },  // CB (L)
+                          { top: '66%', left: '68%', role: 'DC' },  // CB (R)
+                          { top: '42%', left: '34%', role: 'CC' },  // CM (L)
+                          { top: '42%', left: '66%', role: 'CC' },  // CM (R)
+                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
+                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
+                        ];
+                      } else if (activeModulo7 === '3-1-2') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '20%', role: 'TS' },  // LB
+                          { top: '68%', left: '50%', role: 'DC' },  // CB
+                          { top: '66%', left: '80%', role: 'TD' },  // RB
+                          { top: '43%', left: '50%', role: 'MED' }, // CM
+                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
+                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
+                        ];
+                      } else {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' },
+                          { top: '66%', left: '32%', role: 'DC' },
+                          { top: '66%', left: '68%', role: 'DC' },
+                          { top: '42%', left: '18%', role: 'ES' },
+                          { top: '44%', left: '50%', role: 'CC' },
+                          { top: '42%', left: '82%', role: 'ED' },
+                          { top: '15%', left: '50%', role: 'ATT' }
+                        ];
+                      }
                     } else if (t.list.length === 8) {
-                      positions = [
-                        { top: '87%', left: '50%' }, // GK
-                        { top: '65%', left: '20%' }, // LB
-                        { top: '65%', left: '50%' }, // CB
-                        { top: '65%', left: '80%' }, // RB
-                        { top: '42%', left: '20%' }, // LM
-                        { top: '42%', left: '80%' }, // RM
-                        { top: '15%', left: '35%' }, // CF (L)
-                        { top: '15%', left: '65%' }  // CF (R)
-                      ];
+                      const activeModulo8 = t.team === 'A' ? modulo8TeamA : modulo8TeamB;
+                      if (activeModulo8 === '3-3-1') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '20%', role: 'TS' },  // LB
+                          { top: '68%', left: '50%', role: 'DC' },  // CB
+                          { top: '66%', left: '80%', role: 'TD' },  // RB
+                          { top: '42%', left: '18%', role: 'ES' },  // LM
+                          { top: '44%', left: '50%', role: 'CC' },  // CM
+                          { top: '42%', left: '82%', role: 'ED' },  // RM
+                          { top: '15%', left: '50%', role: 'ATT' }  // CF
+                        ];
+                      } else if (activeModulo8 === '2-3-2') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '67%', left: '32%', role: 'DC' },  // CB (L)
+                          { top: '67%', left: '68%', role: 'DC' },  // CB (R)
+                          { top: '43%', left: '18%', role: 'ES' },  // LM
+                          { top: '45%', left: '50%', role: 'CC' },  // CM
+                          { top: '43%', left: '82%', role: 'ED' },  // RM
+                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
+                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
+                        ];
+                      } else if (activeModulo8 === '3-2-2') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '66%', left: '20%', role: 'TS' },  // LB
+                          { top: '68%', left: '50%', role: 'DC' },  // CB
+                          { top: '66%', left: '80%', role: 'TD' },  // RB
+                          { top: '43%', left: '34%', role: 'CC' },  // CM (L)
+                          { top: '43%', left: '66%', role: 'CC' },  // CM (R)
+                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
+                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
+                        ];
+                      } else if (activeModulo8 === '2-4-1') {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' }, // GK
+                          { top: '68%', left: '32%', role: 'DC' },  // CB (L)
+                          { top: '68%', left: '68%', role: 'DC' },  // CB (R)
+                          { top: '43%', left: '15%', role: 'CLS' }, // LM
+                          { top: '46%', left: '38%', role: 'MED' }, // CM (L)
+                          { top: '46%', left: '62%', role: 'MED' }, // CM (R)
+                          { top: '43%', left: '85%', role: 'CLD' }, // RM
+                          { top: '15%', left: '50%', role: 'ATT' }  // CF
+                        ];
+                      } else {
+                        positions = [
+                          { top: '87%', left: '50%', role: 'POR' },
+                          { top: '66%', left: '20%', role: 'TS' },
+                          { top: '68%', left: '50%', role: 'DC' },
+                          { top: '66%', left: '80%', role: 'TD' },
+                          { top: '42%', left: '18%', role: 'ES' },
+                          { top: '44%', left: '50%', role: 'CC' },
+                          { top: '42%', left: '82%', role: 'ED' },
+                          { top: '15%', left: '50%', role: 'ATT' }
+                        ];
+                      }
                     }
                     const pos = positions[idx] || { top: '50%', left: '50%' };
 
@@ -3728,7 +4204,20 @@ const formatResultTime = (timeStr?: string) => {
                             }
                           }}
                         />
-                        <div className="pes-player-name" style={{ fontSize: '0.8rem', padding: '2px 6px' }}>{name}</div>
+                        <div className="pes-player-name" style={{ fontSize: '0.8rem', padding: '2px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          {pos.role && (
+                            <span style={{ 
+                              fontSize: '0.65rem', 
+                              fontWeight: 800, 
+                              color: pos.role === 'POR' ? '#f39c12' : pos.role.includes('D') || pos.role === 'TS' || pos.role === 'TD' || pos.role === 'CB' || pos.role === 'LB' || pos.role === 'RB' ? '#3498db' : pos.role === 'ATT' || pos.role === 'CF' ? '#e74c3c' : '#2ecc71',
+                              borderRight: '1px solid rgba(255,255,255,0.25)',
+                              paddingRight: '3px'
+                            }}>
+                              {pos.role}
+                            </span>
+                          )}
+                          <span>{name}</span>
+                        </div>
                       </div>
                     );
                   })}

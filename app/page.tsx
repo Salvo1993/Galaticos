@@ -3038,9 +3038,25 @@ const formatResultTime = (timeStr?: string) => {
           value={matchFormat}
           onChange={(e) => {
              const format = parseInt(e.target.value, 10);
+             const targetCount = format * 2;
              setMatchFormat(format);
-             setSelectedPlayers(Array(format * 2).fill(''));
-             setClusters([]);
+             setSelectedPlayers(prev => {
+               if (prev.length < targetCount) {
+                 return [...prev, ...Array(targetCount - prev.length).fill('')];
+               } else if (prev.length > targetCount) {
+                 return prev.slice(0, targetCount);
+               }
+               return prev;
+             });
+             if (selectedPlayers.length > targetCount) {
+               setClusters(prevClusters => {
+                 const keptNames = new Set(selectedPlayers.slice(0, targetCount).filter(Boolean));
+                 return prevClusters.map(c => ({
+                   ...c,
+                   members: c.members.filter(m => keptNames.has(m))
+                 }));
+               });
+             }
              setResults(null);
           }}
           style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', fontSize: '0.9rem', width: '90px', outline: 'none', textAlign: 'center' }}

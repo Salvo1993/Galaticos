@@ -2213,6 +2213,117 @@ const formatResultTime = (timeStr?: string) => {
     }
   };
 
+  const fallbackCopyText = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showToast('Link WhatsApp copiati negli appunti! 📋', 'success');
+    } catch {
+      showToast('Errore durante la copia', 'error');
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const copyMatchMediaToClipboard = (match: MatchResult) => {
+    const items = mediaItems.filter(m => m.partita_id === match.id);
+    if (items.length === 0) {
+      showToast('Nessun video registrato per questa partita', 'info');
+      return;
+    }
+
+    const fullMatchItems = items.filter(i => i.tipologia === 'Partita Completa');
+    const playerItems = items.filter(i => i.tipologia !== 'Partita Completa');
+
+    const cleanUrl = (idOrUrl: string) => {
+      if (!idOrUrl) return '';
+      const trimmed = idOrUrl.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+      return `https://www.youtube.com/watch?v=${trimmed}`;
+    };
+
+    // Group player items by player name
+    const playerMap: Record<string, MediaItem[]> = {};
+    playerItems.forEach(item => {
+      const pName = (item.giocatore || 'Altri').trim();
+      if (!playerMap[pName]) playerMap[pName] = [];
+      playerMap[pName].push(item);
+    });
+
+    // Sort players by: most goals first, then total items
+    const sortedPlayers = Object.keys(playerMap).sort((a, b) => {
+      const goalsA = playerMap[a].filter(i => i.tipologia === 'Golazo' || i.tipologia === 'Gol').length;
+      const goalsB = playerMap[b].filter(i => i.tipologia === 'Golazo' || i.tipologia === 'Gol').length;
+      if (goalsB !== goalsA) return goalsB - goalsA;
+      return playerMap[b].length - playerMap[a].length;
+    });
+
+    const matchDate = new Date(match.data);
+    const today = new Date();
+    const diffDays = Math.round((today.getTime() - matchDate.getTime()) / (1000 * 3600 * 24));
+    const dateLabel = diffDays === 1 ? 'della partita di ieri' : `della partita del ${matchDate.toLocaleDateString('it-IT')}`;
+
+    let message = `⚽🎬 HIGHLIGHTS & GOL | ${(match.team_a_name || 'SQUADRA A').toUpperCase()} - ${(match.team_b_name || 'SQUADRA B').toUpperCase()} 🎬⚽\n\n`;
+    message += `Ecco tutti i video dei gol e delle giocate ${dateLabel}! 👇\n\n`;
+
+    sortedPlayers.forEach(pName => {
+      message += `👤 ${pName.toUpperCase()}\n`;
+      const pClips = playerMap[pName];
+      
+      const goals = pClips.filter(c => c.tipologia === 'Golazo' || c.tipologia === 'Gol');
+      const giocate = pClips.filter(c => c.tipologia === 'Giocata');
+      const parate = pClips.filter(c => c.tipologia === 'Paratona' || c.tipologia === 'Parata');
+      const fails = pClips.filter(c => c.tipologia === 'Epic Fail');
+      const others = pClips.filter(c => !['Golazo', 'Gol', 'Giocata', 'Paratona', 'Parata', 'Epic Fail'].includes(c.tipologia));
+
+      goals.forEach((g, idx) => {
+        const label = goals.length > 1 ? `${idx + 1}° Gol` : 'Gol';
+        message += `⚽ ${label}: ${cleanUrl(g.youtube_id)}\n`;
+      });
+
+      giocate.forEach((g, idx) => {
+        const label = giocate.length > 1 ? `${idx + 1}ª Giocata` : 'Giocata';
+        message += `✨ ${label}: ${cleanUrl(g.youtube_id)}\n`;
+      });
+
+      parate.forEach((p, idx) => {
+        const label = parate.length > 1 ? `${idx + 1}ª Paratona` : 'Paratona';
+        message += `🧤 ${label}: ${cleanUrl(p.youtube_id)}\n`;
+      });
+
+      fails.forEach((f, idx) => {
+        const label = fails.length > 1 ? `${idx + 1}° Epic Fail` : 'Epic Fail';
+        message += `🤡 ${label}: ${cleanUrl(f.youtube_id)}\n`;
+      });
+
+      others.forEach((o) => {
+        message += `🎬 ${o.tipologia}: ${cleanUrl(o.youtube_id)}\n`;
+      });
+
+      message += `\n`;
+    });
+
+    if (fullMatchItems.length > 0) {
+      message += `---\n`;
+      fullMatchItems.forEach(f => {
+        message += `🎥 Partita Completa: ${cleanUrl(f.youtube_id)}\n`;
+      });
+    }
+
+    const trimmedMsg = message.trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(trimmedMsg).then(() => {
+        showToast('Link WhatsApp copiati negli appunti! 📋', 'success');
+      }).catch(() => {
+        fallbackCopyText(trimmedMsg);
+      });
+    } else {
+      fallbackCopyText(trimmedMsg);
+    }
+  };
+
   const copyResults = () => {
     if (!results) return;
     
@@ -3908,6 +4019,35 @@ const formatResultTime = (timeStr?: string) => {
                         {formatResultDate(m.data)}
                       </span>
                       <span className="match-meta match-meta-time">{formatResultTime(m.ora)}</span>
+                      {mediaItems.some(x => x.partita_id === m.id) && (
+                        <button
+                          type="button"
+                          style={{
+                            marginLeft: 'auto',
+                            marginRight: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'rgba(37, 211, 102, 0.12)',
+                            border: '1px solid rgba(37, 211, 102, 0.4)',
+                            color: '#25D366',
+                            borderRadius: '4px',
+                            padding: '2px 8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            zIndex: 2
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyMatchMediaToClipboard(m);
+                          }}
+                          title="Copia link video WhatsApp"
+                        >
+                          <Copy size={12} />
+                          <span>Copia Link</span>
+                        </button>
+                      )}
                     </div>
                     {isInterruptedMatch && (
                       <div style={{ textAlign: 'center', color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '4px', marginBottom: '4px' }}>
@@ -4021,6 +4161,32 @@ const formatResultTime = (timeStr?: string) => {
                       {historicalPredictions.preds[m.id]?.correct && (
                         <div style={{ textAlign: 'center', color: '#69f0ae', fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0 1rem 0', padding: '0.5rem', background: 'rgba(105, 240, 174, 0.1)', borderRadius: '6px' }}>
                           ✨ Partita indovinata dall'algoritmo
+                        </div>
+                      )}
+                      {mediaItems.some(x => x.partita_id === m.id) && (
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '0.8rem 0' }}>
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              fontSize: '0.85rem', 
+                              padding: '0.45rem 1.1rem', 
+                              borderColor: 'rgba(37, 211, 102, 0.4)', 
+                              color: '#25D366',
+                              background: 'rgba(37, 211, 102, 0.12)',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyMatchMediaToClipboard(m);
+                            }}
+                          >
+                            <Copy size={14} />
+                            <span>Copia Link Video (WhatsApp)</span>
+                          </button>
                         </div>
                       )}
                       {isAdmin && (
@@ -4451,10 +4617,34 @@ const formatResultTime = (timeStr?: string) => {
 
             {selectedMatch && (
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(52, 152, 219, 0.2)', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#6f9c81' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#6f9c81', flexWrap: 'wrap', gap: '8px' }}>
                   <span>{selectedMatch.Stadium || 'Campo'}</span>
                   <span>{new Date(selectedMatch.data).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  <span>{selectedMatch.ora ? selectedMatch.ora.substring(0, 5) : ''}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{selectedMatch.ora ? selectedMatch.ora.substring(0, 5) : ''}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyMatchMediaToClipboard(selectedMatch)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(37, 211, 102, 0.15)',
+                        border: '1px solid rgba(37, 211, 102, 0.4)',
+                        color: '#25D366',
+                        borderRadius: '4px',
+                        padding: '2px 8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      title="Copia messaggio WhatsApp con tutti i link dei video"
+                    >
+                      <Copy size={12} />
+                      <span>Copia Link</span>
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginBottom: '0.8rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '1rem', color: '#cfe8d8', textAlign: 'right', flex: 1 }}>{selectedMatch.team_a_name}</span>
@@ -4501,6 +4691,30 @@ const formatResultTime = (timeStr?: string) => {
                       );
                     })}
                   </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', borderTop: '1px solid rgba(52, 152, 219, 0.15)', paddingTop: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => copyMatchMediaToClipboard(selectedMatch)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(37, 211, 102, 0.15)',
+                      border: '1px solid rgba(37, 211, 102, 0.45)',
+                      color: '#25D366',
+                      borderRadius: '8px',
+                      padding: '0.45rem 1.2rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Copy size={15} />
+                    <span>Copia Link (WhatsApp)</span>
+                  </button>
                 </div>
               </div>
             )}

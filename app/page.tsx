@@ -2668,8 +2668,8 @@ const formatResultTime = (timeStr?: string) => {
       const htmlToImage = await import('html-to-image');
       setLoading(true);
 
-      // 1) Nascondi le liste e header per non averle nel layout e rimuovere lo spazio
-      const elementsToHide = pitchesRef.current.querySelectorAll('.team-header, .team-list');
+      // 1) Nascondi le liste, header e controlli fuori campo per non averli nel layout del JPEG
+      const elementsToHide = pitchesRef.current.querySelectorAll('.team-header, .team-list, .pitch-controls-bar');
       const cards = pitchesRef.current.querySelectorAll('.team-card');
       
       elementsToHide.forEach(el => (el as HTMLElement).style.display = 'none');
@@ -4295,6 +4295,35 @@ const formatResultTime = (timeStr?: string) => {
         const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
         const defaultLightTeam = isSameAsLatest ? (latestMatch.maglia_chiara || 'A') : 'A';
         const currentLightTeam = userOverrideMaglia || defaultLightTeam;
+
+        const handleToggleMaglia = async () => {
+          const newVal = currentLightTeam === 'A' ? 'B' : 'A';
+          setUserOverrideMaglia(newVal);
+          try {
+              const res = await fetch('/api/session/update-maglia', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ maglia_chiara: newVal })
+              });
+              if (!res.ok) throw new Error();
+
+              const latestMatch = matches.length > 0 ? matches[0] : null;
+              const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
+              if (isSameAsLatest && latestMatch && latestMatch.maglia_chiara !== newVal) {
+                  await fetch('/api/risultati/update-maglia', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id: latestMatch.id, maglia_chiara: newVal })
+                  });
+                  setMatches(matches.map(m => m.id === latestMatch.id ? { ...m, maglia_chiara: newVal } : m));
+              }
+
+              showToast('Maglie invertite con successo!', 'success');
+          } catch {
+              setUserOverrideMaglia(currentLightTeam as 'A'|'B');
+              showToast('Errore nel salvataggio maglie', 'error');
+          }
+        };
         
         return (
         <section className="results-section" ref={resultsRef} style={{display:'block'}}>
@@ -4390,41 +4419,20 @@ const formatResultTime = (timeStr?: string) => {
                   })}
                 </ul>
                 <div className="pes-pitch">
-                  <div style={{ position: 'absolute', top: '10px', left: '15px', right: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        {t.name}
-                      </span>
-                      {(t.list.length === 7 || t.list.length === 8) && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModuloModalTargetTeam(t.team === 'A' ? 'A' : 'B');
-                            setIsModuloModalOpen(true);
-                          }}
-                          style={{
-                            background: 'rgba(52, 152, 219, 0.2)',
-                            border: '1px solid rgba(52, 152, 219, 0.5)',
-                            color: '#60b5ff',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            letterSpacing: '0.5px'
-                          }}
-                          title="Clicca per cambiare modulo tattico"
-                        >
-                          <LayoutGrid size={11} />
-                          <span>MODULO {t.team === 'A' ? (t.list.length === 8 ? modulo8TeamA : modulo7TeamA) : (t.list.length === 8 ? modulo8TeamB : modulo7TeamB)}</span>
-                        </button>
-                      )}
-                    </div>
-                    <span className="match-tag" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', cursor: 'default', transform: 'scale(0.9)', transformOrigin: 'right center', color: '#cfe8d8', fontSize: '0.65rem' }}>
-                      {t.team === currentLightTeam ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}
+                  <div style={{ position: 'absolute', top: '12px', left: '0', right: '0', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                    <span style={{ 
+                      color: '#ffffff', 
+                      fontWeight: 900, 
+                      fontSize: '0.85rem', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '2px',
+                      background: 'rgba(0,0,0,0.45)',
+                      padding: '3px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                    }}>
+                      {t.name}
                     </span>
                   </div>
                   <div className="pes-goal-area-top"></div>
@@ -4629,6 +4637,100 @@ const formatResultTime = (timeStr?: string) => {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Controlli Modulo e Maglie fuori dall'immagine, posizionati sotto al campo */}
+                <div 
+                  className="pitch-controls-bar"
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    padding: '0.65rem 1rem', 
+                    background: 'rgba(12, 18, 26, 0.95)', 
+                    borderTop: '1px solid rgba(107, 155, 198, 0.3)',
+                    gap: '0.6rem',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  {/* Indicatore Maglie e tasto rapido Inverti per admin */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span 
+                      style={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        background: t.team === currentLightTeam ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.45)',
+                        color: t.team === currentLightTeam ? '#ffffff' : '#ffcc00',
+                        border: `1px solid ${t.team === currentLightTeam ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 204, 0, 0.4)'}`,
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      <span>{t.team === currentLightTeam ? '⚪' : '🔘'}</span>
+                      <span>{t.team === currentLightTeam ? 'MAGLIE CHIARE' : 'MAGLIE SCURE'}</span>
+                    </span>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleToggleMaglia}
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#aaa',
+                          borderRadius: '4px',
+                          padding: '3px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Inverti colore maglie delle due squadre"
+                      >
+                        <ArrowLeftRight size={11} /> Inverti
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Modulo tattico (per 7vs7 e 8vs8) */}
+                  {(t.list.length === 7 || t.list.length === 8) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModuloModalTargetTeam(t.team === 'A' ? 'A' : 'B');
+                          setIsModuloModalOpen(true);
+                        }}
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(52, 152, 219, 0.25) 0%, rgba(41, 128, 185, 0.35) 100%)',
+                          border: '1px solid #3498db',
+                          color: '#5de4ff',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                        }}
+                        title="Clicca per cambiare modulo tattico"
+                      >
+                        <LayoutGrid size={13} />
+                        <span>MODULO {t.team === 'A' ? (t.list.length === 8 ? modulo8TeamA : modulo7TeamA) : (t.list.length === 8 ? modulo8TeamB : modulo7TeamB)}</span>
+                        <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>✎</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -5172,34 +5274,12 @@ const formatResultTime = (timeStr?: string) => {
                     <button className="secondary-btn" onClick={() => generateTeams(true)}><RotateCcw size={18} /> Rimescola</button>
                   )}
                   {isAdmin && (
-                    <button className="secondary-btn" onClick={async () => {
-                      const newVal = currentLightTeam === 'A' ? 'B' : 'A';
-                      setUserOverrideMaglia(newVal);
-                      try {
-                          const res = await fetch('/api/session/update-maglia', {
-                              method: 'POST',
-                              headers: {'Content-Type': 'application/json'},
-                              body: JSON.stringify({ maglia_chiara: newVal })
-                          });
-                          if (!res.ok) throw new Error();
-
-                          const latestMatch = matches.length > 0 ? matches[0] : null;
-                          const isSameAsLatest = latestMatch && latestMatch.team_a_name === teamAName && latestMatch.team_b_name === teamBName;
-                          if (isSameAsLatest && latestMatch && latestMatch.maglia_chiara !== newVal) {
-                              await fetch('/api/risultati/update-maglia', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ id: latestMatch.id, maglia_chiara: newVal })
-                              });
-                              setMatches(matches.map(m => m.id === latestMatch.id ? { ...m, maglia_chiara: newVal } : m));
-                          }
-
-                          showToast('Maglie invertite con successo!', 'success');
-                      } catch {
-                          setUserOverrideMaglia(currentLightTeam as 'A'|'B');
-                          showToast('Errore nel salvataggio maglie', 'error');
-                      }
-                  }}><ArrowLeftRight size={18} /> Cambia Maglie</button>
+                    <button className="secondary-btn" onClick={handleToggleMaglia}><ArrowLeftRight size={18} /> Cambia Maglie</button>
+                  )}
+                  {(matchFormat === 7 || matchFormat === 8) && (
+                    <button className="secondary-btn" onClick={() => { setModuloModalTargetTeam('both'); setIsModuloModalOpen(true); }}>
+                      <LayoutGrid size={18} /> Modulo
+                    </button>
                   )}
                   <button className="secondary-btn" onClick={copyResults}><Copy size={18} /> Copia Formazioni</button>
                   <button className="secondary-btn" onClick={copyStats}><MessageCircle size={18} /> Copia Stats</button>

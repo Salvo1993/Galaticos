@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 interface Player {
   Nome: string;
   Ruolo?: string;
+  RuoloSecondario?: string;
   velocita?: number;
   accelerazione?: number;
   tecnica?: number;
@@ -472,6 +473,8 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
     if (!ruolo) return '';
     const r = ruolo.toUpperCase();
     if (r.includes('PORTIERE')) return 'GK';
+    if (r.includes('TERZINO DESTRO')) return 'RB';
+    if (r.includes('TERZINO SINISTRO')) return 'LB';
     if (r.includes('TERZINO')) return 'SB';
     if (r.includes('DIFENSORE')) return 'CB';
     if (r.includes('MEDIANO')) return 'DMF';
@@ -924,6 +927,9 @@ export default function Home() {
       case 'Centrocampista': return 'CC';
       case 'Difensore Centrale': return 'DC';
       case 'Difensore': return 'DC';
+      case 'Terzino Destro': return 'TD';
+      case 'Terzino Sinistro': return 'TS';
+      case 'Terzino': return 'TER';
       case 'Attaccante': return 'ATT';
       case 'Portiere': return 'POR';
       case 'Ala Sinistra': return 'AS';
@@ -1153,6 +1159,13 @@ export default function Home() {
     });
   }, [matches]);
 
+  const getMatchTrack = (m: { team_a_players?: string[]; team_b_players?: string[] }): '5-6' | '7-8' => {
+    const lenA = m.team_a_players?.length || 0;
+    const lenB = m.team_b_players?.length || 0;
+    const size = Math.max(lenA, lenB) || 5;
+    return size >= 7 ? '7-8' : '5-6';
+  };
+
   const historicalPredictions = useMemo(() => {
     const uniqueMatchesMap = new Set<string>();
     const validMatches = [...matches].filter(m => {
@@ -1165,14 +1178,17 @@ export default function Home() {
         uniqueMatchesMap.add(key);
         return true;
     }).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean }> = {};
+    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean, track: '5-6' | '7-8' }> = {};
     let correctCount = 0;
     let totalCount = 0;
 
     validMatches.forEach((match, index) => {
-       if (index === 0) return; // Non abbastanza dati storici per la prima partita
+       const matchTrack = getMatchTrack(match);
+       // Prendi solo le partite passate dello STESSO binario (5vs5 e 6vs6 insieme, 7vs7 e 8vs8 insieme)
+       const pastMatches = validMatches.slice(0, index).filter(m => getMatchTrack(m) === matchTrack);
+       if (pastMatches.length === 0) return; // Non abbastanza dati storici per il binario di questa partita
        
-       const pastMatches = validMatches.slice(0, index);
+       const matchFormatSize = Math.max(match.team_a_players?.length || 0, match.team_b_players?.length || 0) || 5;
        
        const data: Record<string, any> = {};
        const mvps: Record<string, number> = {};
@@ -1243,7 +1259,7 @@ export default function Home() {
              if (overlapA >= 2 || overlapB >= 2) {
                 const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
                 const isOnSideA = overlapA >= overlapB;
-                const weight = Math.pow(bestOverlap / 5, 2);
+                const weight = Math.pow(bestOverlap / matchFormatSize, 2);
                 const gF = isOnSideA ? sA : sB;
                 const gS = isOnSideA ? sB : sA;
                 if (gF > gS) wWins += weight;
@@ -1298,7 +1314,7 @@ export default function Home() {
        const [actA, actB] = (match.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
        const actual = actA > actB ? 'A' : actB > actA ? 'B' : 'X';
        
-       preds[match.id] = { favorite, correct: favorite === actual };
+       preds[match.id] = { favorite, correct: favorite === actual, track: matchTrack };
        
        if (favorite === actual) correctCount++;
        totalCount++;
@@ -1525,7 +1541,8 @@ export default function Home() {
         body: JSON.stringify({ 
             Nome: newPlayerName.trim(),
             Ruolo: newPlayerStats.Ruolo?.trim(),
-            stats: { ...newPlayerStats, Nome: newPlayerName.trim() },
+            RuoloSecondario: newPlayerStats.RuoloSecondario?.trim() || null,
+            stats: { ...newPlayerStats, Nome: newPlayerName.trim(), RuoloSecondario: newPlayerStats.RuoloSecondario?.trim() || null },
             mergeTarget: mergeTargetName.trim()
         })
       });
@@ -1642,7 +1659,8 @@ export default function Home() {
           oldName: editingPlayerOldName, 
           newName: editingPlayerName.trim(), 
           newRole: editingPlayerStats.Ruolo?.trim() || '',
-          stats: { ...editingPlayerStats, Nome: editingPlayerName.trim() }
+          newRoleSecondario: editingPlayerStats.RuoloSecondario?.trim() || null,
+          stats: { ...editingPlayerStats, Nome: editingPlayerName.trim(), RuoloSecondario: editingPlayerStats.RuoloSecondario?.trim() || null }
         })
       });
       const data = await res.json();
@@ -2091,7 +2109,7 @@ const formatResultTime = (timeStr?: string) => {
       categorized.forEach(c => {
         if (!c.macro) {
           const r = (c.role || '').toLowerCase();
-          if (r.includes('difensor') || r.includes('portiere')) c.macro = 'Difensivo';
+          if (r.includes('difensor') || r.includes('portiere') || r.includes('terzino')) c.macro = 'Difensivo';
           else if (r.includes('attaccante') || r.includes('trequartista') || r.includes('punta')) c.macro = 'Offensivo';
           else c.macro = 'Centrocampo';
         }
@@ -3199,14 +3217,14 @@ const formatResultTime = (timeStr?: string) => {
       )}
 
       {isEditModalOpen && (() => {
-          const baseRoles = ['Portiere', 'Difensore', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
-          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean)]));
+          const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
+          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean), ...dbPlayers.map(p => p.RuoloSecondario).filter(Boolean)]));
           const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
           const textFields = ['Skill', 'piede'] as const;
 
           return (
           <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
-              <div className="modal-content" style={{maxWidth: '600px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+              <div className="modal-content" style={{maxWidth: '650px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
                       <h3 style={{margin:0}}>Modifica Giocatore</h3>
                       <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
@@ -3214,7 +3232,7 @@ const formatResultTime = (timeStr?: string) => {
                   
                   <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
                         <div>
                         <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
                         <input 
@@ -3227,13 +3245,24 @@ const formatResultTime = (timeStr?: string) => {
                         />
                         </div>
                         <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo</label>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Preferito</label>
                         <select 
                             value={editingPlayerStats.Ruolo || ''} 
                             onChange={(e) => setEditingPlayerStats(prev => ({...prev, Ruolo: e.target.value}))}
                             className="modal-input" style={{ width: '100%', appearance: 'auto' }}
                         >
                             <option value="">Nessuno</option>
+                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                        </div>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Secondario <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Opzionale)</span></label>
+                        <select 
+                            value={editingPlayerStats.RuoloSecondario || ''} 
+                            onChange={(e) => setEditingPlayerStats(prev => ({...prev, RuoloSecondario: e.target.value}))}
+                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Nessuno (Opzionale)</option>
                             {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                         </div>
@@ -3299,14 +3328,14 @@ const formatResultTime = (timeStr?: string) => {
       })()}
 
       {isAddModalOpen && (() => {
-          const baseRoles = ['Portiere', 'Difensore', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
-          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean)]));
+          const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
+          const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean), ...dbPlayers.map(p => p.RuoloSecondario).filter(Boolean)]));
           const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
           const textFields = ['Skill', 'piede'] as const;
 
           return (
           <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-              <div className="modal-content" style={{maxWidth: '600px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+              <div className="modal-content" style={{maxWidth: '650px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
                       <h3 style={{margin:0}}>Nuovo Giocatore</h3>
                       <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
@@ -3314,7 +3343,7 @@ const formatResultTime = (timeStr?: string) => {
                   
                   <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
                         <div>
                         <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
                         <input 
@@ -3327,13 +3356,24 @@ const formatResultTime = (timeStr?: string) => {
                         />
                         </div>
                         <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo <span style={{color: 'red'}}>*</span></label>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Preferito <span style={{color: 'red'}}>*</span></label>
                         <select 
                             value={newPlayerStats.Ruolo || ''} 
                             onChange={(e) => setNewPlayerStats(prev => ({...prev, Ruolo: e.target.value}))}
                             className="modal-input" style={{ width: '100%', appearance: 'auto' }}
                         >
                             <option value="">Nessuno (Obbligatorio)</option>
+                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                        </div>
+                        <div>
+                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Secondario <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Opzionale)</span></label>
+                        <select 
+                            value={newPlayerStats.RuoloSecondario || ''} 
+                            onChange={(e) => setNewPlayerStats(prev => ({...prev, RuoloSecondario: e.target.value}))}
+                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Nessuno (Opzionale)</option>
                             {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                         </div>
@@ -3920,7 +3960,9 @@ const formatResultTime = (timeStr?: string) => {
                     
                     const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
                     const isSwapSource = isAdmin && activeSwapSource?.name === name;
-                    const ruolo = dbPlayers.find(p => p.Nome === name)?.Ruolo;
+                    const playerObj = dbPlayers.find(p => p.Nome === name);
+                    const ruolo = playerObj?.Ruolo;
+                    const ruoloSec = playerObj?.RuoloSecondario;
                     const morale = getPlayerMorale(name);
 
                     return (
@@ -3965,7 +4007,11 @@ const formatResultTime = (timeStr?: string) => {
                                         <PesMorale condition={morale.condition} />
                                     </span>
                                 </div>
-                                {ruolo && <span style={{ fontSize: '0.75rem', color: '#6f9c81', marginTop: '0.1rem' }}>{ruolo}</span>}
+                                {ruolo && (
+                                  <span style={{ fontSize: '0.75rem', color: '#6f9c81', marginTop: '0.1rem' }}>
+                                    {ruolo}{ruoloSec ? ` (Sec: ${ruoloSec})` : ''}
+                                  </span>
+                                )}
                             </div>
                         </div>
                         {isAdmin && (
@@ -4227,6 +4273,76 @@ const formatResultTime = (timeStr?: string) => {
           </div>
           
           {(() => {
+            const targetTrack: '5-6' | '7-8' = matchFormat >= 7 ? '7-8' : '5-6';
+            const targetTrackLabel = targetTrack === '7-8' ? 'Calcio a 7 / a 8' : 'Calcio a 5 / a 6';
+
+            // Partite storiche appartenenti unicamente al binario attivo
+            const trackMatches = matches.filter(m => getMatchTrack(m) === targetTrack);
+
+            // Deduplica e valida le partite del binario
+            const uniqueTrackMatchesMap = new Set<string>();
+            const validTrackMatches = trackMatches.filter(m => {
+              if (!m.risultato || m.risultato === '0-0') return false;
+              const tA = (m.team_a_name || '').trim();
+              const tB = (m.team_b_name || '').trim();
+              const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
+              let key = tA < tB ? `${tA}_${tB}_${scoreA}-${scoreB}` : `${tB}_${tA}_${scoreB}-${scoreA}`;
+              if (uniqueTrackMatchesMap.has(key)) return false;
+              uniqueTrackMatchesMap.add(key);
+              return true;
+            });
+
+            // Statistiche e MVP ricavati esclusivamente dal binario corrente
+            const trackPlayerStats: Record<string, {
+              partiteGiocate: number;
+              golFattiSquadra: number;
+              golSubitiSquadra: number;
+              sommaVoti: number;
+              votiCount: number;
+              mvpCount: number;
+            }> = {};
+
+            validTrackMatches.forEach(m => {
+              const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+
+              let matchMaxVote = 0;
+              let matchMVPs: string[] = [];
+              if (m.voti_giocatori) {
+                Object.entries(m.voti_giocatori).forEach(([p, voto]) => {
+                  if (typeof voto === 'number' && voto > matchMaxVote) {
+                    matchMaxVote = voto;
+                  }
+                });
+              }
+              if (m.mvps && m.mvps.length > 0) {
+                matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+              } else if (matchMaxVote > 0 && m.voti_giocatori) {
+                matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === matchMaxVote);
+              }
+
+              const procP = (p: string, gF: number, gS: number) => {
+                if (!trackPlayerStats[p]) {
+                  trackPlayerStats[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0, mvpCount: 0 };
+                }
+                trackPlayerStats[p].partiteGiocate++;
+                trackPlayerStats[p].golFattiSquadra += gF;
+                trackPlayerStats[p].golSubitiSquadra += gS;
+                if (m.voti_giocatori && typeof m.voti_giocatori[p] === 'number' && m.voti_giocatori[p] > 0) {
+                  trackPlayerStats[p].sommaVoti += m.voti_giocatori[p];
+                  trackPlayerStats[p].votiCount++;
+                }
+              };
+
+              m.team_a_players?.forEach(p => procP(p, sA, sB));
+              m.team_b_players?.forEach(p => procP(p, sB, sA));
+              matchMVPs.forEach(p => {
+                if (!trackPlayerStats[p]) {
+                  trackPlayerStats[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0, mvpCount: 0 };
+                }
+                trackPlayerStats[p].mvpCount++;
+              });
+            });
+
             const getTeamStats = (teamPlayers: string[]) => {
               let sumMediaVoto = 0;
               let sumGolFattiAvg = 0;
@@ -4236,38 +4352,203 @@ const formatResultTime = (timeStr?: string) => {
               let validGolCount = 0;
 
               teamPlayers.forEach(pName => {
-                const s = statsData.find(x => x.name === pName);
+                const s = trackPlayerStats[pName];
                 if (s && s.partiteGiocate > 0) {
-                  const numVoti = s.votiTrend.length;
-                  if (numVoti > 0) {
-                     sumMediaVoto += (s.sommaVoti / numVoti);
-                     validVotoCount++;
+                  if (s.votiCount > 0) {
+                    sumMediaVoto += (s.sommaVoti / s.votiCount);
+                    validVotoCount++;
                   }
                   sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
                   sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
                   validGolCount++;
-                }
-
-                const l = leaderboard.find(x => x.nome === pName);
-                if (l && l.mvp_count) {
-                   totalMvp += l.mvp_count;
+                  totalMvp += s.mvpCount;
                 }
               });
 
               return {
-                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : '0.00',
-                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : '0.00', 
-                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : '0.00',
-                mvp: totalMvp
+                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : (validTrackMatches.length > 0 ? '6.00' : '-'),
+                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : (validTrackMatches.length > 0 ? '0.00' : '-'),
+                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : (validTrackMatches.length > 0 ? '0.00' : '-'),
+                mvp: totalMvp,
+                hasTrackMatches: validGolCount > 0
               };
             };
 
             const statsA = getTeamStats(results.teamA);
             const statsB = getTeamStats(results.teamB);
 
+            const hasTrackHistory = validTrackMatches.length > 0;
+
+            // Calcola la sinergia storica per una squadra (esclusivamente dal binario attivo)
+            const getTeamSynergy = (teamPlayers: string[]) => {
+              let weightedWins = 0;
+              let weightedDraws = 0;
+              let weightedLosses = 0;
+              let weightedGolFatti = 0;
+              let weightedGolSubiti = 0;
+              let totalWeight = 0;
+              const matchDetails: { overlap: number, result: string, originalResult: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
+
+              validTrackMatches.forEach(m => {
+                const mDate = new Date(m.data);
+                const isInterrupted = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
+                if (isInterrupted) return;
+
+                const teamAPlayers = m.team_a_players || [];
+                const teamBPlayers = m.team_b_players || [];
+                const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+
+                const overlapA = teamPlayers.filter(p => teamAPlayers.includes(p)).length;
+                const overlapB = teamPlayers.filter(p => teamBPlayers.includes(p)).length;
+
+                if (overlapA >= 2 || overlapB >= 2) {
+                  const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
+                  const isOnSideA = overlapA >= overlapB;
+                  const commonPlayers = teamPlayers.filter(p => (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
+                  
+                  // Peso: normalizzato sulla dimensione squadra del formato attuale (matchFormat)
+                  const weight = Math.pow(bestOverlap / matchFormat, 2);
+                  
+                  const golFatti = isOnSideA ? scoreA : scoreB;
+                  const golSubiti = isOnSideA ? scoreB : scoreA;
+                  const won = golFatti > golSubiti;
+                  const draw = golFatti === golSubiti;
+
+                  if (won) weightedWins += weight;
+                  else if (draw) weightedDraws += weight;
+                  else weightedLosses += weight;
+                  
+                  weightedGolFatti += golFatti * weight;
+                  weightedGolSubiti += golSubiti * weight;
+                  totalWeight += weight;
+                  
+                  matchDetails.push({ 
+                    overlap: bestOverlap, 
+                    result: `${golFatti}-${golSubiti}`, 
+                    originalResult: m.risultato || '0-0',
+                    weight,
+                    date: mDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
+                    players: commonPlayers,
+                    teamNameA: m.team_a_name || 'Squadra A',
+                    teamNameB: m.team_b_name || 'Squadra B',
+                    isOnSideA
+                  });
+                }
+              });
+
+              return {
+                winRate: totalWeight > 0 ? weightedWins / totalWeight : 0,
+                drawRate: totalWeight > 0 ? weightedDraws / totalWeight : 0,
+                lossRate: totalWeight > 0 ? weightedLosses / totalWeight : 0,
+                avgGolFatti: totalWeight > 0 ? weightedGolFatti / totalWeight : 0,
+                avgGolSubiti: totalWeight > 0 ? weightedGolSubiti / totalWeight : 0,
+                totalWeight,
+                matchCount: matchDetails.length,
+                matchDetails
+              };
+            };
+
+            const synergyA = hasTrackHistory ? getTeamSynergy(results.teamA) : { winRate: 0, drawRate: 0, lossRate: 0, avgGolFatti: 0, avgGolSubiti: 0, totalWeight: 0, matchCount: 0, matchDetails: [] };
+            const synergyB = hasTrackHistory ? getTeamSynergy(results.teamB) : { winRate: 0, drawRate: 0, lossRate: 0, avgGolFatti: 0, avgGolSubiti: 0, totalWeight: 0, matchCount: 0, matchDetails: [] };
+
+            const getCompositeScore = (
+              individualStats: { mediaVoto: string; golFatti: string; golSubiti: string; mvp: number },
+              synergy: typeof synergyA
+            ) => {
+              const indMediaVoto = parseFloat(individualStats.mediaVoto) || 6.0;
+              const indGolFatti = parseFloat(individualStats.golFatti) || 0.0;
+              const indGolSubiti = parseFloat(individualStats.golSubiti) || 0.0;
+              
+              const normVoto = (indMediaVoto - 4) / 6;
+              const normGolDiff = (indGolFatti - indGolSubiti) / Math.max(indGolFatti + indGolSubiti, 1);
+              const mvpBonus = Math.min(individualStats.mvp * 0.02, 0.1);
+              
+              const individualScore = normVoto * 0.5 + normGolDiff * 0.35 + mvpBonus;
+              const synergyScore = synergy.totalWeight > 0 
+                ? synergy.winRate * 0.6 + synergy.drawRate * 0.2 - synergy.lossRate * 0.2 
+                : 0.5;
+
+              const effectiveSynergyWeight = synergy.totalWeight > 0 ? 0.4 : 0;
+              const effectiveIndividualWeight = 1 - effectiveSynergyWeight;
+              
+              return individualScore * effectiveIndividualWeight + synergyScore * effectiveSynergyWeight;
+            };
+
+            const compositeA = hasTrackHistory ? getCompositeScore(statsA, synergyA) : 0.5;
+            const compositeB = hasTrackHistory ? getCompositeScore(statsB, synergyB) : 0.5;
+
+            const diff = compositeA - compositeB;
+            const sigmoid = (x: number) => 1 / (1 + Math.exp(-x * 8));
+            const rawWinA = sigmoid(diff);
+            const rawWinB = 1 - rawWinA;
+            
+            const drawBase = 0.15;
+            const drawBonus = Math.max(0, 0.25 - Math.abs(diff) * 2);
+            const drawPct = Math.min(drawBase + drawBonus, 0.40);
+            
+            const winAPct = rawWinA * (1 - drawPct);
+            const winBPct = rawWinB * (1 - drawPct);
+
+            const pctA = Math.round(winAPct * 100);
+            const pctX = Math.round(drawPct * 100);
+            const pctB = Math.round(winBPct * 100);
+            const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
+            
+            const baseAvg = Math.max((parseFloat(statsA.golFatti) + parseFloat(statsB.golFatti)) / 2, matchFormat * 1.3);
+            const scartoGol = diff * 15;
+            
+            let finalPredA = baseAvg + (scartoGol / 2);
+            let finalPredB = baseAvg - (scartoGol / 2);
+            
+            let predGolA = Math.round(finalPredA);
+            let predGolB = Math.round(finalPredB);
+
+            if (favorite === 'A' && predGolA <= predGolB) predGolA = predGolB + 1;
+            if (favorite === 'B' && predGolB <= predGolA) predGolB = predGolA + 1;
+            if (favorite === 'X' && predGolA !== predGolB) {
+                const avg = Math.round((predGolA + predGolB) / 2);
+                predGolA = avg;
+                predGolB = avg;
+            }
+
+            const uniqueMatchKeys = new Set([
+              ...synergyA.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult),
+              ...synergyB.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult)
+            ]);
+            const totalStorico = uniqueMatchKeys.size;
+            let reliabilityText = 'Bassa';
+            let reliabilityColor = '#ff4444';
+            if (totalStorico >= 16) {
+                reliabilityText = 'Alta';
+                reliabilityColor = '#69f0ae';
+            } else if (totalStorico >= 5) {
+                reliabilityText = 'Media';
+                reliabilityColor = '#ffcc00';
+            }
+
+            const matchPlayersList = [...(results?.teamA || []), ...(results?.teamB || [])];
+            const unknownPlayersCount = matchPlayersList.filter(p => !trackPlayerStats[p] || trackPlayerStats[p].partiteGiocate === 0).length;
+            
+            if (unknownPlayersCount === 1) {
+                if (reliabilityText === 'Alta') {
+                    reliabilityText = 'Media (1 debuttante nel binario)';
+                    reliabilityColor = '#ffcc00';
+                } else {
+                    reliabilityText = 'Bassa (1 debuttante nel binario)';
+                    reliabilityColor = '#ff4444';
+                }
+            } else if (unknownPlayersCount > 1) {
+                reliabilityText = `Molto Bassa (${unknownPlayersCount} debuttanti nel binario)`;
+                reliabilityColor = '#ff4444';
+            }
+
+            const trackHistoricalTotal = Object.values(historicalPredictions.preds).filter(p => p.track === targetTrack).length;
+            const trackHistoricalCorrect = Object.values(historicalPredictions.preds).filter(p => p.track === targetTrack && p.correct).length;
+            const trackAccuracy = trackHistoricalTotal > 0 ? Math.round((trackHistoricalCorrect / trackHistoricalTotal) * 100) : historicalPredictions.accuracy;
+
             const copyStats = () => {
-              const title = matchFormat === 5 ? `📊 *PREVISIONE MATCH*` : `📊 *STATISTICHE SQUADRE (Calcio a ${matchFormat})*`;
-              const text = `${title}\n\n` +
+              const title = `📊 *STATISTICHE & PREVISIONE (Binario ${targetTrackLabel} - Calcio a ${matchFormat})*`;
+              let text = `${title}\n\n` +
                 `*${teamAName.toUpperCase()}*\n` +
                 `Media Voto: ${statsA.mediaVoto}\n` +
                 `Gol Fatti: ${statsA.golFatti}\n` +
@@ -4278,15 +4559,23 @@ const formatResultTime = (timeStr?: string) => {
                 `Gol Fatti: ${statsB.golFatti}\n` +
                 `Gol Subiti: ${statsB.golSubiti}\n` +
                 `MVP Totali: ${statsB.mvp}`;
+
+              if (hasTrackHistory) {
+                text += `\n\n🔮 *Esito Stimato:* ${teamAName} ${Math.round(predGolA)} - ${Math.round(predGolB)} ${teamBName}\n` +
+                  `Probabilità: 1 (${pctA}%) | X (${pctX}%) | 2 (${pctB}%)`;
+              } else {
+                text += `\n\nℹ️ *Previsione:* In attesa della prima partita archiviata nel Binario ${targetTrackLabel}.`;
+              }
+
               navigator.clipboard.writeText(text);
               alert('Statistiche copiate negli appunti!');
             };
 
             return (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem', textAlign: 'center' }}>
                   <Info size={14} />
-                  <span>I valori sono calcolati tramite la media delle statistiche storiche individuali.</span>
+                  <span>Statistiche calcolate esclusivamente sullo storico del <strong>Binario {targetTrackLabel}</strong>.</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1rem', borderTop: '2px solid #5de4ff', fontSize: '0.85rem' }}>
@@ -4305,359 +4594,171 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                 </div>
 
-                {/* --- PREVISIONE MATCH --- */}
-                {matchFormat !== 5 || results.teamA.length !== 5 || results.teamB.length !== 5 ? (
+                {/* --- PREVISIONE MATCH A BINARI SEPARATI --- */}
+                {!hasTrackHistory ? (
                   <div style={{
-                    background: 'linear-gradient(135deg, rgba(255, 183, 3, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                    background: 'linear-gradient(135deg, rgba(61, 165, 245, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
                     borderRadius: '10px',
                     padding: '1.2rem',
                     marginTop: '1rem',
-                    border: '1px solid rgba(255, 183, 3, 0.25)',
+                    border: '1px solid rgba(61, 165, 245, 0.25)',
                     textAlign: 'center'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#ffb703', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#5de4ff', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
                       <Info size={18} />
-                      <span>Previsione non disponibile per Calcio a {matchFormat}</span>
+                      <span>🔮 Binario {targetTrackLabel}: In attesa di storico</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#aaa', lineHeight: 1.5, maxWidth: '580px', marginInline: 'auto' }}>
-                      L'algoritmo predittivo (probabilità 1-X-2, sinergia storica e risultato stimato) è calibrato esclusivamente sulle partite di calcio a 5. Per il formato a {matchFormat} non è presente uno storico di partite a {matchFormat} per formulare una previsione affidabile.
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#aaa', lineHeight: 1.5, maxWidth: '620px', marginInline: 'auto' }}>
+                      L'algoritmo predittivo per il <strong>Binario {targetTrackLabel}</strong> (7vs7 e 8vs8) si attiverà automaticamente non appena verrà registrata e archiviata la prima partita in questo formato. Come da regolamento, lo storico del Calcio a 5/6 rimane rigorosamente separato per garantire la massima attendibilità.
                     </p>
                   </div>
-                ) : (() => {
-                  // Algoritmo di previsione basato su stats individuali + sinergia storica
-                  const uniqueMatchesMap = new Set<string>();
-                  const validMatches = matches.filter(m => {
-                      if (!m.risultato || m.risultato === '0-0') return false;
-                      const teamA = (m.team_a_name || '').trim();
-                      const teamB = (m.team_b_name || '').trim();
-                      const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
-                      let key = teamA < teamB ? `${teamA}_${teamB}_${scoreA}-${scoreB}` : `${teamB}_${teamA}_${scoreB}-${scoreA}`;
-                      if (uniqueMatchesMap.has(key)) return false;
-                      uniqueMatchesMap.add(key);
-                      return true;
-                  });
-                  
-                  // Calcola la sinergia storica per una squadra
-                  const getTeamSynergy = (teamPlayers: string[]) => {
-                    let weightedWins = 0;
-                    let weightedDraws = 0;
-                    let weightedLosses = 0;
-                    let weightedGolFatti = 0;
-                    let weightedGolSubiti = 0;
-                    let totalWeight = 0;
-                    const matchDetails: { overlap: number, result: string, originalResult: string, weight: number, date: string, players: string[], teamNameA: string, teamNameB: string, isOnSideA: boolean }[] = [];
-
-                    validMatches.forEach(m => {
-                      const mDate = new Date(m.data);
-                      const isInterrupted = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
-                      if (isInterrupted) return;
-
-                      const teamAPlayers = m.team_a_players || [];
-                      const teamBPlayers = m.team_b_players || [];
-                      const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
-
-                      // Cerca overlap con team_a e team_b della partita storica
-                      const overlapA = teamPlayers.filter(p => teamAPlayers.includes(p)).length;
-                      const overlapB = teamPlayers.filter(p => teamBPlayers.includes(p)).length;
-
-                      // Prendi il lato con più overlap (almeno 2 giocatori in comune)
-                      if (overlapA >= 2 || overlapB >= 2) {
-                        const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
-                        const isOnSideA = overlapA >= overlapB;
-                        const commonPlayers = teamPlayers.filter(p => (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
-                        
-                        // Peso: (overlap/5)^2 per dare molta più importanza a 5/5 rispetto a 2/5
-                        // 5/5 = 1.0, 4/5 = 0.64, 3/5 = 0.36, 2/5 = 0.16
-                        const weight = Math.pow(bestOverlap / 5, 2);
-                        
-                        const golFatti = isOnSideA ? scoreA : scoreB;
-                        const golSubiti = isOnSideA ? scoreB : scoreA;
-                        const won = golFatti > golSubiti;
-                        const draw = golFatti === golSubiti;
-
-                        if (won) weightedWins += weight;
-                        else if (draw) weightedDraws += weight;
-                        else weightedLosses += weight;
-                        
-                        weightedGolFatti += golFatti * weight;
-                        weightedGolSubiti += golSubiti * weight;
-                        totalWeight += weight;
-                        
-                        matchDetails.push({ 
-                          overlap: bestOverlap, 
-                          result: `${golFatti}-${golSubiti}`, 
-                          originalResult: m.risultato || '0-0',
-                          weight,
-                          date: mDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
-                          players: commonPlayers,
-                          teamNameA: m.team_a_name || 'Squadra A',
-                          teamNameB: m.team_b_name || 'Squadra B',
-                          isOnSideA
-                        });
-                      }
-                    });
-
-                    return {
-                      winRate: totalWeight > 0 ? weightedWins / totalWeight : 0,
-                      drawRate: totalWeight > 0 ? weightedDraws / totalWeight : 0,
-                      lossRate: totalWeight > 0 ? weightedLosses / totalWeight : 0,
-                      avgGolFatti: totalWeight > 0 ? weightedGolFatti / totalWeight : 0,
-                      avgGolSubiti: totalWeight > 0 ? weightedGolSubiti / totalWeight : 0,
-                      totalWeight,
-                      matchCount: matchDetails.length,
-                      matchDetails
-                    };
-                  };
-
-                  const synergyA = getTeamSynergy(results.teamA);
-                  const synergyB = getTeamSynergy(results.teamB);
-
-                  // Combina stats individuali (60%) con sinergia storica (40%)
-                  const individualWeight = 0.6;
-                  const synergyWeight = 0.4;
-
-                  const getCompositeScore = (
-                    individualStats: { mediaVoto: string; golFatti: string; golSubiti: string; mvp: number },
-                    synergy: typeof synergyA
-                  ) => {
-                    const indMediaVoto = parseFloat(individualStats.mediaVoto);
-                    const indGolFatti = parseFloat(individualStats.golFatti);
-                    const indGolSubiti = parseFloat(individualStats.golSubiti);
-                    
-                    // Normalizza media voto su scala 0-1 (range 4-10)
-                    const normVoto = (indMediaVoto - 4) / 6;
-                    // Differenza gol normalizzata
-                    const normGolDiff = (indGolFatti - indGolSubiti) / Math.max(indGolFatti + indGolSubiti, 1);
-                    // MVP bonus (max ~0.1)
-                    const mvpBonus = Math.min(individualStats.mvp * 0.02, 0.1);
-                    
-                    const individualScore = normVoto * 0.5 + normGolDiff * 0.35 + mvpBonus;
-                    
-                    // Score da sinergia
-                    const synergyScore = synergy.totalWeight > 0 
-                      ? synergy.winRate * 0.6 + synergy.drawRate * 0.2 - synergy.lossRate * 0.2 
-                      : 0.5; // neutro se nessuna sinergia
-
-                    // Se non ci sono dati di sinergia, usa solo individuali
-                    const effectiveSynergyWeight = synergy.totalWeight > 0 ? synergyWeight : 0;
-                    const effectiveIndividualWeight = 1 - effectiveSynergyWeight;
-                    
-                    return individualScore * effectiveIndividualWeight + synergyScore * effectiveSynergyWeight;
-                  };
-
-                  const compositeA = getCompositeScore(statsA, synergyA);
-                  const compositeB = getCompositeScore(statsB, synergyB);
-
-                  // Calcola probabilità vittoria/pareggio/sconfitta
-                  const diff = compositeA - compositeB;
-                  // Sigmoid per convertire la differenza in probabilità
-                  const sigmoid = (x: number) => 1 / (1 + Math.exp(-x * 8));
-                  const rawWinA = sigmoid(diff);
-                  const rawWinB = 1 - rawWinA;
-                  
-                  // Riserva spazio per il pareggio (più le squadre sono equilibrate, più alto il pareggio)
-                  const drawBase = 0.15;
-                  const drawBonus = Math.max(0, 0.25 - Math.abs(diff) * 2);
-                  const drawPct = Math.min(drawBase + drawBonus, 0.40);
-                  
-                  const winAPct = rawWinA * (1 - drawPct);
-                  const winBPct = rawWinB * (1 - drawPct);
-
-                  const pctA = Math.round(winAPct * 100);
-                  const pctX = Math.round(drawPct * 100);
-                  const pctB = Math.round(winBPct * 100);
-                  const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
-                  
-                  // Risultato predetto strettamente calcolato rispetto al composite score
-                  const baseAvg = Math.max((parseFloat(statsA.golFatti) + parseFloat(statsB.golFatti)) / 2, 7);
-                  const scartoGol = diff * 15;
-                  
-                  let finalPredA = baseAvg + (scartoGol / 2);
-                  let finalPredB = baseAvg - (scartoGol / 2);
-                  
-                  let predGolA = Math.round(finalPredA);
-                  let predGolB = Math.round(finalPredB);
-
-                  if (favorite === 'A' && predGolA <= predGolB) predGolA = predGolB + 1;
-                  if (favorite === 'B' && predGolB <= predGolA) predGolB = predGolA + 1;
-                  if (favorite === 'X' && predGolA !== predGolB) {
-                      const avg = Math.round((predGolA + predGolB) / 2);
-                      predGolA = avg;
-                      predGolB = avg;
-                  }
-
-                  const uniqueMatchKeys = new Set([
-                    ...synergyA.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult),
-                    ...synergyB.matchDetails.map(m => m.date + m.teamNameA + m.teamNameB + m.originalResult)
-                  ]);
-                  const totalStorico = uniqueMatchKeys.size;
-                  let reliabilityText = 'Bassa';
-                  let reliabilityColor = '#ff4444';
-                  if (totalStorico >= 16) {
-                      reliabilityText = 'Alta';
-                      reliabilityColor = '#69f0ae';
-                  } else if (totalStorico >= 5) {
-                      reliabilityText = 'Media';
-                      reliabilityColor = '#ffcc00';
-                  }
-
-                  const matchPlayersList = [...(results?.teamA || []), ...(results?.teamB || [])];
-                  const unknownPlayersCount = matchPlayersList.filter(p => !leaderboard.some(l => l.nome === p && l.partite_giocate > 0)).length;
-                  
-                  if (unknownPlayersCount === 1) {
-                      if (reliabilityText === 'Alta') {
-                          reliabilityText = 'Media (1 debuttante)';
-                          reliabilityColor = '#ffcc00';
-                      } else {
-                          reliabilityText = 'Bassa (1 debuttante)';
-                          reliabilityColor = '#ff4444';
-                      }
-                  } else if (unknownPlayersCount > 1) {
-                      reliabilityText = `Molto Bassa (${unknownPlayersCount} debuttanti)`;
-                      reliabilityColor = '#ff4444';
-                  }
-
-                  return (
-                    <div style={{ 
-                      background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
-                      borderRadius: '10px', 
-                      padding: '1.2rem', 
-                      marginTop: '1rem',
-                      border: '1px solid rgba(255,255,255,0.1)'
+                ) : (
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
+                    borderRadius: '10px', 
+                    padding: '1.2rem', 
+                    marginTop: '1rem',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    <h4 style={{ 
+                      margin: '0 0 0.4rem 0', 
+                      textAlign: 'center', 
+                      fontSize: '1rem',
+                      background: 'linear-gradient(90deg, #5de4ff, #ffcc00)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontWeight: 800
                     }}>
-                      <h4 style={{ 
-                        margin: '0 0 1rem 0', 
-                        textAlign: 'center', 
-                        fontSize: '1rem',
-                        background: 'linear-gradient(90deg, #5de4ff, #ffcc00)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: 800
-                      }}>
-                        🔮 PREVISIONE MATCH
-                      </h4>
-                      
-                      <div style={{ textAlign: 'center', fontSize: '0.75rem', marginBottom: '1.5rem', color: '#aaa', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
-                        Affidabilità Previsione: <strong style={{ color: reliabilityColor }}>{reliabilityText}</strong> <span style={{ opacity: 0.7 }}>(basata su {totalStorico} incroci storici)</span>
-                      </div>
-                      
-                      {/* Barra probabilità */}
-                      <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'visible', gap: '2px', position: 'relative', marginTop: '20px' }}>
-                          <div style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #1e90ff, #5de4ff)', borderRadius: '5px 0 0 5px', transition: 'width 0.5s ease', position: 'relative' }}>
-                            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#5de4ff', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>1 ({pctA}%)</span>
-                          </div>
-                          <div style={{ width: `${pctX}%`, background: '#666', transition: 'width 0.5s ease', position: 'relative' }}>
-                            {pctX > 0 && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#aaa', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>X ({pctX}%)</span>}
-                          </div>
-                          <div style={{ width: `${pctB}%`, background: 'linear-gradient(90deg, #ffcc00, #ff9500)', borderRadius: '0 5px 5px 0', transition: 'width 0.5s ease', position: 'relative' }}>
-                            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#ffcc00', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>2 ({pctB}%)</span>
-                          </div>
+                      🔮 PREVISIONE MATCH
+                    </h4>
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.72rem', background: 'rgba(93, 228, 255, 0.15)', color: '#5de4ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                        Binario {targetTrackLabel} ({validTrackMatches.length} partite storiche)
+                      </span>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center', fontSize: '0.75rem', marginBottom: '1.5rem', color: '#aaa', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
+                      Affidabilità Previsione: <strong style={{ color: reliabilityColor }}>{reliabilityText}</strong> <span style={{ opacity: 0.7 }}>(basata su {totalStorico} incroci storici nel binario)</span>
+                    </div>
+                    
+                    {/* Barra probabilità */}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'visible', gap: '2px', position: 'relative', marginTop: '20px' }}>
+                        <div style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #1e90ff, #5de4ff)', borderRadius: '5px 0 0 5px', transition: 'width 0.5s ease', position: 'relative' }}>
+                          <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#5de4ff', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>1 ({pctA}%)</span>
                         </div>
-                      </div>
-
-                      {/* Risultato predetto */}
-                      <div style={{ textAlign: 'center', marginBottom: '0.8rem' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '4px' }}>Risultato stimato</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '2px' }}>
-                          <span style={{ color: '#5de4ff' }}>{Math.round(predGolA)}</span>
-                          <span style={{ color: '#666', margin: '0 8px' }}>-</span>
-                          <span style={{ color: '#ffcc00' }}>{Math.round(predGolB)}</span>
+                        <div style={{ width: `${pctX}%`, background: '#666', transition: 'width 0.5s ease', position: 'relative' }}>
+                          {pctX > 0 && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#aaa', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>X ({pctX}%)</span>}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '2px' }}>
-                          {favorite === 'A' ? `${teamAName} favorito` : favorite === 'B' ? `${teamBName} favorito` : 'Match equilibrato'}
+                        <div style={{ width: `${pctB}%`, background: 'linear-gradient(90deg, #ffcc00, #ff9500)', borderRadius: '0 5px 5px 0', transition: 'width 0.5s ease', position: 'relative' }}>
+                          <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '4px', color: '#ffcc00', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>2 ({pctB}%)</span>
                         </div>
-                      </div>
-
-                      {/* Dettagli sinergia */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                        <div 
-                          style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
-                          onClick={() => { const s = !showSynergyA; setShowSynergyA(s); setShowSynergyB(s); }}
-                        >
-                          <div style={{ color: '#5de4ff', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamAName}</div>
-                          {synergyA.matchCount > 0 ? (
-                            <>
-                              <div style={{ color: '#cfe8d8' }}>{synergyA.matchCount} partite simili</div>
-                              <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
-                                V {Math.round(synergyA.winRate*100)}% · P {Math.round(synergyA.drawRate*100)}% · S {Math.round(synergyA.lossRate*100)}%
-                              </div>
-                              {!showSynergyA && (
-                                <div style={{ fontSize: '0.65rem', color: '#5de4ff', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
-                              )}
-                              {showSynergyA && (
-                                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
-                                  {synergyA.matchDetails.map((md, idx) => (
-                                    <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
-                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>
-                                          {md.date} 
-                                          <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
-                                            <strong style={{ color: md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameB}</strong>
-                                          </span>
-                                        </span>
-                                        <span style={{ color: '#5de4ff' }}>{md.overlap}/5 (Ris: {md.result})</span>
-                                      </div>
-                                      <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div style={{ color: '#888' }}>Nessun dato</div>
-                          )}
-                        </div>
-                        <div 
-                          style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
-                          onClick={() => { const s = !showSynergyB; setShowSynergyA(s); setShowSynergyB(s); }}
-                        >
-                          <div style={{ color: '#ffcc00', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamBName}</div>
-                          {synergyB.matchCount > 0 ? (
-                            <>
-                              <div style={{ color: '#cfe8d8' }}>{synergyB.matchCount} partite simili</div>
-                              <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
-                                V {Math.round(synergyB.winRate*100)}% · P {Math.round(synergyB.drawRate*100)}% · S {Math.round(synergyB.lossRate*100)}%
-                              </div>
-                              {!showSynergyB && (
-                                <div style={{ fontSize: '0.65rem', color: '#ffcc00', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
-                              )}
-                              {showSynergyB && (
-                                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
-                                  {synergyB.matchDetails.map((md, idx) => (
-                                    <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
-                                      <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>
-                                          {md.date} 
-                                          <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
-                                            <strong style={{ color: md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameB}</strong>
-                                          </span>
-                                        </span>
-                                        <span style={{ color: '#ffcc00' }}>{md.overlap}/5 (Ris: {md.result})</span>
-                                      </div>
-                                      <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div style={{ color: '#888' }}>Nessun dato</div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', color: '#69f0ae', marginTop: '1rem', fontWeight: 600 }}>
-                         <span>🔮 Precisione Storica Algoritmo: {historicalPredictions.accuracy}% ({historicalPredictions.correctCount} indovinate su {historicalPredictions.totalCount})</span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.6rem' }}>
-                        <Info size={12} />
-                        <span>Algoritmo: 60% stats individuali + 40% sinergia storica. Peso sinergia: (overlap/5)²</span>
                       </div>
                     </div>
-                  );
-                })()}
+
+                    {/* Risultato predetto */}
+                    <div style={{ textAlign: 'center', marginBottom: '0.8rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '4px' }}>Risultato stimato</div>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '2px' }}>
+                        <span style={{ color: '#5de4ff' }}>{Math.round(predGolA)}</span>
+                        <span style={{ color: '#666', margin: '0 8px' }}>-</span>
+                        <span style={{ color: '#ffcc00' }}>{Math.round(predGolB)}</span>
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '2px' }}>
+                        {favorite === 'A' ? `${teamAName} favorito` : favorite === 'B' ? `${teamBName} favorito` : 'Match equilibrato'}
+                      </div>
+                    </div>
+
+                    {/* Dettagli sinergia */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
+                      <div 
+                        style={{ background: 'rgba(93,228,255,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
+                        onClick={() => { const s = !showSynergyA; setShowSynergyA(s); setShowSynergyB(s); }}
+                      >
+                        <div style={{ color: '#5de4ff', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamAName}</div>
+                        {synergyA.matchCount > 0 ? (
+                          <>
+                            <div style={{ color: '#cfe8d8' }}>{synergyA.matchCount} partite simili</div>
+                            <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
+                              V {Math.round(synergyA.winRate*100)}% · P {Math.round(synergyA.drawRate*100)}% · S {Math.round(synergyA.lossRate*100)}%
+                            </div>
+                            {!showSynergyA && (
+                              <div style={{ fontSize: '0.65rem', color: '#5de4ff', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
+                            )}
+                            {showSynergyA && (
+                              <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
+                                {synergyA.matchDetails.map((md, idx) => (
+                                  <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                                    <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                      <span>
+                                        {md.date} 
+                                        <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
+                                          <strong style={{ color: md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#5de4ff' : '#888' }}>{md.teamNameB}</strong>
+                                        </span>
+                                      </span>
+                                      <span style={{ color: '#5de4ff' }}>{md.overlap}/{matchFormat} (Ris: {md.result})</span>
+                                    </div>
+                                    <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ color: '#888' }}>Nessun dato</div>
+                        )}
+                      </div>
+                      <div 
+                        style={{ background: 'rgba(255,204,0,0.1)', borderRadius: '6px', padding: '0.6rem', textAlign: 'center', cursor: 'pointer' }}
+                        onClick={() => { const s = !showSynergyB; setShowSynergyA(s); setShowSynergyB(s); }}
+                      >
+                        <div style={{ color: '#ffcc00', fontWeight: 700, marginBottom: '2px' }}>Sinergia {teamBName}</div>
+                        {synergyB.matchCount > 0 ? (
+                          <>
+                            <div style={{ color: '#cfe8d8' }}>{synergyB.matchCount} partite simili</div>
+                            <div style={{ color: '#69f0ae', fontSize: '0.7rem' }}>
+                              V {Math.round(synergyB.winRate*100)}% · P {Math.round(synergyB.drawRate*100)}% · S {Math.round(synergyB.lossRate*100)}%
+                            </div>
+                            {!showSynergyB && (
+                              <div style={{ fontSize: '0.65rem', color: '#ffcc00', marginTop: '6px', opacity: 0.8 }}>▼ Clicca per esplorare ▼</div>
+                            )}
+                            {showSynergyB && (
+                              <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', textAlign: 'left', color: '#ccc' }}>
+                                {synergyB.matchDetails.map((md, idx) => (
+                                  <div key={idx} style={{ marginBottom: '6px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                                    <div style={{ fontWeight: 700, color: '#fff', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                      <span>
+                                        {md.date} 
+                                        <span style={{ margin: '0 8px', color: '#888', fontWeight: 'normal' }}>
+                                          <strong style={{ color: md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameA}</strong> vs <strong style={{ color: !md.isOnSideA ? '#ffcc00' : '#888' }}>{md.teamNameB}</strong>
+                                        </span>
+                                      </span>
+                                      <span style={{ color: '#ffcc00' }}>{md.overlap}/{matchFormat} (Ris: {md.result})</span>
+                                    </div>
+                                    <div style={{ color: '#aaa', fontSize: '0.6rem' }}>{md.players.join(', ')}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ color: '#888' }}>Nessun dato</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {trackHistoricalTotal > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', color: '#69f0ae', marginTop: '1rem', fontWeight: 600 }}>
+                         <span>🔮 Precisione Storica Algoritmo ({targetTrackLabel}): {trackAccuracy}% ({trackHistoricalCorrect} indovinate su {trackHistoricalTotal})</span>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.7rem', color: '#666', marginTop: '0.6rem' }}>
+                      <Info size={12} />
+                      <span>Algoritmo: 60% stats individuali del binario + 40% sinergia storica. Peso sinergia: (overlap/{matchFormat})²</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="results-actions" style={{ flexWrap: 'wrap' }}>
                   {isAdmin && (
@@ -6124,8 +6225,14 @@ const formatResultTime = (timeStr?: string) => {
             <div className="pes-modal-content" onClick={e => e.stopPropagation()}>
               <div className="pes-modal-header">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <h3>{selectedPlayerForCard}</h3>
-                  <span style={{ fontSize: '0.85rem', color: '#9fd9b6', textTransform: 'uppercase', marginTop: '2px' }}>{role}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#9fd9b6', textTransform: 'uppercase', fontWeight: 600 }}>{role}</span>
+                    {playerObj?.RuoloSecondario && (
+                      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', background: 'rgba(255,255,255,0.1)', padding: '1px 6px', borderRadius: '4px' }}>
+                        Sec: {playerObj.RuoloSecondario}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button className="secondary-btn" style={{padding:'0.2rem', display:'flex', background: 'transparent', border: 'none', color: '#9fd9b6'}} onClick={() => setSelectedPlayerForCard(null)}>
                   <X size={24} />

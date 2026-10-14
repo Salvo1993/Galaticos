@@ -4,13 +4,20 @@ import { recalculateAndSaveClassifica } from '../../../../lib/classifica-utils';
 
 export async function POST(req: Request) {
   try {
-    const { oldName, newName, newRole, stats } = await req.json();
+    const { oldName, newName, newRole, newRoleSecondario, stats } = await req.json();
     const sanitizedOld = oldName?.trim();
     const sanitizedNew = newName?.trim();
     const sanitizedRole = newRole?.trim() || null;
+    const sanitizedRuoloSecondario = newRoleSecondario?.trim() || stats?.RuoloSecondario?.trim() || null;
 
     if (!sanitizedOld || !sanitizedNew) {
       return NextResponse.json({ error: 'Nomi mancanti' }, { status: 400 });
+    }
+
+    try {
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+    } catch {
+      // ignore
     }
 
     // Check if new name already exists
@@ -40,6 +47,7 @@ export async function POST(req: Request) {
       SET 
         "Nome" = ${sanitizedNew}, 
         "Ruolo" = ${sanitizedRole},
+        "RuoloSecondario" = ${sanitizedRuoloSecondario},
         velocita = ${velocita ? parseInt(velocita) : null},
         accelerazione = ${accelerazione ? parseInt(accelerazione) : null},
         tecnica = ${tecnica ? parseInt(tecnica) : null},

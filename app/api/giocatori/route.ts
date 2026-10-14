@@ -20,12 +20,19 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { Nome, Ruolo, stats, mergeTarget } = await req.json();
+    const { Nome, Ruolo, RuoloSecondario, stats, mergeTarget } = await req.json();
     const sanitizedNome = Nome?.trim();
     const sanitizedRuolo = Ruolo?.trim();
+    const sanitizedRuoloSecondario = RuoloSecondario?.trim() || stats?.RuoloSecondario?.trim() || null;
 
     if (!sanitizedNome || !sanitizedRuolo) {
-      return NextResponse.json({ error: 'Nome e Ruolo sono obbligatori' }, { status: 400 });
+      return NextResponse.json({ error: 'Nome e Ruolo Preferito sono obbligatori' }, { status: 400 });
+    }
+
+    try {
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+    } catch {
+      // ignore
     }
 
     const existing = await sql`
@@ -51,10 +58,10 @@ export async function POST(req: Request) {
 
     await sql`
       INSERT INTO public."Giocatori" (
-        "Nome", "Ruolo", velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione,
+        "Nome", "Ruolo", "RuoloSecondario", velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione,
         resistenza, dribbling, rissa, altezza, peso, piede, "Skill", "Score", origine_punteggi
       ) VALUES (
-        ${sanitizedNome}, ${sanitizedRuolo},
+        ${sanitizedNome}, ${sanitizedRuolo}, ${sanitizedRuoloSecondario},
         ${velocita ? parseInt(velocita) : null}, ${accelerazione ? parseInt(accelerazione) : null},
         ${tecnica ? parseInt(tecnica) : null}, ${contrasto ? parseInt(contrasto) : null},
         ${passaggi ? parseInt(passaggi) : null}, ${finalizzazione ? parseInt(finalizzazione) : null},

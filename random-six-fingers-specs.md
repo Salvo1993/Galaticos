@@ -164,7 +164,13 @@ export async function assertAdmin(req?: Request) {
     - Per gli attaccanti: predilige il giocatore con più gol segnati in carriera.
     - Per i difensori e terzini: predilige il giocatore con la media di gol subiti più bassa.
     - Chi perde il tie-break concorre per gli slot secondari (Priorità 2) o per i ruoli residui.
-  - **Priorità 4 (Guest e Senza Ruoli Secondari):** assegna ospiti e giocatori senza ruoli specifici compatibili negli slot rimasti liberi.
+  - **Abbinamento Piede-Fascia per Ruoli Generici o Residui:**
+    - Se un giocatore ha un ruolo generico senza specifica di corsia (es. solo *Ala*, solo *Terzino*, solo *Esterno*) o viene impiegato per ruolo secondario o non ha ruolo (Guest/Senza ruolo): ci si basa sul **Piede** preferito registrato nella scheda giocatore.
+    - **Piede Destro (DX):** viene abbinato alla corsia destra (`ED`, `CLD`, `TD`).
+    - **Piede Sinistro (SX):** viene abbinato alla corsia sinistra (`ES`, `CLS`, `TS`).
+    - **Piede Ambidestro:** può coprire indistintamente entrambe le corsie.
+    - **Eccezione / Precedenza Ruoli Espliciti:** se il ruolo indica esplicitamente la fascia (es. *Ala Destra* o *Terzino Sinistro*), la specifica testuale ha sempre la precedenza assoluta e il piede non sovrascrive il ruolo.
+  - **Priorità 4 (Guest e Senza Ruoli Secondari):** assegna ospiti e giocatori senza ruoli specifici compatibili negli slot rimasti liberi, prioritariamente rispettando l'abbinamento Piede-Fascia se sono disponibili slot laterali vacanti.
   - **Invarianza Formati 5vs5 e 6vs6:** le partite a 5 e 6 mantengono inalterato l'ordinamento standard classico (GK, DIF, CEN, ATT).
 - **Interazioni su Campo:**
   - Drag / Click per scambiare due giocatori tra squadre diverse.

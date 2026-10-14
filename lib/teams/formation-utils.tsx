@@ -67,12 +67,42 @@ export const getAssignedRoleInfo = (
   }
 };
 
+export const getPlayerFoot = (piede?: string | null): 'destro' | 'sinistro' | 'ambidestro' | null => {
+  if (!piede) return null;
+  const p = piede.trim().toLowerCase();
+  if (p.includes('ambi') || p.includes('both') || p.includes('entrambi')) return 'ambidestro';
+  if (p.includes('sinistr') || p === 'sx' || p === 's' || p === 'left' || p === 'l') return 'sinistro';
+  if (p.includes('destr') || p === 'dx' || p === 'd' || p === 'right' || p === 'r') return 'destro';
+  return null;
+};
+
+export const isLeftFlankRole = (roleCode: string | undefined): boolean => {
+  if (!roleCode) return false;
+  const r = roleCode.toUpperCase().trim();
+  return r === 'TS' || r === 'ES' || r === 'CLS';
+};
+
+export const isRightFlankRole = (roleCode: string | undefined): boolean => {
+  if (!roleCode) return false;
+  const r = roleCode.toUpperCase().trim();
+  return r === 'TD' || r === 'ED' || r === 'CLD';
+};
+
+export const isFlankRole = (roleCode: string | undefined): boolean => {
+  return isLeftFlankRole(roleCode) || isRightFlankRole(roleCode);
+};
+
 /**
  * Verifica se il ruolo assegnato in campo coincide con il ruolo primario del giocatore.
+ * Se il ruolo è generico (es. solo 'Ala', solo 'Terzino', solo 'Esterno'), si abbina il Piede alla fascia:
+ * - Piede DX -> fascia destra (ED, CLD, TD)
+ * - Piede SX -> fascia sinistra (ES, CLS, TS)
+ * Se è specificato esplicitamente il lato (es. 'Ala Destra' o 'Terzino Sinistro'), il piede non viene considerato.
  */
 export const isRoleMatchingPrimary = (
   primaryRole: string | undefined,
-  assignedRoleCode: string | undefined
+  assignedRoleCode: string | undefined,
+  piede?: string | null
 ): boolean => {
   if (!primaryRole || !assignedRoleCode) return false;
   const p = primaryRole.trim().toLowerCase();
@@ -80,6 +110,34 @@ export const isRoleMatchingPrimary = (
 
   if (p.includes('jolly')) {
     return a !== 'POR';
+  }
+
+  // Verifica se è specificata esplicitamente la fascia
+  const hasExplicitLeft = p.includes('sinistr') || p.includes('sx') || p.includes('left');
+  const hasExplicitRight = p.includes('destr') || p.includes('dx') || p.includes('right');
+
+  // "Ovviamente se è specificato Terzino Sinistro o Ala Destra non devi prendere in considerazione il piede"
+  if (hasExplicitLeft) {
+    if (isRightFlankRole(a)) return false;
+  }
+  if (hasExplicitRight) {
+    if (isLeftFlankRole(a)) return false;
+  }
+
+  // Se NON è specificata esplicitamente la fascia (es. solo 'Ala', solo 'Terzino', solo 'Esterno', solo 'Laterale'):
+  // "se uno è solo Ala senza specificare ala sinistra o ala destra ... basati sul Piede salvato nella scheda giocatore. Abbina il piede alla fascia"
+  const isGenericFlankRole =
+    !hasExplicitLeft &&
+    !hasExplicitRight &&
+    (p.includes('ala') || p.includes('terzino') || p.includes('esterno') || p.includes('laterale'));
+
+  if (isGenericFlankRole) {
+    const foot = getPlayerFoot(piede);
+    if (foot === 'destro') {
+      if (isLeftFlankRole(a)) return false;
+    } else if (foot === 'sinistro') {
+      if (isRightFlankRole(a)) return false;
+    }
   }
 
   switch (a) {
@@ -90,14 +148,14 @@ export const isRoleMatchingPrimary = (
         p.includes('terzino sinistro') ||
         p === 'lb' ||
         p === 'ts' ||
-        (p.includes('terzino') && !p.includes('destr'))
+        (p.includes('terzino') && !hasExplicitRight)
       );
     case 'TD':
       return (
         p.includes('terzino destro') ||
         p === 'rb' ||
         p === 'td' ||
-        (p.includes('terzino') && !p.includes('sinistr'))
+        (p.includes('terzino') && !hasExplicitLeft)
       );
     case 'DC':
       return (
@@ -130,8 +188,7 @@ export const isRoleMatchingPrimary = (
       return (
         p.includes('esterno sinistro') ||
         p.includes('ala sinistra') ||
-        (p.includes('ala') && !p.includes('destra')) ||
-        (p.includes('esterno') && !p.includes('destro')) ||
+        ((p.includes('ala') || p.includes('esterno')) && !hasExplicitRight) ||
         p.includes('trequartista') ||
         p === 'lmf' ||
         p === 'lwf' ||
@@ -143,8 +200,7 @@ export const isRoleMatchingPrimary = (
       return (
         p.includes('esterno destro') ||
         p.includes('ala destra') ||
-        (p.includes('ala') && !p.includes('sinistra')) ||
-        (p.includes('esterno') && !p.includes('sinistro')) ||
+        ((p.includes('ala') || p.includes('esterno')) && !hasExplicitLeft) ||
         p.includes('trequartista') ||
         p === 'rmf' ||
         p === 'rwf' ||
@@ -174,11 +230,12 @@ export const isRoleMatchingPrimary = (
  */
 export const isRoleMatchingSecondary = (
   secondaryRolesStr: string | null | undefined,
-  assignedRoleCode: string | undefined
+  assignedRoleCode: string | undefined,
+  piede?: string | null
 ): boolean => {
   if (!secondaryRolesStr || !assignedRoleCode) return false;
   const list = secondaryRolesStr.split(',').map(s => s.trim()).filter(Boolean);
-  return list.some(secRole => isRoleMatchingPrimary(secRole, assignedRoleCode));
+  return list.some(secRole => isRoleMatchingPrimary(secRole, assignedRoleCode, piede));
 };
 
 export const getPitchPositionsForTeam = (
@@ -478,6 +535,8 @@ export const assignPlayersToFormation = (
     );
     const primaryRole = dbP?.Ruolo || (isGk ? 'Portiere' : undefined);
     const secondaryRolesStr = dbP?.RuoloSecondario || '';
+    const piede = dbP?.piede || null;
+    const foot = getPlayerFoot(piede);
     const isGuest =
       !dbP ||
       name.toLowerCase().includes('ospite') ||
@@ -503,6 +562,8 @@ export const assignPlayersToFormation = (
       isGk,
       primaryRole,
       secondaryRolesStr,
+      piede,
+      foot,
       isGuest,
       mediaVoto,
       mvpCount,
@@ -590,7 +651,7 @@ export const assignPlayersToFormation = (
 
     const candidates = unassigned.filter(name => {
       const info = getPlayerInfo(name);
-      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode);
+      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode, info.piede);
     });
 
     if (candidates.length === 0) continue;
@@ -612,7 +673,7 @@ export const assignPlayersToFormation = (
     const rCode = positions[idx].role;
     const candidates = unassigned.filter(name => {
       const info = getPlayerInfo(name);
-      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode);
+      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode, info.piede);
     });
     if (candidates.length > 0) {
       candidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
@@ -633,7 +694,7 @@ export const assignPlayersToFormation = (
 
     const secCandidates = unassigned.filter(name => {
       const info = getPlayerInfo(name);
-      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode);
+      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode, info.piede);
     });
 
     if (secCandidates.length === 0) continue;
@@ -654,7 +715,7 @@ export const assignPlayersToFormation = (
     const rCode = positions[idx].role;
     const secCandidates = unassigned.filter(name => {
       const info = getPlayerInfo(name);
-      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode);
+      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode, info.piede);
     });
     if (secCandidates.length > 0) {
       secCandidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
@@ -664,7 +725,42 @@ export const assignPlayersToFormation = (
     }
   }
 
-  // Step 4: In caso di Guest o giocatori senza ruoli secondari, assegnali casualmente nei ruoli rimasti vuoti
+  // Step 4: In caso di Guest o giocatori senza ruoli (o ruoli secondari), abbina in base al Piede alla fascia
+  // Se uno ha piede SX ed è rimasto uno slot di fascia sinistra (TS, ES, CLS), assegnalo lì
+  // Se uno ha piede DX ed è rimasto uno slot di fascia destra (TD, ED, CLD), assegnalo lì
+  const assignByFoot = (targetFoot: 'sinistro' | 'destro', isMatchSlot: (code: string) => boolean) => {
+    const candidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return info.foot === targetFoot;
+    });
+
+    for (const player of candidates) {
+      const emptySlotIdx = positions.findIndex(
+        (p, idx) => assigned[idx] === null && isMatchSlot(p.role)
+      );
+      if (emptySlotIdx !== -1) {
+        assigned[emptySlotIdx] = player;
+        unassigned.splice(unassigned.indexOf(player), 1);
+      }
+    }
+  };
+
+  assignByFoot('sinistro', isLeftFlankRole);
+  assignByFoot('destro', isRightFlankRole);
+
+  // Ambidestri su qualsiasi fascia rimasta
+  const ambidextrous = unassigned.filter(name => getPlayerInfo(name).foot === 'ambidestro');
+  for (const player of ambidextrous) {
+    const emptyFlankIdx = positions.findIndex(
+      (p, idx) => assigned[idx] === null && isFlankRole(p.role)
+    );
+    if (emptyFlankIdx !== -1) {
+      assigned[emptyFlankIdx] = player;
+      unassigned.splice(unassigned.indexOf(player), 1);
+    }
+  }
+
+  // Riempi tutti i restanti slot rimasti vuoti (centrali o residui)
   for (let idx = 0; idx < positions.length; idx++) {
     if (assigned[idx] === null && unassigned.length > 0) {
       assigned[idx] = unassigned.shift()!;

@@ -126,7 +126,7 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                   // In 7vs7 e 8vs8: mostra il ruolo assegnato in campo
                   displayRoleName = assignedRoleInfo.name;
                   displayAbbr = assignedRoleInfo.abbr;
-                  isCoincident = isRoleMatchingPrimary(primaryRuolo, pos.role);
+                  isCoincident = isRoleMatchingPrimary(primaryRuolo, pos.role, playerObj?.piede);
                   roleColor = isCoincident ? '#6f9c81' : '#ffb74d';
                 } else {
                   // In 5vs5 e 6vs6: mostra solo il ruolo primario

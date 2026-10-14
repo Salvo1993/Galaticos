@@ -538,6 +538,120 @@ const getRoleAbbreviation = (ruolo: string | undefined) => {
     return r.substring(0, 3).trim().toUpperCase();
 };
 
+export const getPitchPositionsForTeam = (
+  teamSize: number, 
+  modulo7?: string, 
+  modulo8?: string
+): { top: string; left: string; role: string }[] => {
+  if (teamSize === 5) {
+    return [
+      { top: '87%', left: '50%', role: 'POR' },
+      { top: '65%', left: '50%', role: 'DIF' },
+      { top: '42%', left: '20%', role: 'LAT' },
+      { top: '42%', left: '80%', role: 'LAT' },
+      { top: '15%', left: '50%', role: 'ATT' }
+    ];
+  } else if (teamSize === 6) {
+    return [
+      { top: '87%', left: '50%', role: 'POR' },
+      { top: '65%', left: '30%', role: 'DIF' },
+      { top: '65%', left: '70%', role: 'DIF' },
+      { top: '42%', left: '20%', role: 'LAT' },
+      { top: '42%', left: '80%', role: 'LAT' },
+      { top: '15%', left: '50%', role: 'ATT' }
+    ];
+  } else if (teamSize === 7) {
+    if (modulo7 === '3-2-1') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '20%', role: 'TS' },
+        { top: '68%', left: '50%', role: 'DC' },
+        { top: '66%', left: '80%', role: 'TD' },
+        { top: '42%', left: '35%', role: 'CC' },
+        { top: '42%', left: '65%', role: 'CC' },
+        { top: '15%', left: '50%', role: 'ATT' }
+      ];
+    } else if (modulo7 === '2-2-2') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '32%', role: 'DC' },
+        { top: '66%', left: '68%', role: 'DC' },
+        { top: '42%', left: '34%', role: 'CC' },
+        { top: '42%', left: '66%', role: 'CC' },
+        { top: '15%', left: '34%', role: 'ATT' },
+        { top: '15%', left: '66%', role: 'ATT' }
+      ];
+    } else if (modulo7 === '3-1-2') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '20%', role: 'TS' },
+        { top: '68%', left: '50%', role: 'DC' },
+        { top: '66%', left: '80%', role: 'TD' },
+        { top: '43%', left: '50%', role: 'MED' },
+        { top: '15%', left: '34%', role: 'ATT' },
+        { top: '15%', left: '66%', role: 'ATT' }
+      ];
+    } else {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '32%', role: 'DC' },
+        { top: '66%', left: '68%', role: 'DC' },
+        { top: '42%', left: '18%', role: 'ES' },
+        { top: '44%', left: '50%', role: 'CC' },
+        { top: '42%', left: '82%', role: 'ED' },
+        { top: '15%', left: '50%', role: 'ATT' }
+      ];
+    }
+  } else if (teamSize === 8) {
+    if (modulo8 === '2-3-2') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '67%', left: '32%', role: 'DC' },
+        { top: '67%', left: '68%', role: 'DC' },
+        { top: '43%', left: '18%', role: 'ES' },
+        { top: '45%', left: '50%', role: 'CC' },
+        { top: '43%', left: '82%', role: 'ED' },
+        { top: '15%', left: '34%', role: 'ATT' },
+        { top: '15%', left: '66%', role: 'ATT' }
+      ];
+    } else if (modulo8 === '3-2-2') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '20%', role: 'TS' },
+        { top: '68%', left: '50%', role: 'DC' },
+        { top: '66%', left: '80%', role: 'TD' },
+        { top: '43%', left: '34%', role: 'CC' },
+        { top: '43%', left: '66%', role: 'CC' },
+        { top: '15%', left: '34%', role: 'ATT' },
+        { top: '15%', left: '66%', role: 'ATT' }
+      ];
+    } else if (modulo8 === '2-4-1') {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '68%', left: '32%', role: 'DC' },
+        { top: '68%', left: '68%', role: 'DC' },
+        { top: '43%', left: '15%', role: 'CLS' },
+        { top: '46%', left: '38%', role: 'MED' },
+        { top: '46%', left: '62%', role: 'MED' },
+        { top: '43%', left: '85%', role: 'CLD' },
+        { top: '15%', left: '50%', role: 'ATT' }
+      ];
+    } else {
+      return [
+        { top: '87%', left: '50%', role: 'POR' },
+        { top: '66%', left: '20%', role: 'TS' },
+        { top: '68%', left: '50%', role: 'DC' },
+        { top: '66%', left: '80%', role: 'TD' },
+        { top: '42%', left: '18%', role: 'ES' },
+        { top: '44%', left: '50%', role: 'CC' },
+        { top: '42%', left: '82%', role: 'ED' },
+        { top: '15%', left: '50%', role: 'ATT' }
+      ];
+    }
+  }
+  return [];
+};
+
 export const parseScorersString = (scorersInput: any): Record<string, number> => {
   if (!scorersInput) return {};
   let scorersStr = '';
@@ -573,6 +687,69 @@ export const parseScorersString = (scorersInput: any): Record<string, number> =>
 
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
+
+  // Helper: Riconoscimento Portiere (Ruolo preferito, secondario o tag nel nome tipo (P))
+  const isGoalkeeper = (playerName: string, customDbPlayers?: Player[]): boolean => {
+    if (!playerName) return false;
+    const n = playerName.trim().toLowerCase();
+    if (n.startsWith('(p)') || n.startsWith('(por)') || n.includes('(portiere)') || n.includes('portiere') || n.endsWith('(p)') || n.endsWith('(por)')) {
+      return true;
+    }
+    const list = customDbPlayers || dbPlayers;
+    const dbP = list.find(p => p.Nome?.toLowerCase().trim() === n || p.Nome === playerName);
+    if (dbP) {
+      const r1 = (dbP.Ruolo || '').toLowerCase().trim();
+      const r2 = (dbP.RuoloSecondario || '').toLowerCase().trim();
+      if (r1.includes('portier') || r1 === 'gk' || r1 === 'por') return true;
+      if (r2.includes('portier') || r2 === 'gk' || r2 === 'por') return true;
+    }
+    return false;
+  };
+
+  // Helper: Posiziona il portiere in porta (indice 0 / POR) e ordina i ruoli sul campo: Difensori -> Centrocampisti -> Attaccanti
+  const finalizeTeamLineup = (team: string[], customDbPlayers?: Player[]): string[] => {
+    if (!team || team.length === 0) return team;
+    const copy = [...team];
+    const list = customDbPlayers || dbPlayers;
+
+    const gkIdx = copy.findIndex(p => isGoalkeeper(p, list));
+    let gk: string | null = null;
+    if (gkIdx !== -1) {
+      [gk] = copy.splice(gkIdx, 1);
+    }
+
+    const getMacroRole = (pName: string): number => {
+      const dbP = list.find(x => x.Nome?.toLowerCase().trim() === pName.toLowerCase().trim() || x.Nome === pName);
+      const r = (dbP?.Ruolo || '').toLowerCase();
+      const rSec = (dbP?.RuoloSecondario || '').toLowerCase();
+      const comb = `${r} ${rSec}`;
+      if (comb.includes('difensor') || comb.includes('terzino') || comb.includes('cb') || comb.includes('rb') || comb.includes('lb')) return 1;
+      if (comb.includes('attaccant') || comb.includes('punta') || comb.includes('cf') || comb.includes('ss')) return 3;
+      return 2;
+    };
+
+    copy.sort((a, b) => getMacroRole(a) - getMacroRole(b));
+
+    if (gk) {
+      return [gk, ...copy];
+    }
+    return copy;
+  };
+
+  // Helper: Assicura che se è presente un portiere nella squadra, sia posizionato all'indice 0 (POR)
+  const ensureGoalkeeperInGoal = (team: string[], customDbPlayers?: Player[]): string[] => {
+    if (!team || team.length === 0) return team;
+    const list = customDbPlayers || dbPlayers;
+    if (isGoalkeeper(team[0], list)) return team;
+    const gkIdx = team.findIndex(p => isGoalkeeper(p, list));
+    if (gkIdx > 0) {
+      const copy = [...team];
+      const [gk] = copy.splice(gkIdx, 1);
+      copy.unshift(gk);
+      return copy;
+    }
+    return team;
+  };
   const [dbCampi, setDbCampi] = useState<{id: number, nome: string, posizione_url: string | null}[]>([]);
   const [matchFormat, setMatchFormat] = useState<number>(5);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
@@ -626,6 +803,12 @@ export default function Home() {
   
   // Swap state
   const [activeSwapSource, setActiveSwapSource] = useState<{name: string, team: 'teamA' | 'teamB'} | null>(null);
+  const [selectedRolePlayer, setSelectedRolePlayer] = useState<{
+    name: string;
+    team: 'teamA' | 'teamB';
+    index: number;
+    role: string;
+  } | null>(null);
 
   // Moduli tattici per 7vs7 e 8vs8
   const [modulo8TeamA, setModulo8TeamA] = useState<'3-3-1' | '2-3-2' | '3-2-2' | '2-4-1'>('3-3-1');
@@ -1593,15 +1776,15 @@ export default function Home() {
               setTeamAName(savedMatch.team_a_name || sessionData.team_a_name || 'Falchi 🦅');
               setTeamBName(savedMatch.team_b_name || sessionData.team_b_name || 'Aquile 🦆');
               setResults({
-                teamA: savedMatch.team_a_players || [],
-                teamB: savedMatch.team_b_players || []
+                teamA: ensureGoalkeeperInGoal(savedMatch.team_a_players || [], playersData),
+                teamB: ensureGoalkeeperInGoal(savedMatch.team_b_players || [], playersData)
               });
             } else {
               setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
               setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
               setResults({
-                teamA: sessionData.team_a_players,
-                teamB: sessionData.team_b_players
+                teamA: ensureGoalkeeperInGoal(sessionData.team_a_players, playersData),
+                teamB: ensureGoalkeeperInGoal(sessionData.team_b_players, playersData)
               });
             }
           }
@@ -2050,8 +2233,38 @@ const formatResultTime = (timeStr?: string) => {
           newResults.teamB = listB;
 
           setResults(newResults);
+          saveSession(newResults);
           setActiveSwapSource(null);
+          showToast(`Scambio effettuato: ${playerA} ⇄ ${playerB}`, 'success');
       }
+  };
+
+  const handleRoleSwap = (teamKey: 'teamA' | 'teamB', indexFrom: number, indexTo: number) => {
+      if (!results) return;
+      if (indexFrom === indexTo) {
+          setSelectedRolePlayer(null);
+          return;
+      }
+      const currentList = [...results[teamKey]];
+      if (indexFrom < 0 || indexFrom >= currentList.length || indexTo < 0 || indexTo >= currentList.length) {
+          setSelectedRolePlayer(null);
+          return;
+      }
+      const playerFrom = currentList[indexFrom];
+      const playerTo = currentList[indexTo];
+
+      currentList[indexFrom] = playerTo;
+      currentList[indexTo] = playerFrom;
+
+      const newResults: Results = {
+          ...results,
+          [teamKey]: currentList
+      };
+
+      setResults(newResults);
+      saveSession(newResults);
+      setSelectedRolePlayer(null);
+      showToast(`Ruolo scambiato: ${playerFrom} ⇄ ${playerTo}`, 'success');
   };
 
   // --- Logic ---
@@ -2179,6 +2392,24 @@ const formatResultTime = (timeStr?: string) => {
       members.slice(mid).forEach(p => assignments.set(p, 'teamB'));
     }
 
+    // Bilanciamento Portieri: se ci sono portieri, distribuiamoli tra le due squadre
+    const selectedGKs = validPlayers.filter(p => isGoalkeeper(p));
+    if (selectedGKs.length >= 2) {
+      const unassignedGKs = selectedGKs.filter(p => !assignments.has(p));
+      const gkA = selectedGKs.find(p => assignments.get(p) === 'teamA');
+      const gkB = selectedGKs.find(p => assignments.get(p) === 'teamB');
+      if (!gkA && !gkB && unassignedGKs.length >= 2) {
+        assignments.set(unassignedGKs[0], 'teamA');
+        assignments.set(unassignedGKs[1], 'teamB');
+      } else if (gkA && !gkB && unassignedGKs.length >= 1) {
+        assignments.set(unassignedGKs[0], 'teamB');
+      } else if (!gkA && gkB && unassignedGKs.length >= 1) {
+        assignments.set(unassignedGKs[0], 'teamA');
+      }
+    } else if (selectedGKs.length === 1 && !assignments.has(selectedGKs[0])) {
+      assignments.set(selectedGKs[0], 'teamA');
+    }
+
     const unassigned = validPlayers.filter(p => !assignments.has(p));
     let sortedUnassigned = [...unassigned];
 
@@ -2243,8 +2474,8 @@ const formatResultTime = (timeStr?: string) => {
     }
 
     return {
-      teamA,
-      teamB,
+      teamA: finalizeTeamLineup(teamA),
+      teamB: finalizeTeamLineup(teamB),
       ratingSumA,
       ratingSumB,
       diff: Math.abs(ratingSumA - ratingSumB)
@@ -2288,7 +2519,10 @@ const formatResultTime = (timeStr?: string) => {
                    if (idxB !== -1) teamB[idxB] = newP;
                 }
                 
-                const newResults = { teamA, teamB };
+                const newResults = { 
+                  teamA: ensureGoalkeeperInGoal(teamA), 
+                  teamB: ensureGoalkeeperInGoal(teamB) 
+                };
                 setResults(newResults);
                 await saveSession(newResults);
                 setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -2324,6 +2558,29 @@ const formatResultTime = (timeStr?: string) => {
 
         groupA.forEach(p => assignments.set(p, 'teamA'));
         groupB.forEach(p => assignments.set(p, 'teamB'));
+    }
+
+    // 1b. Bilanciamento Portieri: se ci sono portieri selezionati, distribuiamoli tra le due squadre
+    const selectedGKs = selectedPlayers.filter(p => isGoalkeeper(p));
+    if (selectedGKs.length >= 2) {
+        const unassignedGKs = selectedGKs.filter(p => !assignments.has(p));
+        const gkA = selectedGKs.find(p => assignments.get(p) === 'teamA');
+        const gkB = selectedGKs.find(p => assignments.get(p) === 'teamB');
+
+        if (!gkA && !gkB && unassignedGKs.length >= 2) {
+            const shuffled = [...unassignedGKs].sort(() => Math.random() - 0.5);
+            assignments.set(shuffled[0], 'teamA');
+            assignments.set(shuffled[1], 'teamB');
+        } else if (gkA && !gkB && unassignedGKs.length >= 1) {
+            assignments.set(unassignedGKs[0], 'teamB');
+        } else if (!gkA && gkB && unassignedGKs.length >= 1) {
+            assignments.set(unassignedGKs[0], 'teamA');
+        }
+    } else if (selectedGKs.length === 1) {
+        const singleGK = selectedGKs[0];
+        if (!assignments.has(singleGK)) {
+            assignments.set(singleGK, Math.random() > 0.5 ? 'teamA' : 'teamB');
+        }
     }
 
     // 2. Assegnazione finale (Bilanciamento tramite storico Media Voto)
@@ -2407,7 +2664,10 @@ const formatResultTime = (timeStr?: string) => {
 
       if (teamA.length !== matchFormat || teamB.length !== matchFormat) throw new Error('Errore nella generazione');
 
-      const newResults = { teamA, teamB };
+      const finalTeamA = finalizeTeamLineup(teamA);
+      const finalTeamB = finalizeTeamLineup(teamB);
+
+      const newResults = { teamA: finalTeamA, teamB: finalTeamB };
       setResults(newResults);
       await saveSession(newResults);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -2665,11 +2925,12 @@ const formatResultTime = (timeStr?: string) => {
   const downloadFormationImage = async () => {
     if (!pitchesRef.current) return;
     try {
+      setSelectedRolePlayer(null);
       const htmlToImage = await import('html-to-image');
       setLoading(true);
 
       // 1) Nascondi le liste, header e controlli fuori campo per non averli nel layout del JPEG
-      const elementsToHide = pitchesRef.current.querySelectorAll('.team-header, .team-list, .pitch-controls-bar');
+      const elementsToHide = pitchesRef.current.querySelectorAll('.team-header, .team-list, .pitch-controls-bar, .role-selector-panel');
       const cards = pitchesRef.current.querySelectorAll('.team-card');
       
       elementsToHide.forEach(el => (el as HTMLElement).style.display = 'none');
@@ -4418,226 +4679,288 @@ const formatResultTime = (timeStr?: string) => {
                     );
                   })}
                 </ul>
-                <div className="pes-pitch">
-                  <div style={{ position: 'absolute', top: '12px', left: '0', right: '0', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}>
-                    <span style={{ 
-                      color: '#ffffff', 
-                      fontWeight: 900, 
-                      fontSize: '0.85rem', 
-                      textTransform: 'uppercase', 
-                      letterSpacing: '2px',
-                      background: 'rgba(0,0,0,0.45)',
-                      padding: '3px 14px',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      textShadow: '0 2px 4px rgba(0,0,0,0.8)'
-                    }}>
-                      {t.name}
-                    </span>
-                  </div>
-                  <div className="pes-goal-area-top"></div>
-                  <div className="pes-goal-area-bottom"></div>
-                  {t.list.map((name, idx) => {
-                    const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== (t.team === 'A' ? 'teamA' : 'teamB');
-                    const isSwapSource = isAdmin && activeSwapSource?.name === name;
-                    const morale = getPlayerMorale(name);
-                    
-                    let positions: { top: string; left: string; role?: string }[] = [];
-                    if (t.list.length === 5) {
-                      positions = [
-                        { top: '87%', left: '50%', role: 'POR' }, // GK
-                        { top: '65%', left: '50%', role: 'DIF' }, // CB
-                        { top: '42%', left: '20%', role: 'LAT' }, // LM
-                        { top: '42%', left: '80%', role: 'LAT' }, // RM
-                        { top: '15%', left: '50%', role: 'ATT' }  // CF
-                      ];
-                    } else if (t.list.length === 6) {
-                      positions = [
-                        { top: '87%', left: '50%', role: 'POR' }, // GK
-                        { top: '65%', left: '30%', role: 'DIF' }, // CB (L)
-                        { top: '65%', left: '70%', role: 'DIF' }, // CB (R)
-                        { top: '42%', left: '20%', role: 'LAT' }, // LM
-                        { top: '42%', left: '80%', role: 'LAT' }, // RM
-                        { top: '15%', left: '50%', role: 'ATT' }  // CF
-                      ];
-                    } else if (t.list.length === 7) {
-                      const activeModulo7 = t.team === 'A' ? modulo7TeamA : modulo7TeamB;
-                      if (activeModulo7 === '2-3-1') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '32%', role: 'DC' },  // CB (L)
-                          { top: '66%', left: '68%', role: 'DC' },  // CB (R)
-                          { top: '42%', left: '18%', role: 'ES' },  // LM
-                          { top: '44%', left: '50%', role: 'CC' },  // CM
-                          { top: '42%', left: '82%', role: 'ED' },  // RM
-                          { top: '15%', left: '50%', role: 'ATT' }  // CF
-                        ];
-                      } else if (activeModulo7 === '3-2-1') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '20%', role: 'TS' },  // LB
-                          { top: '68%', left: '50%', role: 'DC' },  // CB
-                          { top: '66%', left: '80%', role: 'TD' },  // RB
-                          { top: '42%', left: '35%', role: 'CC' },  // CM (L)
-                          { top: '42%', left: '65%', role: 'CC' },  // CM (R)
-                          { top: '15%', left: '50%', role: 'ATT' }  // CF
-                        ];
-                      } else if (activeModulo7 === '2-2-2') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '32%', role: 'DC' },  // CB (L)
-                          { top: '66%', left: '68%', role: 'DC' },  // CB (R)
-                          { top: '42%', left: '34%', role: 'CC' },  // CM (L)
-                          { top: '42%', left: '66%', role: 'CC' },  // CM (R)
-                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
-                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
-                        ];
-                      } else if (activeModulo7 === '3-1-2') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '20%', role: 'TS' },  // LB
-                          { top: '68%', left: '50%', role: 'DC' },  // CB
-                          { top: '66%', left: '80%', role: 'TD' },  // RB
-                          { top: '43%', left: '50%', role: 'MED' }, // CM
-                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
-                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
-                        ];
-                      } else {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' },
-                          { top: '66%', left: '32%', role: 'DC' },
-                          { top: '66%', left: '68%', role: 'DC' },
-                          { top: '42%', left: '18%', role: 'ES' },
-                          { top: '44%', left: '50%', role: 'CC' },
-                          { top: '42%', left: '82%', role: 'ED' },
-                          { top: '15%', left: '50%', role: 'ATT' }
-                        ];
-                      }
-                    } else if (t.list.length === 8) {
-                      const activeModulo8 = t.team === 'A' ? modulo8TeamA : modulo8TeamB;
-                      if (activeModulo8 === '3-3-1') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '20%', role: 'TS' },  // LB
-                          { top: '68%', left: '50%', role: 'DC' },  // CB
-                          { top: '66%', left: '80%', role: 'TD' },  // RB
-                          { top: '42%', left: '18%', role: 'ES' },  // LM
-                          { top: '44%', left: '50%', role: 'CC' },  // CM
-                          { top: '42%', left: '82%', role: 'ED' },  // RM
-                          { top: '15%', left: '50%', role: 'ATT' }  // CF
-                        ];
-                      } else if (activeModulo8 === '2-3-2') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '67%', left: '32%', role: 'DC' },  // CB (L)
-                          { top: '67%', left: '68%', role: 'DC' },  // CB (R)
-                          { top: '43%', left: '18%', role: 'ES' },  // LM
-                          { top: '45%', left: '50%', role: 'CC' },  // CM
-                          { top: '43%', left: '82%', role: 'ED' },  // RM
-                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
-                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
-                        ];
-                      } else if (activeModulo8 === '3-2-2') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '66%', left: '20%', role: 'TS' },  // LB
-                          { top: '68%', left: '50%', role: 'DC' },  // CB
-                          { top: '66%', left: '80%', role: 'TD' },  // RB
-                          { top: '43%', left: '34%', role: 'CC' },  // CM (L)
-                          { top: '43%', left: '66%', role: 'CC' },  // CM (R)
-                          { top: '15%', left: '34%', role: 'ATT' }, // CF (L)
-                          { top: '15%', left: '66%', role: 'ATT' }  // CF (R)
-                        ];
-                      } else if (activeModulo8 === '2-4-1') {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' }, // GK
-                          { top: '68%', left: '32%', role: 'DC' },  // CB (L)
-                          { top: '68%', left: '68%', role: 'DC' },  // CB (R)
-                          { top: '43%', left: '15%', role: 'CLS' }, // LM
-                          { top: '46%', left: '38%', role: 'MED' }, // CM (L)
-                          { top: '46%', left: '62%', role: 'MED' }, // CM (R)
-                          { top: '43%', left: '85%', role: 'CLD' }, // RM
-                          { top: '15%', left: '50%', role: 'ATT' }  // CF
-                        ];
-                      } else {
-                        positions = [
-                          { top: '87%', left: '50%', role: 'POR' },
-                          { top: '66%', left: '20%', role: 'TS' },
-                          { top: '68%', left: '50%', role: 'DC' },
-                          { top: '66%', left: '80%', role: 'TD' },
-                          { top: '42%', left: '18%', role: 'ES' },
-                          { top: '44%', left: '50%', role: 'CC' },
-                          { top: '42%', left: '82%', role: 'ED' },
-                          { top: '15%', left: '50%', role: 'ATT' }
-                        ];
-                      }
-                    }
-                    const pos = positions[idx] || { top: '50%', left: '50%' };
+                {(() => {
+                  const activeModulo7 = t.team === 'A' ? modulo7TeamA : modulo7TeamB;
+                  const activeModulo8 = t.team === 'A' ? modulo8TeamA : modulo8TeamB;
+                  const positions = getPitchPositionsForTeam(t.list.length, activeModulo7, activeModulo8);
+                  const currentTeamKey = t.team === 'A' ? 'teamA' : 'teamB';
 
-                    return (
+                  return (
+                    <>
                       <div 
-                        key={name}
-                        className={`pes-player ${isSwapSource ? 'active-source' : ''} ${isSwapTarget ? 'selectable-target' : ''}`}
-                        style={{
-                          top: pos.top, 
-                          left: pos.left,
-                          transform: isSwapTarget ? 'translate(-50%, -50%) scale(1.15)' : 'translate(-50%, -50%)',
-                          filter: isSwapTarget ? 'drop-shadow(0 0 8px rgba(255,255,255,0.8))' : 'none',
-                          opacity: isSwapSource ? 0.6 : 1
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isSwapTarget) {
-                            handleSwap(activeSwapSource!.name, activeSwapSource!.team, name, t.team === 'A' ? 'teamA' : 'teamB');
-                          } else if (!activeSwapSource) {
-                            setSelectedPlayerForCard(name);
-                          }
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          if (isAdmin) setActiveSwapSource({name, team: t.team === 'A' ? 'teamA' : 'teamB'});
-                        }}
+                        className="pes-pitch"
+                        onClick={() => setSelectedRolePlayer(null)}
                       >
-                        <img 
-                          src={dbPlayers.find(p => p.Nome === name)?.figurina || `/players/${name}.jpg`}
-                          alt={name}
-                          style={{
-                              width: '56px',
-                              height: '56px',
-                              borderRadius: '50%',
-                              objectFit: 'cover',
-                              border: t.team === currentLightTeam ? '3px solid #3498db' : '3px solid #e67e22',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.8)',
-                              marginBottom: '4px',
-                              background: '#1a2a3a'
-                          }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.endsWith('.jpg')) {
-                                target.src = `/players/${name}.png`;
-                            } else {
-                                target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '#3498db' : '#e67e22'}" stroke="white" stroke-width="2"/></svg>`)}`;
-                            }
-                          }}
-                        />
-                        <div className="pes-player-name" style={{ fontSize: '0.8rem', padding: '2px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          {pos.role && (
-                            <span style={{ 
-                              fontSize: '0.65rem', 
-                              fontWeight: 800, 
-                              color: pos.role === 'POR' ? '#f39c12' : pos.role.includes('D') || pos.role === 'TS' || pos.role === 'TD' || pos.role === 'CB' || pos.role === 'LB' || pos.role === 'RB' ? '#3498db' : pos.role === 'ATT' || pos.role === 'CF' ? '#e74c3c' : '#2ecc71',
-                              borderRight: '1px solid rgba(255,255,255,0.25)',
-                              paddingRight: '3px'
-                            }}>
-                              {pos.role}
-                            </span>
-                          )}
-                          <span>{name}</span>
+                        <div style={{ position: 'absolute', top: '12px', left: '0', right: '0', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                          <span style={{ 
+                            color: '#ffffff', 
+                            fontWeight: 900, 
+                            fontSize: '0.85rem', 
+                            textTransform: 'uppercase', 
+                            letterSpacing: '2px',
+                            background: 'rgba(0,0,0,0.45)',
+                            padding: '3px 14px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255,255,255,0.18)',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                          }}>
+                            {t.name}
+                          </span>
                         </div>
+                        <div className="pes-goal-area-top"></div>
+                        <div className="pes-goal-area-bottom"></div>
+                        {t.list.map((name, idx) => {
+                          const isSwapTarget = isAdmin && activeSwapSource && activeSwapSource.team !== currentTeamKey;
+                          const isSwapSource = isAdmin && activeSwapSource?.name === name;
+                          const isRoleSwapSelected = selectedRolePlayer?.team === currentTeamKey && selectedRolePlayer?.index === idx;
+                          const isRoleSwapTeammate = !!selectedRolePlayer && selectedRolePlayer.team === currentTeamKey && selectedRolePlayer.index !== idx;
+                          const pos = positions[idx] || { top: '50%', left: '50%', role: '' };
+
+                          return (
+                            <div 
+                              key={name}
+                              className={`pes-player ${isSwapSource ? 'active-source' : ''} ${isSwapTarget ? 'selectable-target' : ''} ${isRoleSwapSelected ? 'role-swap-active' : ''} ${isRoleSwapTeammate ? 'role-swap-target' : ''}`}
+                              style={{
+                                top: pos.top, 
+                                left: pos.left,
+                                transform: isSwapTarget 
+                                  ? 'translate(-50%, -50%) scale(1.15)' 
+                                  : isRoleSwapSelected 
+                                    ? 'translate(-50%, -50%) scale(1.18)' 
+                                    : isRoleSwapTeammate 
+                                      ? 'translate(-50%, -50%) scale(1.05)'
+                                      : 'translate(-50%, -50%)',
+                                filter: isSwapTarget 
+                                  ? 'drop-shadow(0 0 8px rgba(255,255,255,0.8))' 
+                                  : isRoleSwapSelected 
+                                    ? 'drop-shadow(0 0 14px #ffcc00)' 
+                                    : isRoleSwapTeammate 
+                                      ? 'drop-shadow(0 0 6px rgba(52, 152, 219, 0.6))'
+                                      : 'none',
+                                opacity: isSwapSource ? 0.6 : 1,
+                                zIndex: isRoleSwapSelected ? 30 : isRoleSwapTeammate ? 20 : 10
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                
+                                // Caso 1: Admin swap inter-squadra
+                                if (isSwapTarget) {
+                                  handleSwap(activeSwapSource!.name, activeSwapSource!.team, name, currentTeamKey);
+                                  return;
+                                }
+
+                                // Caso 2: C'è già un giocatore selezionato per spostamento ruolo
+                                if (selectedRolePlayer) {
+                                  if (selectedRolePlayer.team === currentTeamKey) {
+                                    if (selectedRolePlayer.index === idx) {
+                                      // Cliccato sullo stesso: deseleziona
+                                      setSelectedRolePlayer(null);
+                                    } else {
+                                      // Scambia posizione e ruolo con questo compagno
+                                      handleRoleSwap(currentTeamKey, selectedRolePlayer.index, idx);
+                                    }
+                                    return;
+                                  } else {
+                                    // Giocatore dell'altra squadra: sposta selezione su di lui
+                                    setSelectedRolePlayer({
+                                      name,
+                                      team: currentTeamKey,
+                                      index: idx,
+                                      role: pos.role || ''
+                                    });
+                                    return;
+                                  }
+                                }
+
+                                // Caso 3: Seleziona questo giocatore per spostarlo di ruolo
+                                setSelectedRolePlayer({
+                                  name,
+                                  team: currentTeamKey,
+                                  index: idx,
+                                  role: pos.role || ''
+                                });
+                              }}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                if (isAdmin) {
+                                  setSelectedRolePlayer(null);
+                                  setActiveSwapSource({name, team: currentTeamKey});
+                                } else {
+                                  setSelectedPlayerForCard(name);
+                                }
+                              }}
+                              title={
+                                isRoleSwapTeammate 
+                                  ? `Clicca per scambiare ruolo tra ${selectedRolePlayer?.name} e ${name}` 
+                                  : isRoleSwapSelected 
+                                    ? 'Clicca per annullare spostamento ruolo' 
+                                    : `Clicca per spostare il ruolo di ${name}`
+                              }
+                            >
+                              <img 
+                                src={dbPlayers.find(p => p.Nome === name)?.figurina || `/players/${name}.jpg`}
+                                alt={name}
+                                style={{
+                                    width: '56px',
+                                    height: '56px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: isRoleSwapSelected 
+                                      ? '3px solid #ffcc00' 
+                                      : t.team === currentLightTeam ? '3px solid #3498db' : '3px solid #e67e22',
+                                    boxShadow: isRoleSwapSelected ? '0 0 16px rgba(255,204,0,0.9)' : '0 2px 6px rgba(0,0,0,0.8)',
+                                    marginBottom: '4px',
+                                    background: '#1a2a3a',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src.endsWith('.jpg')) {
+                                      target.src = `/players/${name}.png`;
+                                  } else {
+                                      target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '#3498db' : '#e67e22'}" stroke="white" stroke-width="2"/></svg>`)}`;
+                                  }
+                                }}
+                              />
+                              <div className="pes-player-name" style={{ fontSize: '0.8rem', padding: '2px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                {pos.role && (
+                                  <span style={{ 
+                                    fontSize: '0.65rem', 
+                                    fontWeight: 800, 
+                                    color: pos.role === 'POR' ? '#f39c12' : pos.role.includes('D') || pos.role === 'TS' || pos.role === 'TD' || pos.role === 'CB' || pos.role === 'LB' || pos.role === 'RB' ? '#3498db' : pos.role === 'ATT' || pos.role === 'CF' ? '#e74c3c' : '#2ecc71',
+                                    borderRight: '1px solid rgba(255,255,255,0.25)',
+                                    paddingRight: '3px'
+                                  }}>
+                                    {pos.role}
+                                  </span>
+                                )}
+                                <span>{name}</span>
+                                {isRoleSwapSelected && <span style={{ fontSize: '0.7rem', color: '#ffcc00', marginLeft: '2px' }}>🔄</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Pannello Rapido Sposta Ruolo Giocatore */}
+                      {selectedRolePlayer && selectedRolePlayer.team === currentTeamKey && (
+                        <div 
+                          className="role-selector-panel"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(16, 26, 38, 0.98), rgba(10, 16, 24, 0.98))',
+                            border: '1px solid #ffcc00',
+                            borderRadius: '8px',
+                            padding: '0.7rem 0.9rem',
+                            margin: '0.6rem 0.6rem 0 0.6rem',
+                            boxShadow: '0 6px 18px rgba(0,0,0,0.65), 0 0 14px rgba(255,204,0,0.3)',
+                            animation: 'fadeIn 0.2s ease-in-out'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#ffcc00', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span>🔄</span>
+                                <span>Sposta Ruolo:</span>
+                                <span style={{ color: '#ffffff' }}>{selectedRolePlayer.name}</span>
+                              </span>
+                              <span style={{ 
+                                fontSize: '0.68rem', 
+                                fontWeight: 800, 
+                                background: 'rgba(255,255,255,0.15)', 
+                                padding: '2px 7px', 
+                                borderRadius: '4px',
+                                color: '#9fd9b6'
+                              }}>
+                                Attuale: {selectedRolePlayer.role}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const p = selectedRolePlayer.name;
+                                  setSelectedRolePlayer(null);
+                                  setSelectedPlayerForCard(p);
+                                }}
+                                style={{
+                                  background: 'rgba(52, 152, 219, 0.25)',
+                                  border: '1px solid rgba(52, 152, 219, 0.6)',
+                                  color: '#74b9ff',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                                title="Apri scheda PES dettagliata"
+                              >
+                                📇 Scheda PES
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRolePlayer(null)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#bbb',
+                                  fontSize: '1.1rem',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  padding: '0 4px',
+                                  lineHeight: 1
+                                }}
+                                title="Chiudi"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.45rem' }}>
+                            👉 Clicca su un compagno nel campo o scegli il nuovo ruolo da assegnare:
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                            {positions.map((pSlot, sIdx) => {
+                              const occupantName = t.list[sIdx];
+                              const isSelf = sIdx === selectedRolePlayer.index;
+                              const slotRole = pSlot.role || `R${sIdx+1}`;
+                              const roleColor = slotRole === 'POR' ? '#f39c12' : slotRole.includes('D') || slotRole === 'TS' || slotRole === 'TD' ? '#3498db' : slotRole === 'ATT' ? '#e74c3c' : '#2ecc71';
+
+                              return (
+                                <button
+                                  key={sIdx}
+                                  type="button"
+                                  disabled={isSelf}
+                                  onClick={() => handleRoleSwap(currentTeamKey, selectedRolePlayer.index, sIdx)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '4px 8px',
+                                    borderRadius: '5px',
+                                    background: isSelf ? 'rgba(255, 204, 0, 0.22)' : 'rgba(255,255,255,0.08)',
+                                    border: isSelf ? '1px solid #ffcc00' : '1px solid rgba(255,255,255,0.18)',
+                                    color: isSelf ? '#ffcc00' : '#ffffff',
+                                    fontSize: '0.72rem',
+                                    cursor: isSelf ? 'default' : 'pointer',
+                                    opacity: isSelf ? 0.9 : 1,
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 900, color: roleColor }}>{slotRole}</span>
+                                  <span style={{ color: isSelf ? '#ffcc00' : 'rgba(255,255,255,0.85)', fontWeight: isSelf ? 800 : 500 }}>
+                                    {occupantName} {isSelf ? '✓' : ''}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Controlli Modulo e Maglie fuori dall'immagine, posizionati sotto al campo */}
                 <div 

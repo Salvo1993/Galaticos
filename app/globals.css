@@ -1415,3 +1415,31 @@
 [data-theme="light"] .pes-radar-labels span {
     color: rgba(0,0,0,0.7);
 }
+
+/* Role swap animations and interactive highlights */
+@keyframes roleSwapPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.8), 0 0 12px rgba(255, 204, 0, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 204, 0, 0), 0 0 20px rgba(255, 204, 0, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0), 0 0 12px rgba(255, 204, 0, 0.6);
+  }
+}
+
+.pes-player.role-swap-active img {
+  border-color: #ffcc00 !important;
+  animation: roleSwapPulse 1.4s infinite !important;
+}
+
+.pes-player.role-swap-target {
+  cursor: pointer;
+}
+
+.pes-player.role-swap-target:hover img {
+  border-color: #3498db !important;
+  box-shadow: 0 0 14px rgba(52, 152, 219, 0.9) !important;
+  transform: scale(1.08);
+}

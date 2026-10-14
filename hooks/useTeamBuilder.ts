@@ -110,9 +110,13 @@ export function useTeamBuilder({
   const [modulo7TeamA, setModulo7TeamA] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>(() => {
     if (typeof window !== 'undefined') {
       try {
+        const migrated = localStorage.getItem('modulo_v2_migrated');
         const cached = localStorage.getItem('modulo_settings');
         if (cached) {
           const p = JSON.parse(cached);
+          if (!migrated && (p.modulo7TeamA === '2-3-1' || !p.modulo7TeamA)) {
+            return '3-2-1';
+          }
           if (p.modulo7TeamA) return p.modulo7TeamA;
         }
       } catch {}
@@ -123,9 +127,13 @@ export function useTeamBuilder({
   const [modulo7TeamB, setModulo7TeamB] = useState<'2-3-1' | '3-2-1' | '2-2-2' | '3-1-2'>(() => {
     if (typeof window !== 'undefined') {
       try {
+        const migrated = localStorage.getItem('modulo_v2_migrated');
         const cached = localStorage.getItem('modulo_settings');
         if (cached) {
           const p = JSON.parse(cached);
+          if (!migrated && (p.modulo7TeamB === '2-3-1' || !p.modulo7TeamB)) {
+            return '3-2-1';
+          }
           if (p.modulo7TeamB) return p.modulo7TeamB;
         }
       } catch {}
@@ -207,14 +215,31 @@ export function useTeamBuilder({
 
       if (typeof window !== 'undefined') {
         try {
+          const migrated = localStorage.getItem('modulo_v2_migrated');
           const cached = localStorage.getItem('modulo_settings');
-          const parsed = cached ? JSON.parse(cached) : null;
+          let parsed = cached ? JSON.parse(cached) : null;
+
+          if (!migrated) {
+            if (moduloSettingsToApply) {
+              if (moduloSettingsToApply.modulo7TeamA === '2-3-1') moduloSettingsToApply.modulo7TeamA = '3-2-1';
+              if (moduloSettingsToApply.modulo7TeamB === '2-3-1') moduloSettingsToApply.modulo7TeamB = '3-2-1';
+            }
+            if (parsed) {
+              if (parsed.modulo7TeamA === '2-3-1') parsed.modulo7TeamA = '3-2-1';
+              if (parsed.modulo7TeamB === '2-3-1') parsed.modulo7TeamB = '3-2-1';
+            }
+            localStorage.setItem('modulo_v2_migrated', 'true');
+          }
+
           if (moduloSettingsToApply) {
             if (moduloSettingsToApply.modulo7TeamA) setModulo7TeamA(moduloSettingsToApply.modulo7TeamA);
             if (moduloSettingsToApply.modulo7TeamB) setModulo7TeamB(moduloSettingsToApply.modulo7TeamB);
             if (moduloSettingsToApply.modulo8TeamA) setModulo8TeamA(moduloSettingsToApply.modulo8TeamA);
             if (moduloSettingsToApply.modulo8TeamB) setModulo8TeamB(moduloSettingsToApply.modulo8TeamB);
             localStorage.setItem('modulo_settings', JSON.stringify(moduloSettingsToApply));
+            if (!migrated) {
+              saveModuloSettingsApi(moduloSettingsToApply).catch(() => {});
+            }
           } else if (parsed) {
             if (parsed.modulo7TeamA) setModulo7TeamA(parsed.modulo7TeamA);
             if (parsed.modulo7TeamB) setModulo7TeamB(parsed.modulo7TeamB);
@@ -359,6 +384,11 @@ export function useTeamBuilder({
   };
 
   const saveModuloSettings = async (updates: Partial<ModuloSettings>) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('modulo_v2_migrated', 'true');
+      } catch {}
+    }
     let next7A = modulo7TeamA;
     let next7B = modulo7TeamB;
     let next8A = modulo8TeamA;

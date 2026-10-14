@@ -18,7 +18,7 @@ export async function GET() {
       await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS prediction_settings JSONB DEFAULT '{"mode": "all"}'::jsonb`;
     } catch (e) {}
     try {
-      await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS modulo_settings JSONB DEFAULT '{"modulo7TeamA": "2-3-1", "modulo7TeamB": "2-3-1", "modulo8TeamA": "3-3-1", "modulo8TeamB": "3-3-1"}'::jsonb`;
+      await sql`ALTER TABLE public."SiteSettings" ADD COLUMN IF NOT EXISTS modulo_settings JSONB DEFAULT '{"modulo7TeamA": "3-2-1", "modulo7TeamB": "3-2-1", "modulo8TeamA": "3-3-1", "modulo8TeamB": "3-3-1"}'::jsonb`;
     } catch (e) {}
     
     // Fetch settings row (try id = 1 first, or first existing row)

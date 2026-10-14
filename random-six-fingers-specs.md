@@ -147,9 +147,15 @@ export async function assertAdmin(req?: Request) {
 ### 5.3 Visualizzazione Tattica su Campo 2D & Moduli
 - **Campi da Gioco:** visualizzazione ad alta fedeltà (erba realistica, linee regolamentari, cerchio di centrocampo e aree di rigore).
 - **Moduli Tattici Configurabili:**
-  - Formato 7vs7: `2-3-1`, `3-2-1`, `2-2-2`, `3-1-2`
-  - Formato 8vs8: `3-3-1`, `2-3-2`, `3-2-2`, `2-4-1`
+  - Formato 7vs7: `3-2-1` (predefinito/consigliato), `2-3-1`, `2-2-2`, `3-1-2`
+  - Formato 8vs8: `3-3-1` (predefinito/consigliato), `2-3-2`, `3-2-2`, `2-4-1`
   - Selezione indipendente per Squadra A, Squadra B o entrambe con persistenza automatica su DB e `localStorage`.
+- **Visualizzazione Dinamica dei Ruoli:**
+  - Per partite **5vs5** e **6vs6**: viene mostrato esclusivamente il ruolo primario del giocatore.
+  - Per partite **7vs7** e **8vs8**: viene mostrato il ruolo tattico effettivo assegnato in campo in base al modulo selezionato.
+  - **Differenziazione Cromatica dei Ruoli:**
+    - Se il ruolo assegnato in campo coincide con il ruolo primario del giocatore, viene mantenuto il colore standard del ruolo.
+    - Se il ruolo assegnato in campo è diverso dal ruolo primario (adattato su ruolo secondario o fuori ruolo per esigenze di modulo), viene applicato un colore di evidenziazione differenziato (arancione ambrato `#f39c12`) per evidenziare immediatamente l'adattamento tattico.
 - **Interazioni su Campo:**
   - Drag / Click per scambiare due giocatori tra squadre diverse.
   - Scambio ruoli all'interno della stessa squadra con un click.

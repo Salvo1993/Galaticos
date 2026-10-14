@@ -85,8 +85,8 @@ export interface ModuloSettings {
 }
 
 export const defaultModuloSettings: ModuloSettings = {
-  modulo7TeamA: '2-3-1',
-  modulo7TeamB: '2-3-1',
+  modulo7TeamA: '3-2-1',
+  modulo7TeamB: '3-2-1',
   modulo8TeamA: '3-3-1',
   modulo8TeamB: '3-3-1'
 };

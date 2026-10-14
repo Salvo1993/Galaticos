@@ -225,26 +225,26 @@ export default function ModuloModal({
               ]
             : [
                 {
-                  id: '2-3-1' as const,
-                  name: '2-3-1',
+                  id: '3-2-1' as const,
+                  name: '3-2-1',
                   tag: 'CONSIGLIATO',
                   tagColor: '#2ecc71',
                   tagBg: 'rgba(46, 204, 113, 0.15)',
                   tagBorder: 'rgba(46, 204, 113, 0.4)',
-                  breakdown: '2 Difensori • 3 Centrocampisti • 1 Punta',
-                  desc: 'Il modulo universale e più equilibrato nel Calcio a 7. Ampiezza sulle corsie esterne, cervello centrale e attaccante mobile.',
-                  ruoli: ['POR', 'DC', 'DC', 'ES', 'CC', 'ED', 'ATT']
+                  breakdown: '3 Difensori • 2 Centrocampisti • 1 Punta',
+                  desc: 'Formazione compatta e impenetrabile. 3 difensori (Terzini e Centrale), 2 centrocampisti e punta di sfondamento. Il modulo predefinito per il Calcio a 7.',
+                  ruoli: ['POR', 'TS', 'DC', 'TD', 'CC', 'CC', 'ATT']
                 },
                 {
-                  id: '3-2-1' as const,
-                  name: '3-2-1',
-                  tag: 'ALBERO DI NATALE',
+                  id: '2-3-1' as const,
+                  name: '2-3-1',
+                  tag: 'EQUILIBRATO',
                   tagColor: '#3498db',
                   tagBg: 'rgba(52, 152, 219, 0.15)',
                   tagBorder: 'rgba(52, 152, 219, 0.4)',
-                  breakdown: '3 Difensori • 2 Centrocampisti • 1 Punta',
-                  desc: 'Formazione compatta e impenetrabile. 3 difensori puri, 2 centrocampisti di contenimento e punta di sfondamento pronta alle ripartenze.',
-                  ruoli: ['POR', 'TS', 'DC', 'TD', 'CC', 'CC', 'ATT']
+                  breakdown: '2 Difensori • 3 Centrocampisti • 1 Punta',
+                  desc: 'Ampiezza sulle corsie esterne, cervello centrale e attaccante mobile.',
+                  ruoli: ['POR', 'DC', 'DC', 'ES', 'CC', 'ED', 'ATT']
                 },
                 {
                   id: '2-2-2' as const,

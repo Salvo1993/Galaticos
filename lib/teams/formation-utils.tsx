@@ -169,14 +169,14 @@ export const getPitchPositionsForTeam = (
       { top: '15%', left: '50%', role: 'ATT' }
     ];
   } else if (teamSize === 7) {
-    if (modulo7 === '3-2-1') {
+    if (modulo7 === '2-3-1') {
       return [
         { top: '87%', left: '50%', role: 'POR' },
-        { top: '66%', left: '20%', role: 'TS' },
-        { top: '68%', left: '50%', role: 'DC' },
-        { top: '66%', left: '80%', role: 'TD' },
-        { top: '42%', left: '35%', role: 'CC' },
-        { top: '42%', left: '65%', role: 'CC' },
+        { top: '66%', left: '32%', role: 'DC' },
+        { top: '66%', left: '68%', role: 'DC' },
+        { top: '42%', left: '18%', role: 'ES' },
+        { top: '44%', left: '50%', role: 'CC' },
+        { top: '42%', left: '82%', role: 'ED' },
         { top: '15%', left: '50%', role: 'ATT' }
       ];
     } else if (modulo7 === '2-2-2') {
@@ -200,13 +200,14 @@ export const getPitchPositionsForTeam = (
         { top: '15%', left: '66%', role: 'ATT' }
       ];
     } else {
+      // DEFAULT (3-2-1)
       return [
         { top: '87%', left: '50%', role: 'POR' },
-        { top: '66%', left: '32%', role: 'DC' },
-        { top: '66%', left: '68%', role: 'DC' },
-        { top: '42%', left: '18%', role: 'ES' },
-        { top: '44%', left: '50%', role: 'CC' },
-        { top: '42%', left: '82%', role: 'ED' },
+        { top: '66%', left: '20%', role: 'TS' },
+        { top: '68%', left: '50%', role: 'DC' },
+        { top: '66%', left: '80%', role: 'TD' },
+        { top: '42%', left: '35%', role: 'CC' },
+        { top: '42%', left: '65%', role: 'CC' },
         { top: '15%', left: '50%', role: 'ATT' }
       ];
     }

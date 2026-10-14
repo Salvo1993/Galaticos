@@ -7,137 +7,41 @@ import BulkMediaModal from '@/components/BulkMediaModal';
 import EditMediaModal from '@/components/EditMediaModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
-// --- Types ---
-interface Player {
-  Nome: string;
-  Ruolo?: string;
-  RuoloSecondario?: string | null;
-  velocita?: number;
-  accelerazione?: number;
-  tecnica?: number;
-  contrasto?: number;
-  passaggi?: number;
-  finalizzazione?: number;
-  resistenza?: number;
-  dribbling?: number;
-  rissa?: number;
-  altezza?: number;
-  peso?: number;
-  piede?: string;
-  origine_punteggi?: string;
-  Skill?: string;
-  Score?: number;
-  figurina?: string;
-  tuffo?: number;
-  presa?: number;
-  riflessi?: number;
-  piazzamento?: number;
-  uscite?: number;
-  reattivita?: number;
-  rinvio?: number;
-}
+import type {
+  Player,
+  Cluster,
+  Results,
+  MatchResult,
+  PredictionSettings,
+  ModuloSettings,
+  MediaItem,
+  LeaderboardEntry,
+  AlgoSettings,
+  Sfida
+} from '@/types';
+import {
+  defaultPredictionSettings,
+  defaultModuloSettings,
+  defaultAlgoSettings
+} from '@/types';
+import {
+  getMatchFormatSize,
+  getMatchTrack,
+  isMatchAllowedForPrediction,
+  calculateHistoricalPredictions
+} from '@/lib/stats/prediction-engine';
+import {
+  isGoalkeeper as isGkLib,
+  getMacroRole as getMacroRoleLib,
+  finalizeTeamLineup as finalizeLineupLib,
+  ensureGoalkeeperInGoal as ensureGkLib,
+  calculatePlayerRating
+} from '@/lib/algorithm/team-balancer';
 
-interface Cluster {
-  id: number;
-  name: string;
-  members: string[];
-}
 
-interface Results {
-  teamA: string[];
-  teamB: string[];
-}
+export type { PredictionSettings, ModuloSettings };
+export { defaultPredictionSettings, defaultModuloSettings, getMatchFormatSize, isMatchAllowedForPrediction };
 
-interface MatchResult {
-  id: number;
-  data: string;
-  ora: string;
-  team_a_name: string;
-  team_b_name: string;
-  risultato: string | null;
-  marcatori_a: string | null;
-  marcatori_b: string | null;
-  team_a_players: string[];
-  team_b_players: string[];
-  Stadium: string | null;
-  voti_giocatori?: Record<string, number | 's.v.'>;
-  mvps?: string[];
-  maglia_chiara?: string;
-}
-
-export interface PredictionSettings {
-  mode: 'all' | 'tracks' | 'strict' | 'custom';
-  customMatrix?: {
-    5?: number[];
-    6?: number[];
-    7?: number[];
-    8?: number[];
-  };
-}
-
-export const defaultPredictionSettings: PredictionSettings = {
-  mode: 'all',
-  customMatrix: {
-    5: [5, 6, 7, 8],
-    6: [5, 6, 7, 8],
-    7: [5, 6, 7, 8],
-    8: [5, 6, 7, 8]
-  }
-};
-
-export interface ModuloSettings {
-  modulo7TeamA: '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
-  modulo7TeamB: '2-3-1' | '3-2-1' | '2-2-2' | '3-1-2';
-  modulo8TeamA: '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
-  modulo8TeamB: '3-3-1' | '2-3-2' | '3-2-2' | '2-4-1';
-}
-
-export const defaultModuloSettings: ModuloSettings = {
-  modulo7TeamA: '2-3-1',
-  modulo7TeamB: '2-3-1',
-  modulo8TeamA: '3-3-1',
-  modulo8TeamB: '3-3-1'
-};
-
-export const getMatchFormatSize = (m: { team_a_players?: string[]; team_b_players?: string[] }): number => {
-  const lenA = m.team_a_players?.length || 0;
-  const lenB = m.team_b_players?.length || 0;
-  const size = Math.max(lenA, lenB) || 5;
-  return (size >= 5 && size <= 8) ? size : 5;
-};
-
-export const isMatchAllowedForPrediction = (
-  pastMatch: { team_a_players?: string[]; team_b_players?: string[] },
-  targetFormat: number,
-  settings: PredictionSettings
-): boolean => {
-  const pastSize = getMatchFormatSize(pastMatch);
-  if (!settings || settings.mode === 'all') return true;
-  if (settings.mode === 'tracks') {
-    return (targetFormat >= 7) === (pastSize >= 7);
-  }
-  if (settings.mode === 'strict') {
-    return pastSize === targetFormat;
-  }
-  if (settings.mode === 'custom') {
-    const allowed = settings.customMatrix?.[targetFormat as 5 | 6 | 7 | 8];
-    if (Array.isArray(allowed)) {
-      return allowed.includes(pastSize);
-    }
-    return true;
-  }
-  return true;
-};
-
-interface MediaItem {
-  id: number;
-  partita_id: number;
-  giocatore: string | null;
-  co_giocatore: string | null;
-  tipologia: string;
-  youtube_id: string;
-  created_at: string;
-}
 
 // --- Custom Components ---
 interface CustomDropdownProps {
@@ -797,68 +701,16 @@ export const parseScorersString = (scorersInput: any): Record<string, number> =>
 export default function Home() {
   const [dbPlayers, setDbPlayers] = useState<Player[]>([]);
 
-  // Helper: Riconoscimento Portiere (Ruolo preferito, secondario o tag nel nome tipo (P))
-  const isGoalkeeper = (playerName: string, customDbPlayers?: Player[]): boolean => {
-    if (!playerName) return false;
-    const n = playerName.trim().toLowerCase();
-    if (n.startsWith('(p)') || n.startsWith('(por)') || n.includes('(portiere)') || n.includes('portiere') || n.endsWith('(p)') || n.endsWith('(por)')) {
-      return true;
-    }
-    const list = customDbPlayers || dbPlayers;
-    const dbP = list.find(p => p.Nome?.toLowerCase().trim() === n || p.Nome === playerName);
-    if (dbP) {
-      const r1 = (dbP.Ruolo || '').toLowerCase().trim();
-      const r2 = (dbP.RuoloSecondario || '').toLowerCase().trim();
-      if (r1.includes('portier') || r1 === 'gk' || r1 === 'por') return true;
-      if (r2.includes('portier') || r2 === 'gk' || r2 === 'por') return true;
-    }
-    return false;
-  };
+  // Helper: Riconoscimento Portiere e ordinamento formazioni delegati a lib/algorithm/team-balancer
+  const isGoalkeeper = (playerName: string, customDbPlayers?: Player[]): boolean =>
+    isGkLib(playerName, customDbPlayers || dbPlayers);
 
-  // Helper: Posiziona il portiere in porta (indice 0 / POR) e ordina i ruoli sul campo: Difensori -> Centrocampisti -> Attaccanti
-  const finalizeTeamLineup = (team: string[], customDbPlayers?: Player[]): string[] => {
-    if (!team || team.length === 0) return team;
-    const copy = [...team];
-    const list = customDbPlayers || dbPlayers;
+  const finalizeTeamLineup = (team: string[], customDbPlayers?: Player[]): string[] =>
+    finalizeLineupLib(team, customDbPlayers || dbPlayers);
 
-    const gkIdx = copy.findIndex(p => isGoalkeeper(p, list));
-    let gk: string | null = null;
-    if (gkIdx !== -1) {
-      [gk] = copy.splice(gkIdx, 1);
-    }
+  const ensureGoalkeeperInGoal = (team: string[], customDbPlayers?: Player[]): string[] =>
+    ensureGkLib(team, customDbPlayers || dbPlayers);
 
-    const getMacroRole = (pName: string): number => {
-      const dbP = list.find(x => x.Nome?.toLowerCase().trim() === pName.toLowerCase().trim() || x.Nome === pName);
-      const r = (dbP?.Ruolo || '').toLowerCase();
-      const rSec = (dbP?.RuoloSecondario || '').toLowerCase();
-      const comb = `${r} ${rSec}`;
-      if (comb.includes('difensor') || comb.includes('terzino') || comb.includes('cb') || comb.includes('rb') || comb.includes('lb')) return 1;
-      if (comb.includes('attaccant') || comb.includes('punta') || comb.includes('cf') || comb.includes('ss')) return 3;
-      return 2;
-    };
-
-    copy.sort((a, b) => getMacroRole(a) - getMacroRole(b));
-
-    if (gk) {
-      return [gk, ...copy];
-    }
-    return copy;
-  };
-
-  // Helper: Assicura che se è presente un portiere nella squadra, sia posizionato all'indice 0 (POR)
-  const ensureGoalkeeperInGoal = (team: string[], customDbPlayers?: Player[]): string[] => {
-    if (!team || team.length === 0) return team;
-    const list = customDbPlayers || dbPlayers;
-    if (isGoalkeeper(team[0], list)) return team;
-    const gkIdx = team.findIndex(p => isGoalkeeper(p, list));
-    if (gkIdx > 0) {
-      const copy = [...team];
-      const [gk] = copy.splice(gkIdx, 1);
-      copy.unshift(gk);
-      return copy;
-    }
-    return team;
-  };
   const [dbCampi, setDbCampi] = useState<{id: number, nome: string, posizione_url: string | null}[]>([]);
   const [matchFormat, setMatchFormat] = useState<number>(5);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(Array(10).fill(''));
@@ -1648,175 +1500,10 @@ export default function Home() {
     });
   }, [matches]);
 
-  const getMatchTrack = (m: { team_a_players?: string[]; team_b_players?: string[] }): '5-6' | '7-8' => {
-    const lenA = m.team_a_players?.length || 0;
-    const lenB = m.team_b_players?.length || 0;
-    const size = Math.max(lenA, lenB) || 5;
-    return size >= 7 ? '7-8' : '5-6';
-  };
-
   const historicalPredictions = useMemo(() => {
-    const uniqueMatchesMap = new Set<string>();
-    const validMatches = [...matches].filter(m => {
-        if (!m.risultato || m.risultato === '0-0') return false;
-        const teamA = (m.team_a_name || '').trim();
-        const teamB = (m.team_b_name || '').trim();
-        const [scoreA, scoreB] = m.risultato.split('-').map(s => s.trim());
-        let key = teamA < teamB ? `${teamA}_${teamB}_${scoreA}-${scoreB}` : `${teamB}_${teamA}_${scoreB}-${scoreA}`;
-        if (uniqueMatchesMap.has(key)) return false;
-        uniqueMatchesMap.add(key);
-        return true;
-    }).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    const preds: Record<number, { favorite: 'A' | 'B' | 'X', correct: boolean, track: '5-6' | '7-8', formatSize: number }> = {};
-    let correctCount = 0;
-    let totalCount = 0;
-
-    validMatches.forEach((match, index) => {
-       const matchFormatSize = Math.max(match.team_a_players?.length || 0, match.team_b_players?.length || 0) || 5;
-       const matchTrack = getMatchTrack(match);
-       // Prendi le partite passate idonee in base alle impostazioni di previsione attive
-       const pastMatches = validMatches.slice(0, index).filter(m => isMatchAllowedForPrediction(m, matchFormatSize, predictionSettings));
-       if (pastMatches.length === 0) return; // Non abbastanza dati storici per questa partita
-       
-       const data: Record<string, any> = {};
-       const mvps: Record<string, number> = {};
-
-       pastMatches.forEach(m => {
-           const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
-           
-           let matchMaxVote = 0;
-           let matchMVPs: string[] = [];
-           if (m.voti_giocatori) {
-               Object.entries(m.voti_giocatori).forEach(([p, voto]) => {
-                   if (typeof voto === 'number' && voto > matchMaxVote) {
-                       matchMaxVote = voto;
-                   }
-               });
-           }
-           
-           if (m.mvps && m.mvps.length > 0) {
-               matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
-           } else if (matchMaxVote > 0 && m.voti_giocatori) {
-               matchMVPs = Object.keys(m.voti_giocatori).filter(p => m.voti_giocatori![p] === matchMaxVote);
-           }
-           
-           matchMVPs.forEach(p => { mvps[p] = (mvps[p] || 0) + 1; });
-
-           const processP = (p: string, gF: number, gS: number) => {
-               if (!data[p]) data[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0 };
-               data[p].partiteGiocate++;
-               data[p].golFattiSquadra += gF;
-               data[p].golSubitiSquadra += gS;
-               if (m.voti_giocatori && typeof m.voti_giocatori[p] === 'number' && m.voti_giocatori[p] > 0) {
-                   data[p].sommaVoti += m.voti_giocatori[p];
-                   data[p].votiCount++;
-               }
-           };
-           m.team_a_players?.forEach(p => processP(p, sA, sB));
-           m.team_b_players?.forEach(p => processP(p, sB, sA));
-       });
-
-       const getTeamStats = (teamPlayers: string[]) => {
-          let sumMediaVoto = 0, sumGolFattiAvg = 0, sumGolSubitiAvg = 0, totalMvp = 0, validVoto = 0, validGol = 0;
-          teamPlayers.forEach(p => {
-             const s = data[p];
-             if (s && s.partiteGiocate > 0) {
-                if (s.votiCount > 0) { sumMediaVoto += (s.sommaVoti / s.votiCount); validVoto++; }
-                sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
-                sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
-                validGol++;
-             }
-             if (mvps[p]) totalMvp += mvps[p];
-          });
-          return {
-             mediaVoto: validVoto > 0 ? sumMediaVoto / validVoto : 6,
-             golFatti: validGol > 0 ? sumGolFattiAvg / validGol : 0,
-             golSubiti: validGol > 0 ? sumGolSubitiAvg / validGol : 0,
-             mvp: totalMvp
-          };
-       };
-
-       const getSynergy = (teamPlayers: string[]) => {
-          let wWins=0, wDraws=0, wLosses=0, wGF=0, wGS=0, tW=0;
-          pastMatches.forEach(m => {
-             const teamAP = m.team_a_players || [];
-             const teamBP = m.team_b_players || [];
-             const [sA, sB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
-             const overlapA = teamPlayers.filter(p => teamAP.includes(p)).length;
-             const overlapB = teamPlayers.filter(p => teamBP.includes(p)).length;
-             if (overlapA >= 2 || overlapB >= 2) {
-                const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
-                const isOnSideA = overlapA >= overlapB;
-                const pastSize = Math.max(teamAP.length, teamBP.length) || 5;
-                const maxPossibleOverlap = Math.min(matchFormatSize, pastSize);
-                const weight = Math.pow(bestOverlap / Math.max(maxPossibleOverlap, 2), 2);
-                const gF = isOnSideA ? sA : sB;
-                const gS = isOnSideA ? sB : sA;
-                if (gF > gS) wWins += weight;
-                else if (gF === gS) wDraws += weight;
-                else wLosses += weight;
-                tW += weight;
-             }
-          });
-          return {
-             winRate: tW > 0 ? wWins / tW : 0,
-             drawRate: tW > 0 ? wDraws / tW : 0,
-             lossRate: tW > 0 ? wLosses / tW : 0,
-             totalWeight: tW,
-             avgGolFatti: tW > 0 ? wGF / tW : 0,
-             avgGolSubiti: tW > 0 ? wGS / tW : 0
-          };
-       };
-
-       const statsA = getTeamStats(match.team_a_players || []);
-       const statsB = getTeamStats(match.team_b_players || []);
-       const synA = getSynergy(match.team_a_players || []);
-       const synB = getSynergy(match.team_b_players || []);
-
-       const getComposite = (st: any, syn: any) => {
-          const normVoto = (st.mediaVoto - 4) / 6;
-          const normGolDiff = (st.golFatti - st.golSubiti) / Math.max(st.golFatti + st.golSubiti, 1);
-          const mvpBonus = Math.min(st.mvp * 0.02, 0.1);
-          const indScore = normVoto * 0.5 + normGolDiff * 0.35 + mvpBonus;
-          const synScore = syn.totalWeight > 0 ? syn.winRate * 0.6 + syn.drawRate * 0.2 - syn.lossRate * 0.2 : 0.5;
-          const wSyn = syn.totalWeight > 0 ? 0.4 : 0;
-          const wInd = 1 - wSyn;
-          return indScore * wInd + synScore * wSyn;
-       };
-
-       const compA = getComposite(statsA, synA);
-       const compB = getComposite(statsB, synB);
-       const diff = compA - compB;
-       const sigmoid = (x: number) => 1 / (1 + Math.exp(-x * 8));
-       const rawA = sigmoid(diff);
-       const rawB = 1 - rawA;
-       const drawBase = 0.15;
-       const drawBonus = Math.max(0, 0.25 - Math.abs(diff) * 2);
-       const drawPct = Math.min(drawBase + drawBonus, 0.40);
-       
-       const winAPct = rawA * (1 - drawPct);
-       const winBPct = rawB * (1 - drawPct);
-       const pctA = Math.round(winAPct * 100);
-       const pctB = Math.round(winBPct * 100);
-       
-       const favorite = pctA > pctB ? 'A' : pctB > pctA ? 'B' : 'X';
-       
-       const [actA, actB] = (match.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
-       const actual = actA > actB ? 'A' : actB > actA ? 'B' : 'X';
-       
-       preds[match.id] = { favorite, correct: favorite === actual, track: matchTrack, formatSize: matchFormatSize };
-       
-       if (favorite === actual) correctCount++;
-       totalCount++;
-    });
-
-    return { 
-      preds, 
-      accuracy: totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 100,
-      correctCount,
-      totalCount
-    };
+    return calculateHistoricalPredictions(matches, predictionSettings);
   }, [matches, predictionSettings]);
+
 
 
   const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
@@ -2627,36 +2314,9 @@ const formatResultTime = (timeStr?: string) => {
     }));
   };
 
-  const getRating = (name: string, withModifier = true) => {
-      const s = statsData.find(x => x.name === name);
-      const l = leaderboard.find(x => x.nome === name);
-      
-      let base = 6.0;
-      if (l && l.media_voto > 0) base = l.media_voto;
-      
-      let off = 0;
-      let dif = 0;
-      if (s && s.partiteGiocate > 0) {
-          off = s.golFattiSquadra / s.partiteGiocate;
-          dif = s.golSubitiSquadra / s.partiteGiocate;
-      }
-      
-      let mvp = 0;
-      let winRate = 0.5;
-      if (l && l.partite_giocate > 0) {
-          mvp = l.mvp_count / l.partite_giocate;
-          winRate = l.vittorie / l.partite_giocate;
-      }
-      
-      const ratingBase = (base / 10) * algoSettings.wVoto; 
-      const ratingWin = winRate * algoSettings.wWinRate;
-      const halfGol = algoSettings.wGolRatio / 2;
-      const ratingDiff = Math.max(0, Math.min(algoSettings.wGolRatio, halfGol + (off - dif) * (algoSettings.wGolRatio/10)));
-      const ratingMvp = mvp * algoSettings.wMvp;
-      
-      const res = ratingBase + ratingWin + ratingDiff + ratingMvp;
-      return res + (withModifier ? (ovrModifiers[name] || 0) : 0);
-  };
+  const getRating = (name: string, withModifier = true) =>
+    calculatePlayerRating(name, leaderboard, statsData, algoSettings, ovrModifiers, withModifier);
+
 
   const getSimulatedTeams = () => {
     const validPlayers = selectedPlayers.filter(Boolean);

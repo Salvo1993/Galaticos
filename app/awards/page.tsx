@@ -22,7 +22,7 @@ export default function AwardsPage() {
   const [awardsData, setAwardsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
-  const [chartViewMode, setChartViewMode] = useState<'top5' | 'all'>('top5');
+  const [chartViewMode, setChartViewMode] = useState<'top5' | 'all'>('all');
   
   // Genera mesi da Settembre 2026 fino ad un anno avanti
   const months = useMemo(() => {
@@ -341,23 +341,6 @@ export default function AwardsPage() {
           </div>
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', padding: '3px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <button
-              onClick={() => setChartViewMode('top5')}
-              style={{
-                padding: '5px 14px',
-                borderRadius: '16px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                background: !isAll ? 'var(--color-primary)' : 'transparent',
-                color: !isAll ? '#000' : 'var(--color-text-muted)',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-            >
-              Top 5
-            </button>
-            <button
               onClick={() => setChartViewMode('all')}
               style={{
                 padding: '5px 14px',
@@ -373,6 +356,23 @@ export default function AwardsPage() {
               }}
             >
               Tutti ({stats.length})
+            </button>
+            <button
+              onClick={() => setChartViewMode('top5')}
+              style={{
+                padding: '5px 14px',
+                borderRadius: '16px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                background: !isAll ? 'var(--color-primary)' : 'transparent',
+                color: !isAll ? '#000' : 'var(--color-text-muted)',
+                transition: 'all 0.2s',
+                outline: 'none'
+              }}
+            >
+              Top 5
             </button>
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function AwardsPage() {
           {/* Media Voto Chart */}
           <div className="chart-card">
             <h4><TrendingUp size={16} /> Media Voto</h4>
-            <div style={{ height: isNarrow ? '280px' : '230px', padding: '10px 0' }}>
+            <div style={{ height: isNarrow ? '300px' : '230px', padding: '10px 0' }}>
                 {timeSeriesData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
@@ -420,7 +420,7 @@ export default function AwardsPage() {
                       <XAxis dataKey="name" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
                       <Tooltip cursor={{stroke: 'rgba(255,255,255,0.1)'}} contentStyle={{background: '#151f2b', border: '1px solid #3da5f5', borderRadius: '8px'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#aaa', fontWeight: 600, marginBottom: '4px'}} />
-                      <Legend verticalAlign="bottom" height={isNarrow ? 55 : 36} iconType="circle" wrapperStyle={{ fontSize: isNarrow ? '11px' : '12px', color: '#ccc', paddingTop: '10px' }} />
+                      <Legend verticalAlign="bottom" height={isNarrow ? (chartStats.length > 8 ? 75 : 55) : 36} iconType="circle" wrapperStyle={{ fontSize: isNarrow ? '11px' : '12px', color: '#ccc', paddingTop: '10px' }} />
                       {chartStats.map((p, index) => (
                         <Line key={p.name} type="monotone" dataKey={p.name} name={p.name} stroke={colors[index % colors.length]} strokeWidth={2.5} dot={{r: 4, fill: colors[index % colors.length], stroke: '#151f2b', strokeWidth: 1.5}} activeDot={{r: 6}} connectNulls={true} />
                       ))}

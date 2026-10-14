@@ -16,6 +16,13 @@ export async function POST(req: Request) {
 
     try {
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS tuffo integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS presa integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS riflessi integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS piazzamento integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS uscite integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS reattivita integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS rinvio integer;`;
     } catch {
       // ignore
     }
@@ -30,8 +37,15 @@ export async function POST(req: Request) {
     }
 
     // Process stats
-    const { velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score } = stats || {};
-    const statFields = [velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso];
+    const { 
+      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score,
+      tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
+    } = stats || {};
+
+    const isGk = sanitizedRole === 'Portiere';
+    const statFields = isGk
+      ? [tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio, resistenza, rissa, altezza, peso]
+      : [velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso];
     
     let insertedCount = 0;
     for (const val of statFields) {
@@ -62,6 +76,13 @@ export async function POST(req: Request) {
         piede = ${piede || null},
         "Skill" = ${Skill || null},
         "Score" = ${Score ? parseInt(Score) : null},
+        tuffo = ${tuffo ? parseInt(tuffo) : null},
+        presa = ${presa ? parseInt(presa) : null},
+        riflessi = ${riflessi ? parseInt(riflessi) : null},
+        piazzamento = ${piazzamento ? parseInt(piazzamento) : null},
+        uscite = ${uscite ? parseInt(uscite) : null},
+        reattivita = ${reattivita ? parseInt(reattivita) : null},
+        rinvio = ${rinvio ? parseInt(rinvio) : null},
         origine_punteggi = ${origine}
       WHERE "Nome" = ${sanitizedOld}
     `;

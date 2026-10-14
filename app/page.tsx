@@ -28,6 +28,13 @@ interface Player {
   Skill?: string;
   Score?: number;
   figurina?: string;
+  tuffo?: number;
+  presa?: number;
+  riflessi?: number;
+  piazzamento?: number;
+  uscite?: number;
+  reattivita?: number;
+  rinvio?: number;
 }
 
 interface Cluster {
@@ -457,7 +464,14 @@ const PesMorale = ({ condition }: { condition: 'excellent' | 'good' | 'normal' |
 };
 
 const getPlayerStats = (player: Player | undefined, fallbackName: string) => {
-    if (!player && !fallbackName) return { velocita: 50, accelerazione: 50, tecnica: 50, contrasto: 50, passaggi: 50, finalizzazione: 50, resistenza: 50, dribbling: 50, rissa: 50, altezza: 180, peso: 75, piede: 'Destro' };
+    const isGk = player?.Ruolo === 'Portiere';
+    if (!player && !fallbackName) {
+      return { 
+        isGk: false,
+        velocita: 50, accelerazione: 50, tecnica: 50, contrasto: 50, passaggi: 50, finalizzazione: 50, resistenza: 50, dribbling: 50, rissa: 50, altezza: 180, peso: 75, piede: 'Destro',
+        tuffo: 50, presa: 50, riflessi: 50, piazzamento: 50, uscite: 50, reattivita: 50, rinvio: 50
+      };
+    }
     
     let hash = 0;
     const name = player?.Nome || fallbackName;
@@ -467,9 +481,85 @@ const getPlayerStats = (player: Player | undefined, fallbackName: string) => {
     const seed = Math.abs(hash);
     const rnd = (min: number, max: number, offset: number) => Math.floor(min + ((seed + offset) % (max - min + 1)));
 
+    if (isGk) {
+        if (player?.origine_punteggi === 'MANUALE') {
+            return {
+                isGk: true,
+                tuffo: player.tuffo ?? 0,
+                presa: player.presa ?? 0,
+                riflessi: player.riflessi ?? 0,
+                piazzamento: player.piazzamento ?? 0,
+                uscite: player.uscite ?? 0,
+                reattivita: player.reattivita ?? 0,
+                rinvio: player.rinvio ?? 0,
+                resistenza: player.resistenza ?? 0,
+                rissa: player.rissa ?? 0,
+                altezza: player.altezza ?? 0,
+                peso: player.peso ?? 0,
+                piede: player.piede ?? 'ND',
+                velocita: player.tuffo ?? 0,
+                accelerazione: player.presa ?? 0,
+                tecnica: player.riflessi ?? 0,
+                contrasto: player.piazzamento ?? 0,
+                passaggi: player.uscite ?? 0,
+                finalizzazione: player.rinvio ?? 0,
+                dribbling: player.reattivita ?? 0
+            };
+        }
+
+        if (player?.origine_punteggi?.toUpperCase() === 'PARZIALE') {
+            return {
+                isGk: true,
+                tuffo: player.tuffo ?? rnd(65, 95, 1),
+                presa: player.presa ?? rnd(65, 95, 2),
+                riflessi: player.riflessi ?? rnd(65, 95, 3),
+                piazzamento: player.piazzamento ?? rnd(65, 95, 4),
+                uscite: player.uscite ?? rnd(60, 95, 5),
+                reattivita: player.reattivita ?? rnd(65, 95, 6),
+                rinvio: player.rinvio ?? rnd(60, 95, 7),
+                resistenza: player.resistenza ?? rnd(60, 99, 9),
+                rissa: player.rissa ?? rnd(30, 100, 11),
+                altezza: player.altezza ?? rnd(175, 198, 8),
+                peso: player.peso ?? rnd(70, 95, 12),
+                piede: player.piede ?? (seed % 2 === 0 ? 'Destro' : 'Sinistro'),
+                velocita: player.tuffo ?? rnd(65, 95, 1),
+                accelerazione: player.presa ?? rnd(65, 95, 2),
+                tecnica: player.riflessi ?? rnd(65, 95, 3),
+                contrasto: player.piazzamento ?? rnd(65, 95, 4),
+                passaggi: player.uscite ?? rnd(60, 95, 5),
+                finalizzazione: player.rinvio ?? rnd(60, 95, 7),
+                dribbling: player.reattivita ?? rnd(65, 95, 6)
+            };
+        }
+
+        return {
+            isGk: true,
+            tuffo: rnd(65, 95, 1),
+            presa: rnd(65, 95, 2),
+            riflessi: rnd(65, 95, 3),
+            piazzamento: rnd(65, 95, 4),
+            uscite: rnd(60, 95, 5),
+            reattivita: rnd(65, 95, 6),
+            rinvio: rnd(60, 95, 7),
+            resistenza: rnd(60, 99, 9),
+            rissa: rnd(30, 100, 11),
+            altezza: rnd(175, 198, 8),
+            peso: rnd(70, 95, 12),
+            piede: seed % 2 === 0 ? 'Destro' : 'Sinistro',
+            velocita: rnd(65, 95, 1),
+            accelerazione: rnd(65, 95, 2),
+            tecnica: rnd(65, 95, 3),
+            contrasto: rnd(65, 95, 4),
+            passaggi: rnd(60, 95, 5),
+            finalizzazione: rnd(60, 95, 7),
+            dribbling: rnd(65, 95, 6)
+        };
+    }
+
     // Se c'è la dicitura MANUALE, prende i valori direttamente dal DB (anche se sono vuoti)
     if (player?.origine_punteggi === 'MANUALE') {
         return {
+            isGk: false,
             velocita: player.velocita ?? 0,
             accelerazione: player.accelerazione ?? 0,
             tecnica: player.tecnica ?? 0,
@@ -481,13 +571,15 @@ const getPlayerStats = (player: Player | undefined, fallbackName: string) => {
             rissa: player.rissa ?? 0,
             altezza: player.altezza ?? 0,
             peso: player.peso ?? 0,
-            piede: player.piede ?? 'ND'
+            piede: player.piede ?? 'ND',
+            tuffo: 0, presa: 0, riflessi: 0, piazzamento: 0, uscite: 0, reattivita: 0, rinvio: 0
         };
     }
 
     // Se c'è la dicitura PARZIALE, prende i valori dal DB se presenti, altrimenti li genera casualmente
     if (player?.origine_punteggi?.toUpperCase() === 'PARZIALE') {
         return {
+            isGk: false,
             velocita: player.velocita ?? rnd(65, 95, 1),
             accelerazione: player.accelerazione ?? rnd(65, 95, 2),
             tecnica: player.tecnica ?? rnd(65, 95, 3),
@@ -499,11 +591,13 @@ const getPlayerStats = (player: Player | undefined, fallbackName: string) => {
             rissa: player.rissa ?? rnd(30, 100, 11),
             altezza: player.altezza ?? rnd(165, 195, 7),
             peso: player.peso ?? rnd(60, 90, 8),
-            piede: player.piede ?? (seed % 2 === 0 ? 'Destro' : 'Sinistro')
+            piede: player.piede ?? (seed % 2 === 0 ? 'Destro' : 'Sinistro'),
+            tuffo: rnd(50, 70, 1), presa: rnd(50, 70, 2), riflessi: rnd(50, 70, 3), piazzamento: rnd(50, 70, 4), uscite: rnd(50, 70, 5), reattivita: rnd(50, 70, 6), rinvio: rnd(50, 70, 7)
         };
     }
     
     return {
+        isGk: false,
         velocita: rnd(65, 95, 1),
         accelerazione: rnd(65, 95, 2),
         tecnica: rnd(65, 95, 3),
@@ -515,7 +609,8 @@ const getPlayerStats = (player: Player | undefined, fallbackName: string) => {
         rissa: rnd(30, 100, 11),
         altezza: rnd(165, 195, 7),
         peso: rnd(60, 90, 8),
-        piede: seed % 2 === 0 ? 'Destro' : 'Sinistro'
+        piede: seed % 2 === 0 ? 'Destro' : 'Sinistro',
+        tuffo: rnd(50, 70, 1), presa: rnd(50, 70, 2), riflessi: rnd(50, 70, 3), piazzamento: rnd(50, 70, 4), uscite: rnd(50, 70, 5), reattivita: rnd(50, 70, 6), rinvio: rnd(50, 70, 7)
     };
 };
 
@@ -3571,10 +3666,44 @@ const formatResultTime = (timeStr?: string) => {
           </div>
       )}
 
+      {(() => null)()}
+
       {isEditModalOpen && (() => {
           const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
           const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean), ...dbPlayers.map(p => p.RuoloSecondario).filter(Boolean)]));
-          const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
+          
+          const GK_STAT_FIELDS = [
+            { key: 'tuffo', label: 'Tuffo' },
+            { key: 'presa', label: 'Presa' },
+            { key: 'riflessi', label: 'Riflessi' },
+            { key: 'piazzamento', label: 'Piazzamento' },
+            { key: 'uscite', label: 'Uscite' },
+            { key: 'reattivita', label: 'Reattività' },
+            { key: 'resistenza', label: 'Resistenza' },
+            { key: 'rinvio', label: 'Rinvio' },
+            { key: 'rissa', label: 'Rissa' },
+            { key: 'altezza', label: 'Altezza' },
+            { key: 'peso', label: 'Peso' },
+            { key: 'Score', label: 'Score' }
+          ] as const;
+
+          const OUTFIELD_STAT_FIELDS = [
+            { key: 'velocita', label: 'Velocita' },
+            { key: 'accelerazione', label: 'Accelerazione' },
+            { key: 'tecnica', label: 'Tecnica' },
+            { key: 'contrasto', label: 'Contrasto' },
+            { key: 'passaggi', label: 'Passaggi' },
+            { key: 'finalizzazione', label: 'Finalizzazione' },
+            { key: 'resistenza', label: 'Resistenza' },
+            { key: 'dribbling', label: 'Dribbling' },
+            { key: 'rissa', label: 'Rissa' },
+            { key: 'altezza', label: 'Altezza' },
+            { key: 'peso', label: 'Peso' },
+            { key: 'Score', label: 'Score' }
+          ] as const;
+
+          const isGk = editingPlayerStats.Ruolo === 'Portiere';
+          const statFields = isGk ? GK_STAT_FIELDS : OUTFIELD_STAT_FIELDS;
           const textFields = ['Skill', 'piede'] as const;
 
           return (
@@ -3623,16 +3752,18 @@ const formatResultTime = (timeStr?: string) => {
                         </div>
                     </div>
 
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Statistiche Fisiche e Tecniche</h4>
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>
+                      {isGk ? 'Statistiche da Portiere e Fisiche' : 'Statistiche Fisiche e Tecniche'}
+                    </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
                         {statFields.map(f => (
-                           <div key={f}>
-                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                           <div key={f.key}>
+                             <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f.label}</label>
                              <input 
                                type="number" 
                                className="modal-input"
-                               value={editingPlayerStats[f as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f]: e.target.value ? parseInt(e.target.value) : null}))}
+                               value={editingPlayerStats[f.key as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f.key]: e.target.value ? parseInt(e.target.value) : null}))}
                                placeholder="-"
                              />
                            </div> 
@@ -3685,7 +3816,39 @@ const formatResultTime = (timeStr?: string) => {
       {isAddModalOpen && (() => {
           const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
           const uniqueRoles = Array.from(new Set([...baseRoles, ...dbPlayers.map(p => p.Ruolo).filter(Boolean), ...dbPlayers.map(p => p.RuoloSecondario).filter(Boolean)]));
-          const statFields = ['velocita', 'accelerazione', 'tecnica', 'contrasto', 'passaggi', 'finalizzazione', 'resistenza', 'dribbling', 'rissa', 'altezza', 'peso', 'Score'] as const;
+          
+          const GK_STAT_FIELDS = [
+            { key: 'tuffo', label: 'Tuffo' },
+            { key: 'presa', label: 'Presa' },
+            { key: 'riflessi', label: 'Riflessi' },
+            { key: 'piazzamento', label: 'Piazzamento' },
+            { key: 'uscite', label: 'Uscite' },
+            { key: 'reattivita', label: 'Reattività' },
+            { key: 'resistenza', label: 'Resistenza' },
+            { key: 'rinvio', label: 'Rinvio' },
+            { key: 'rissa', label: 'Rissa' },
+            { key: 'altezza', label: 'Altezza' },
+            { key: 'peso', label: 'Peso' },
+            { key: 'Score', label: 'Score' }
+          ] as const;
+
+          const OUTFIELD_STAT_FIELDS = [
+            { key: 'velocita', label: 'Velocita' },
+            { key: 'accelerazione', label: 'Accelerazione' },
+            { key: 'tecnica', label: 'Tecnica' },
+            { key: 'contrasto', label: 'Contrasto' },
+            { key: 'passaggi', label: 'Passaggi' },
+            { key: 'finalizzazione', label: 'Finalizzazione' },
+            { key: 'resistenza', label: 'Resistenza' },
+            { key: 'dribbling', label: 'Dribbling' },
+            { key: 'rissa', label: 'Rissa' },
+            { key: 'altezza', label: 'Altezza' },
+            { key: 'peso', label: 'Peso' },
+            { key: 'Score', label: 'Score' }
+          ] as const;
+
+          const isGk = newPlayerStats.Ruolo === 'Portiere';
+          const statFields = isGk ? GK_STAT_FIELDS : OUTFIELD_STAT_FIELDS;
           const textFields = ['Skill', 'piede'] as const;
 
           return (
@@ -3752,16 +3915,18 @@ const formatResultTime = (timeStr?: string) => {
                         </select>
                     </div>
 
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Statistiche Fisiche e Tecniche</h4>
+                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>
+                      {isGk ? 'Statistiche da Portiere e Fisiche' : 'Statistiche Fisiche e Tecniche'}
+                    </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
                         {statFields.map(f => (
-                           <div key={f}>
-                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
+                           <div key={f.key}>
+                             <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f.label}</label>
                              <input 
                                type="number" 
                                className="modal-input"
-                               value={newPlayerStats[f as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f]: e.target.value ? parseInt(e.target.value) : null}))}
+                               value={newPlayerStats[f.key as keyof Player]?.toString() || ''} 
+                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f.key]: e.target.value ? parseInt(e.target.value) : null}))}
                                placeholder="-"
                              />
                            </div> 
@@ -7132,7 +7297,14 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                   <div className="pes-radar-container">
                     <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
-                      <polygon className="pes-radar-polygon" points={`
+                      <polygon className="pes-radar-polygon" points={stats.isGk ? `
+                        50,${50 - (stats.tuffo / 100) * 45}
+                        ${50 + (stats.presa / 100) * 43.3},${50 - (stats.presa / 100) * 25}
+                        ${50 + (stats.riflessi / 100) * 43.3},${50 + (stats.riflessi / 100) * 25}
+                        50,${50 + (stats.piazzamento / 100) * 45}
+                        ${50 - (stats.uscite / 100) * 43.3},${50 + (stats.uscite / 100) * 25}
+                        ${50 - (stats.rinvio / 100) * 43.3},${50 - (stats.rinvio / 100) * 25}
+                      ` : `
                         50,${50 - (stats.velocita / 100) * 45}
                         ${50 + (stats.accelerazione / 100) * 43.3},${50 - (stats.accelerazione / 100) * 25}
                         ${50 + (stats.tecnica / 100) * 43.3},${50 + (stats.tecnica / 100) * 25}
@@ -7142,27 +7314,55 @@ const formatResultTime = (timeStr?: string) => {
                       `} />
                     </svg>
                     <div className="pes-radar-labels">
-                      <span style={{ top: '0%', left: '50%' }}>Vel</span>
-                      <span style={{ top: '25%', left: '95%' }}>Acc</span>
-                      <span style={{ top: '75%', left: '95%' }}>Tec</span>
-                      <span style={{ top: '100%', left: '50%' }}>Con</span>
-                      <span style={{ top: '75%', left: '5%' }}>Pas</span>
-                      <span style={{ top: '25%', left: '5%' }}>Fin</span>
+                      {stats.isGk ? (
+                        <>
+                          <span style={{ top: '0%', left: '50%' }}>Tuf</span>
+                          <span style={{ top: '25%', left: '95%' }}>Pre</span>
+                          <span style={{ top: '75%', left: '95%' }}>Rif</span>
+                          <span style={{ top: '100%', left: '50%' }}>Pia</span>
+                          <span style={{ top: '75%', left: '5%' }}>Usc</span>
+                          <span style={{ top: '25%', left: '5%' }}>Rin</span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ top: '0%', left: '50%' }}>Vel</span>
+                          <span style={{ top: '25%', left: '95%' }}>Acc</span>
+                          <span style={{ top: '75%', left: '95%' }}>Tec</span>
+                          <span style={{ top: '100%', left: '50%' }}>Con</span>
+                          <span style={{ top: '75%', left: '5%' }}>Pas</span>
+                          <span style={{ top: '25%', left: '5%' }}>Fin</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="pes-stats-col">
-                  <div className="pes-stat-row"><span>Velocità</span><span className="pes-stat-val">{stats.velocita}</span></div>
-                  <div className="pes-stat-row"><span>Accelerazione</span><span className="pes-stat-val">{stats.accelerazione}</span></div>
-                  <div className="pes-stat-row"><span>Tecnica</span><span className="pes-stat-val">{stats.tecnica}</span></div>
-                  <div className="pes-stat-row"><span>Contrasto</span><span className="pes-stat-val">{stats.contrasto}</span></div>
-                  <div className="pes-stat-row"><span>Passaggi</span><span className="pes-stat-val">{stats.passaggi}</span></div>
-                  <div className="pes-stat-row"><span>Finalizzazione</span><span className="pes-stat-val">{stats.finalizzazione}</span></div>
-                  <div className="pes-stat-row"><span>Resistenza</span><span className="pes-stat-val">{stats.resistenza}</span></div>
-                  <div className="pes-stat-row">
-                    <span>Dribbling</span>
-                    <span className="pes-stat-val" style={stats.dribbling === 100 ? { color: '#ffd700', textShadow: '0 0 5px rgba(255, 215, 0, 0.8)' } : {}}>{stats.dribbling}</span>
-                  </div>
+                  {stats.isGk ? (
+                    <>
+                      <div className="pes-stat-row"><span>Tuffo</span><span className="pes-stat-val">{stats.tuffo}</span></div>
+                      <div className="pes-stat-row"><span>Presa</span><span className="pes-stat-val">{stats.presa}</span></div>
+                      <div className="pes-stat-row"><span>Riflessi</span><span className="pes-stat-val">{stats.riflessi}</span></div>
+                      <div className="pes-stat-row"><span>Piazzamento</span><span className="pes-stat-val">{stats.piazzamento}</span></div>
+                      <div className="pes-stat-row"><span>Uscite</span><span className="pes-stat-val">{stats.uscite}</span></div>
+                      <div className="pes-stat-row"><span>Reattività</span><span className="pes-stat-val">{stats.reattivita}</span></div>
+                      <div className="pes-stat-row"><span>Rinvio</span><span className="pes-stat-val">{stats.rinvio}</span></div>
+                      <div className="pes-stat-row"><span>Resistenza</span><span className="pes-stat-val">{stats.resistenza}</span></div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="pes-stat-row"><span>Velocità</span><span className="pes-stat-val">{stats.velocita}</span></div>
+                      <div className="pes-stat-row"><span>Accelerazione</span><span className="pes-stat-val">{stats.accelerazione}</span></div>
+                      <div className="pes-stat-row"><span>Tecnica</span><span className="pes-stat-val">{stats.tecnica}</span></div>
+                      <div className="pes-stat-row"><span>Contrasto</span><span className="pes-stat-val">{stats.contrasto}</span></div>
+                      <div className="pes-stat-row"><span>Passaggi</span><span className="pes-stat-val">{stats.passaggi}</span></div>
+                      <div className="pes-stat-row"><span>Finalizzazione</span><span className="pes-stat-val">{stats.finalizzazione}</span></div>
+                      <div className="pes-stat-row"><span>Resistenza</span><span className="pes-stat-val">{stats.resistenza}</span></div>
+                      <div className="pes-stat-row">
+                        <span>Dribbling</span>
+                        <span className="pes-stat-val" style={stats.dribbling === 100 ? { color: '#ffd700', textShadow: '0 0 5px rgba(255, 215, 0, 0.8)' } : {}}>{stats.dribbling}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="pes-stat-row">
                     <span>Probabilità di Rissa</span>
                     <span className="pes-stat-val" style={stats.rissa === 100 ? { color: '#ffd700', textShadow: '0 0 5px rgba(255, 215, 0, 0.8)' } : {}}>{stats.rissa}</span>

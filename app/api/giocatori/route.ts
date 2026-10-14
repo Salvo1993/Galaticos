@@ -31,6 +31,13 @@ export async function POST(req: Request) {
 
     try {
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS tuffo integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS presa integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS riflessi integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS piazzamento integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS uscite integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS reattivita integer;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS rinvio integer;`;
     } catch {
       // ignore
     }
@@ -44,8 +51,15 @@ export async function POST(req: Request) {
     }
 
     // Process stats
-    const { velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score } = stats || {};
-    const statFields = [velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso];
+    const { 
+      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score,
+      tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
+    } = stats || {};
+
+    const isGk = sanitizedRuolo === 'Portiere';
+    const statFields = isGk
+      ? [tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio, resistenza, rissa, altezza, peso]
+      : [velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso];
     
     let insertedCount = 0;
     for (const val of statFields) {
@@ -59,7 +73,8 @@ export async function POST(req: Request) {
     await sql`
       INSERT INTO public."Giocatori" (
         "Nome", "Ruolo", "RuoloSecondario", velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione,
-        resistenza, dribbling, rissa, altezza, peso, piede, "Skill", "Score", origine_punteggi
+        resistenza, dribbling, rissa, altezza, peso, piede, "Skill", "Score", origine_punteggi,
+        tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
       ) VALUES (
         ${sanitizedNome}, ${sanitizedRuolo}, ${sanitizedRuoloSecondario},
         ${velocita ? parseInt(velocita) : null}, ${accelerazione ? parseInt(accelerazione) : null},
@@ -69,7 +84,11 @@ export async function POST(req: Request) {
         ${rissa ? parseInt(rissa) : null}, ${altezza ? parseInt(altezza) : null},
         ${peso ? parseInt(peso) : null}, ${piede || null},
         ${Skill || null}, ${Score ? parseInt(Score) : null},
-        ${origine}
+        ${origine},
+        ${tuffo ? parseInt(tuffo) : null}, ${presa ? parseInt(presa) : null},
+        ${riflessi ? parseInt(riflessi) : null}, ${piazzamento ? parseInt(piazzamento) : null},
+        ${uscite ? parseInt(uscite) : null}, ${reattivita ? parseInt(reattivita) : null},
+        ${rinvio ? parseInt(rinvio) : null}
       )
     `;
 

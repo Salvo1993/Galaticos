@@ -1,469 +1,318 @@
-# Specifiche Tecniche — Random Six Fingers
-## Sito Web: Generatore di Squadre per Calcetto Amatoriale
+# Specifiche Tecniche — Random Six Fingers / El Futbol / Galaticos
+## Piattaforma Web per Calcetto Amatoriale: Bilanciamento Tattico, Statistiche, Previsioni e Archivio
 
 ---
 
 ## 1. Panoramica del Progetto
 
-**Nome progetto:** Random Six Fingers  
-**URL Vercel:** `random-six-fingers.vercel.app`  
-**Repository GitHub:** `random-six-fingers` (locale → push su GitHub → deploy su Vercel)  
-**Tipologia:** Single-page web application (SPA), statica — nessun backend necessario  
-**Stack:** HTML5 + CSS3 + JavaScript vanilla (zero dipendenze)  
-**Deploy:** Vercel (free tier, CI/CD automatico da GitHub)
+- **Nome Progetto:** Random Six Fingers / El Futbol / Galaticos
+- **Tipologia:** Full-Stack Web Application (Next.js App Router, SSR, API Routes, Client Components)
+- **Framework & Runtime:** Next.js 16.2 (Turbopack), React 19, TypeScript
+- **Database:** PostgreSQL (Neon Serverless PostgreSQL con pooling SSL)
+- **Autenticazione:** NextAuth.js v4 con provider Google OAuth e controllo accessi RBAC server-side
+- **Styling:** CSS3 Design Tokens / Vanilla CSS personalizzato (dark mode nativa ad alto contrasto con supporto light mode)
+- **Deploy:** Vercel (CI/CD automatico integrato con GitHub)
 
 ---
 
-## 2. Scopo dell'Applicazione
+## 2. Scopo e Obiettivi dell'Applicazione
 
-L'utente inserisce i nomi di **10 giocatori**, configura opzionalmente dei **cluster di vincolo**, e con un click su **"Crea Squadre"** l'app genera casualmente **2 squadre da 5 giocatori** rispettando la regola: *due giocatori dello stesso cluster non possono finire nella stessa squadra*.
-
----
-
-## 3. Struttura Repository
-
-```
-random-six-fingers/
-├── index.html          ← Entry point unico (SPA)
-├── vercel.json         ← Configurazione Vercel (opzionale, per headers)
-└── README.md           ← Documentazione progetto
-```
-
-> Nota: tutta la logica (HTML + CSS + JS) risiede in `index.html` per semplicità di deploy statico.
+L'applicazione nasce come strumento definitivo per l'organizzazione e la gestione delle partite di calcetto settimanali (5vs5, 6vs6, 7vs7, 8vs8), garantendo:
+1. **Generazione e bilanciamento squadre algoritmico:** basato su rating PES personalizzato, voti storici, win rate, ruoli in campo e gestione vincoli di cluster.
+2. **Visualizzazione tattica 2D interattiva:** campi da gioco realistici con maglie personalizzate, inversione colori (chiara/scura) e selezione moduli (es. 2-3-1, 3-3-1, 2-4-1).
+3. **Motore di previsione risultati (AI Prediction Engine):** quote e probabilità di vittoria stimate su dati storici e affinità.
+4. **Archivio completo e statistiche storiche:** gestione risultati, marcatori, pagelle/voti, MVP, classifica generale dinamica, trend di forma e sfide testa a testa (H2H).
+5. **Archivio multimediale:** raccolta video YouTube di gol e giocate salienti collegati ai singoli giocatori e partite.
+6. **Esportazione & Condivisione:** generazione tabellino WhatsApp one-click e download rendering grafico JPEG della formazione.
 
 ---
 
-## 4. Struttura della Pagina (Layout Mobile-First)
+## 3. Architettura del Software e Struttura Modulare
 
-### 4.1 Header
+Il progetto adotta un'architettura rigorosamente modulare ad alta coesione e basso accoppiamento, separando l'orchestrazione UI, la gestione dello stato, la logica di business e le chiamate API:
 
-- Logo SVG inline del progetto (pallone da calcio stilizzato + nome "Random Six Fingers")
-- Toggle dark/light mode (icona sole/luna, in alto a destra)
-- Sfondo con gradiente sottile a tema verde campo da calcio
-
-### 4.2 Sezione — Inserimento Giocatori
-
-- **Titolo sezione:** "👥 Giocatori" (h2)
-- **10 input di testo** disposti in griglia responsive:
-  - Mobile: 2 colonne × 5 righe
-  - Desktop: 5 colonne × 2 righe
-- Ogni input ha:
-  - Placeholder: `Giocatore 1`, `Giocatore 2`, ..., `Giocatore 10`
-  - Larghezza: 100% della cella della griglia
-  - Stato focus visibile con accent color verde
-- **Validazione:** tutti e 10 i campi devono essere compilati prima di procedere; in caso contrario mostrare feedback inline sotto ogni campo vuoto
-
-### 4.3 Sezione — Cluster di Vincolo (opzionale)
-
-- **Titolo sezione:** "⚡ Cluster di Vincolo" (h2)
-- **Sottotitolo:** "I giocatori dello stesso cluster saranno divisi in squadre diverse"
-- **Lista dinamica di cluster**, inizialmente vuota
-- Ogni cluster è una card che contiene:
-  - **Campo nome cluster** (editabile inline), default: `Cluster A`, `Cluster B`, `Cluster C`, ...
-  - **Dropdown multi-selezione** (o chip-picker) dei 10 giocatori, mostrando solo i nomi inseriti
-  - **Bottone "×" rimuovi cluster** (icona, in alto a destra della card)
-- **Bottone "＋ Aggiungi Cluster"** — aggiunge un nuovo cluster alla lista
-- I cluster accettano **minimo 2 giocatori** ciascuno
-- Un giocatore può appartenere a **un solo cluster** (validazione)
-
-### 4.4 Pulsante Principale
-
-- **Testo:** "⚽ Crea Squadre"
-- Posizione: centrato, full-width su mobile
-- Stile: grande, accent verde, shadow prominente, animazione tap/hover
-- Stato disabled + messaggio tooltip se la validazione non passa
-
-### 4.5 Sezione — Risultato (appare dopo il click)
-
-- Appare con animazione `slide-up` + `fade-in` dopo la generazione
-- Composta da **2 card squadra** affiancate su tablet/desktop, impilate su mobile
-- Ogni card squadra:
-  - **Nome squadra** editabile inline (click per modificare), default: `Falchi 🦅` / `Aquile 🦆`
-  - Lista dei **5 giocatori assegnati** (bullet points con avatar generato da iniziali)
-  - Colore accent diverso per ogni squadra (es. blu per Falchi, arancione per Aquile)
-- **Bottone "🔀 Rimescola"** — rigenera le squadre con gli stessi giocatori e cluster
-- **Bottone "📋 Copia"** — copia il risultato negli appunti in formato testo leggibile
+```
+├── app/
+│   ├── api/                     ← Endpoint REST protetti e pubblici
+│   │   ├── auth/[...nextauth]/  ← Handler autenticazione NextAuth Google
+│   │   ├── campi/               ← Gestione sedi e campi sportivi
+│   │   ├── classifica/          ← Calcolo e restituzione classifica generale
+│   │   ├── giocatori/           ← CRUD giocatori, update ruoli, upload figurina
+│   │   ├── media/               ← Gestione video/highlight YouTube
+│   │   ├── risultati/           ← Archivio risultati, voti, pagelle e marcatori
+│   │   ├── salva-formazione/    ← Salvataggio formazioni ufficiali
+│   │   ├── session/             ← Sincronizzazione bozza formazioni in corso
+│   │   ├── settings/            ← Pesi algoritmo, moduli, previsioni e cover
+│   │   └── sfide/               ← Creazione e approvazione sfide H2H
+│   ├── awards/                  ← Pagina premi e riconoscimenti
+│   ├── live/                    ← Pagina tabellone live match
+│   ├── globals.css              ← Design system globale, utility e animazioni
+│   ├── layout.tsx               ← Root layout, session provider e metadata SEO
+│   └── page.tsx                 ← Orchestratore principale snello (~360 righe)
+├── components/
+│   ├── admin/                   ← Modali gestione admin (CampoModal, AlgoSettingsModal, EditPlayer, etc.)
+│   ├── layout/                  ← HeaderBanner, cover personalizzabile, date/time pickers
+│   ├── matches/                 ← MatchArchive, UpdateResultModal, DeleteMatchModal
+│   ├── media/                   ← MediaArchiveSection, AddMediaModal
+│   ├── players/                 ← PlayerCardModal (PES card interattiva con radar chart)
+│   ├── stats/                   ← LeaderboardSection, StatsTrendsSection, WeeklyStatsSection, SfidaModal
+│   ├── teams/                   ← TeamBuilderPanel, FormationResultsSection, ModuloModal, TacticalPitches
+│   └── ui/                      ← Dropdown personalizzati e componenti atomici
+├── hooks/
+│   ├── useAppData.ts            ← State management globale, caricamento dati e mutazioni
+│   └── useTeamBuilder.ts        ← State management selezione squadre, tattiche, swap ed esportazioni
+├── lib/
+│   ├── algorithm/               ← team-balancer.ts (algoritmo PES, ruoli, cluster, portieri)
+│   ├── api/                     ← Client API tipizzati (players-api, matches-api, settings-api)
+│   ├── auth.ts                  ← Configurazione NextAuth e helper server-side assertAdmin
+│   ├── db.ts                    ← Connessione PostgreSQL Neon con SSL pooler
+│   ├── export/                  ← whatsapp-share.ts (copia tabellino e rendering JPEG)
+│   ├── players/                 ← pes-card-utils.ts (calcolo overall PES e radar chart)
+│   ├── stats/                   ← prediction-engine.ts, match-utils.ts (calcolo classifica, voti, trend)
+│   └── teams/                   ← formation-utils.ts (coordinate grafiche 2D per ogni formato e modulo)
+└── types/
+    └── index.ts                 ← Modello di dominio e interfacce TypeScript unificate
+```
 
 ---
 
-## 5. Logica Algoritmica
+## 4. Sicurezza & Controllo Accessi Server-Side (RBAC)
 
-### 5.1 Algoritmo di Generazione Squadre
+L'applicazione implementa una rigorosa politica di sicurezza multilivello:
+- **Client-Side:** I controlli amministrativi (pulsanti di modifica, eliminazione, upload e configurazione) sono resi visibili esclusivamente se l'email dell'utente connesso con Google è presente nella whitelist `NEXT_PUBLIC_ADMIN_EMAIL`.
+- **Server-Side Guard:** Tutti gli endpoint API che effettuano mutazioni (`POST`, `PUT`, `DELETE`) o operazioni sensibili verificano l'identità tramite la funzione `assertAdmin` definita in `lib/auth.ts`:
 
-```
-INPUT:
-  - players[10]: array di stringhe (nomi giocatori)
-  - clusters[]: array di { name: string, members: string[] }
-
-ALGORITMO:
-  1. Shuffle players[] con Fisher-Yates algorithm
-  2. Inizializza teamA[] = [], teamB[] = []
-  3. Per ogni player in shuffled_players:
-      a. Determina se il giocatore ha un cluster associato
-      b. Se SÌ:
-           - Controlla se qualche membro del suo cluster è già in teamA
-           - Se SÌ in teamA → assegna a teamB (se teamB.length < 5)
-           - Se SÌ in teamB → assegna a teamA (se teamA.length < 5)
-           - Se nessuno → assegna alla squadra con meno membri (o random se pari)
-      c. Se NO cluster:
-           - Assegna alla squadra con meno membri (o random se pari)
-  4. Se teamA.length != 5 || teamB.length != 5 → errore (caso impossibile, mostrare alert)
-  5. RETURN { teamA, teamB }
-
-VINCOLO HARD:
-  - Due giocatori dello stesso cluster NON possono essere nella stessa squadra
-  - Se il vincolo è impossibile da rispettare (es. cluster con 3+ giocatori dove
-    tutti devono essere in squadre diverse ma ci sono più cluster incompatibili),
-    mostrare un messaggio di errore chiaro all'utente
-
-EDGE CASE:
-  - Cluster con più di 5 membri: impossibile, validare prima del click
-  - Stesso giocatore in 2 cluster diversi: non permesso, validare prima del click
-```
-
-### 5.2 Generazione Avatar da Iniziali
-
-```javascript
-// Per ogni giocatore, generare un avatar circolare SVG inline
-// con le iniziali e un colore di sfondo derivato dall'hash del nome
-function generateAvatar(name) {
-  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  const hue = hashStringToHue(name); // 0-360
-  return `<svg>...<circle fill="hsl(${hue}, 60%, 50%)"/><text>${initials}</text></svg>`;
+```typescript
+export async function assertAdmin(req?: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user || !session.user.email) {
+    throw new Error('UNAUTHORIZED');
+  }
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase());
+  if (!adminEmails.includes(session.user.email.trim().toLowerCase())) {
+    throw new Error('FORBIDDEN');
+  }
+  return session;
 }
 ```
 
----
-
-## 6. Design System
-
-### 6.1 Palette Colori
-
-**Tema principale: calcetto, erba verde, energia sportiva**
-
-```css
-:root {
-  /* Surfaces */
-  --color-bg:           #0f1a0f;   /* verde scuro quasi nero */
-  --color-surface:      #1a2e1a;
-  --color-surface-2:    #1f361f;
-  --color-border:       rgba(255,255,255,0.10);
-
-  /* Text */
-  --color-text:         #e8f5e8;
-  --color-text-muted:   #8fb08f;
-  --color-text-faint:   #5a7a5a;
-
-  /* Accent Verde */
-  --color-primary:      #4caf50;
-  --color-primary-hover: #43a047;
-  --color-primary-active: #388e3c;
-
-  /* Squadra Falchi */
-  --color-falchi:       #2196f3;   /* blu */
-  --color-falchi-bg:    rgba(33, 150, 243, 0.12);
-
-  /* Squadra Aquile */
-  --color-aquile:       #ff9800;   /* arancione */
-  --color-aquile-bg:    rgba(255, 152, 0, 0.12);
-
-  /* Feedback */
-  --color-error:        #ef5350;
-  --color-success:      #66bb6a;
-}
-
-/* Light mode */
-[data-theme="light"] {
-  --color-bg:           #f1f8f1;
-  --color-surface:      #ffffff;
-  --color-surface-2:    #f5faf5;
-  --color-border:       rgba(0,0,0,0.10);
-  --color-text:         #1b2e1b;
-  --color-text-muted:   #4a6a4a;
-  --color-text-faint:   #8aaa8a;
-  --color-primary:      #2e7d32;
-  --color-primary-hover: #1b5e20;
-}
-```
-
-### 6.2 Tipografia
-
-**Font:** [Fontshare](https://www.fontshare.com/)
-
-```html
-<!-- Heading display: Clash Display (bold, sportivo) -->
-<link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,600,700&display=swap" rel="stylesheet">
-
-<!-- Body: Satoshi (leggibile, moderno) -->
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
-```
-
-```css
-:root {
-  --font-display: 'Clash Display', 'Helvetica Neue', sans-serif;
-  --font-body:    'Satoshi', 'Inter', sans-serif;
-}
-```
-
-### 6.3 Fluid Type Scale
-
-```css
-:root {
-  --text-xs:   clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-  --text-sm:   clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
-  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-  --text-lg:   clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
-  --text-xl:   clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
-}
-```
-
-### 6.4 Border Radius & Spacing
-
-```css
-:root {
-  --radius-sm:   0.375rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.75rem;
-  --radius-xl:   1rem;
-  --radius-full: 9999px;
-
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-12: 3rem;    /* 48px */
-}
-```
+### Endpoint Protetti:
+1. `POST /api/settings` — Salvataggio pesi algoritmo, moduli, previsioni e match label
+2. `POST /api/settings/upload-header` — Caricamento immagine di copertina
+3. `POST /api/giocatori` — Inserimento nuovo giocatore nel database
+4. `POST /api/giocatori/update` — Modifica statistiche, ruoli primari e secondari
+5. `POST /api/giocatori/delete` — Cancellazione massiva di giocatori
+6. `POST /api/giocatori/upload-image` — Upload figurina PES del giocatore
+7. `POST /api/risultati/update` — Aggiornamento risultato, marcatori, voti e MVP
+8. `POST /api/risultati/delete` — Cancellazione partita dallo storico con ricalcolo classifica
+9. `POST /api/salva-formazione` — Scrittura formazioni titolari su database
+10. `POST /api/campi` — Aggiunta e modifica campi sportivi e URL mappe
+11. `GET /api/setup` — Esecuzione migrazioni DDL protette
 
 ---
 
-## 7. Componenti UI Dettagliati
+## 5. Specifiche Funzionali Dettagliate
 
-### 7.1 Input Giocatore
+### 5.1 Selezione Giocatori e Formati Partita
+- **Formati supportati:**
+  - `5vs5`: 10 giocatori
+  - `6vs6`: 12 giocatori
+  - `7vs7`: 14 giocatori
+  - `8vs8`: 16 giocatori
+- **Selezione giocatori:** dropdown responsive con ricerca rapida tra i giocatori censiti a database.
+- **Cluster di Vincolo:**
+  - Creazione di infiniti cluster (`Cluster A`, `Cluster B`, ...).
+  - Selezione multipla dei membri tramite chip-picker toggle.
+  - Regola ferrea: *due o più giocatori appartenenti allo stesso cluster vengono sempre separati in squadre avverse*.
 
-```
-┌──────────────────────────┐
-│ 🔴  Giocatore 1          │  ← numero + campo testo
-└──────────────────────────┘
-  ↑ errore: "Inserisci un nome" (se vuoto e submit)
-```
+### 5.2 Algoritmo di Bilanciamento Squadre & Rating PES
+- **Formula Overall Rating PES:**
+  Ogni giocatore possiede un rating sintetico calcolato combinando:
+  $$\text{Rating} = \frac{w_{\text{Voto}} \cdot \text{MediaVoto} + w_{\text{WinRate}} \cdot \text{WinRate} + w_{\text{Gol}} \cdot \text{GolRatio} + w_{\text{MVP}} \cdot \text{MVPCount}}{100}$$
+- **Configurazione Pesi (personalizzabile in modale):**
+  - Peso Voto (default 40%)
+  - Peso Win Rate (default 30%)
+  - Peso Gol Ratio (default 30%)
+  - Peso MVP (default 15%)
+  - Bilanciamento Ruoli Tattici (attivo/disattivo)
+- **Modificatori OVR:** slider per applicare un bonus/malus manuale temporaneo $(\pm 10)$ su singoli giocatori per la partita odierna.
+- **Riconoscimento Ruoli e Portieri:**
+  - Individuazione automatica del portiere da tag `(P)`, ruolo preferito o secondario.
+  - Assegnazione garantita del portiere tra i pali (posizione GK).
+  - Ripartizione bilanciata dei macro-ruoli: Difensori (CB, RB, LB), Centrocampisti (CM, CAM, CDM), Attaccanti (CF, ST, RW, LW).
+- **Rilevamento "Sostituzione Volante":** notifica automatica se una squadra presenta un giocatore in rotazione.
 
-- Border: `1px solid var(--color-border)`
-- Focus: `box-shadow: 0 0 0 2px var(--color-primary)` + border verde
-- Altezza minima: 48px (touch target)
-- Padding: `var(--space-3) var(--space-4)`
-- Numero giocatore come prefisso colorato (badge circolare)
+### 5.3 Visualizzazione Tattica su Campo 2D & Moduli
+- **Campi da Gioco:** visualizzazione ad alta fedeltà (erba realistica, linee regolamentari, cerchio di centrocampo e aree di rigore).
+- **Moduli Tattici Configurabili:**
+  - Formato 7vs7: `2-3-1`, `3-2-1`, `2-2-2`, `3-1-2`
+  - Formato 8vs8: `3-3-1`, `2-3-2`, `3-2-2`, `2-4-1`
+  - Selezione indipendente per Squadra A, Squadra B o entrambe con persistenza automatica su DB e `localStorage`.
+- **Interazioni su Campo:**
+  - Drag / Click per scambiare due giocatori tra squadre diverse.
+  - Scambio ruoli all'interno della stessa squadra con un click.
+  - Toggle colore maglia: inversione rapida maglia chiara/scura (`Falchi 🦅` vs `Aquile 🦆`).
 
-### 7.2 Card Cluster
+### 5.4 AI Match Prediction Engine (Quote & Previsioni)
+- Calcola in tempo reale la probabilità percentuale di vittoria della Squadra A, Squadra B e Pareggio.
+- **4 Modalità di Analisi Storica:**
+  1. *Tutti i formati:* considera l'intero storico delle partite disputate.
+  2. *Due binari (Consigliata):* calcola previsioni 5v5/6v6 su archivio 5-6, e 7v7/8v8 su archivio 7-8.
+  3. *Rigoroso:* considera unicamente le partite disputate nel medesimo identico formato.
+  4. *Personalizzato:* matrice di inclusione libera definita dall'utente.
 
-```
-┌─────────────────────────────────────────┐
-│  [✏️ Cluster A          ]            [×] │
-│  ┌──────────────────────────────────┐   │
-│  │  Seleziona giocatori...          │   │
-│  └──────────────────────────────────┘   │
-│  ○ Sergio  ○ Giorgio  ○ Marco           │
-└─────────────────────────────────────────┘
-```
+### 5.5 Gestione Partite, Voti e Classifica Generale
+- **Archivio Partite:** lista cronologica delle partite con stadio, data, orario, formazioni e punteggio.
+- **Modale Aggiornamento Risultato:**
+  - Risultato numerico (es. `7-5`).
+  - Marcatori Squadra A e Squadra B con sintassi leggibile.
+  - Pagelle individuali: voto da 1 a 10 con decimali o `s.v.` (senza voto).
+  - Elezione MVP della partita.
+- **Classifica Generale Automatica:**
+  - Punti assoluti, Partite Giocate, Vittorie, Pareggi, Sconfitte.
+  - Gol fatti e subiti, Differenza reti.
+  - Media punti a partita (Punti/P).
+  - Media voto complessiva.
+  - Indicatore di forma recente (ultime 5 partite con badge verde/giallo/rosso).
+  - Filtro "Mostra Ospiti" per includere o escludere giocatori non registrati ufficialmente.
+- **Modulo Sfida (H2H):** confronto statistico testa a testa tra due o più giocatori selezionati con storico vittorie/sconfitte e reti.
 
-- Background: `var(--color-surface-2)` con bordo `var(--color-border)`
-- Nome cluster: input inline editabile, `--font-display`
-- Chip-picker: giocatori come toggle pill (selezionato = accent color)
-- Bordo left accent: `3px solid var(--color-primary)` solo sulla card attiva (variante)
+### 5.6 Archivio Multimediale & Highlights YouTube
+- Raccolta multimediale con player modale integrato.
+- Tagging dei video: partita di riferimento, marcatore/protagonista, assist-man/co-protagonista, tipologia (Gol, Parata, Giocata, Rissa).
+- Funzione di copia link rapido e condivisione per i social.
 
-> Nota anti-pattern: evitare `border-left` colorato come unico differenziatore visivo. Usare invece il background tinted `rgba(primary, 0.08)` + sottile border neutro.
-
-### 7.3 Card Squadra (risultato)
-
-```
-┌─────────────────────────────────────────┐
-│  🦅  [Falchi]                    ✏️      │  ← nome editabile
-├─────────────────────────────────────────┤
-│  🔵 SM  Sergio Marino                    │
-│  🔵 GP  Giorgio Palermo                  │
-│  🔵 AL  Andrea Longo                     │
-│  🔵 FM  Francesco Marino                 │
-│  🔵 RD  Roberto Di Naro                  │
-└─────────────────────────────────────────┘
-```
-
-- Header card: `var(--color-falchi-bg)` / `var(--color-aquile-bg)`
-- Avatar: cerchio 32px con iniziali, colore generato da hash del nome
-- Animazione entrata: `@keyframes slideUp` + `opacity: 0 → 1`
-- Nome squadra: click → `contenteditable="true"` → click fuori → salva
-
-### 7.4 Bottone Primario "Crea Squadre"
-
-- Background: `var(--color-primary)`, testo bianco
-- Altezza: 56px, `border-radius: var(--radius-full)` (pill shape)
-- Font: `--font-display`, `--text-lg`, `font-weight: 700`
-- `:active` transform: `scale(0.97)` + `box-shadow` ridotto
-- `:hover` background: `var(--color-primary-hover)`
-- Stato disabled: `opacity: 0.5`, `cursor: not-allowed`
-- Icon ⚽ a sinistra del testo
-
----
-
-## 8. Responsive Breakpoints
-
-| Breakpoint | Layout giocatori | Layout squadre | Nav |
-|---|---|---|---|
-| `< 480px` (mobile) | 2 col × 5 righe | 1 colonna, card impilate | Header solo logo + toggle |
-| `480px – 767px` (phablet) | 2 col × 5 righe | 1 colonna, card ampie | — |
-| `768px – 1023px` (tablet) | 5 col × 2 righe | 2 colonne affiancate | — |
-| `≥ 1024px` (desktop) | 5 col × 2 righe | 2 colonne affiancate, card grandi | — |
-
----
-
-## 9. Interazioni e Animazioni
-
-| Evento | Animazione |
-|---|---|
-| Apertura sezione risultato | `slideUp 400ms ease-out` + `fadeIn 300ms` |
-| Aggiunta cluster | `scaleIn 250ms spring` dalla posizione del bottone |
-| Rimozione cluster | `fadeOut + slideUp 200ms` |
-| Hover su card squadra | `box-shadow` aumenta (`var(--shadow-lg)`), `translateY(-2px)` |
-| Click "Rimescola" | card risultato: `flash opacity 0→1` con nuovi nomi (200ms) |
-| Tap input giocatore | border accent + leggero `scale(1.01)` |
-| Generazione completata | shimmer sweep sulle card squadra (1 volta) |
-
-Tutte le animazioni rispettano `@media (prefers-reduced-motion: reduce)`.
+### 5.7 Condivisione WhatsApp & Download Immagine
+- **Tabellino WhatsApp:** copia formattata con emoji, data, orario, stadio (con link Google Maps), formazioni Falchi/Aquile con indicazione maglia chiara e scura.
+- **Download JPEG Formazione:** generazione client-side di un rendering ad alta definizione del campo tattico tramite `html2canvas` per invio istantaneo nei gruppi.
 
 ---
 
-## 10. Validazioni e Messaggi di Errore
+## 6. Schema del Database Relazionale (PostgreSQL)
 
-| Condizione | Messaggio |
-|---|---|
-| Meno di 10 nomi inseriti | "Inserisci tutti e 10 i nomi prima di continuare" (inline, in rosso sotto il campo vuoto) |
-| Nomi duplicati | "Il nome '[nome]' è già presente" (inline sul secondo campo duplicato) |
-| Cluster con meno di 2 giocatori | "Ogni cluster deve avere almeno 2 giocatori" (sotto la card cluster) |
-| Stesso giocatore in due cluster | "Il giocatore '[nome]' è già assegnato a un altro cluster" |
-| Cluster impossibile da rispettare (es. 6 giocatori in 1 cluster) | Toast rosso: "Impossibile rispettare tutti i vincoli. Riduci la dimensione dei cluster." |
+```sql
+-- Tabella Giocatori
+CREATE TABLE IF NOT EXISTS giocatori (
+    id SERIAL PRIMARY KEY,
+    "Nome" VARCHAR(255) UNIQUE NOT NULL,
+    "Ruolo" VARCHAR(50),
+    "RuoloSecondario" VARCHAR(50),
+    velocita INT DEFAULT 70,
+    accelerazione INT DEFAULT 70,
+    tecnica INT DEFAULT 70,
+    contrasto INT DEFAULT 70,
+    passaggi INT DEFAULT 70,
+    finalizzazione INT DEFAULT 70,
+    resistenza INT DEFAULT 70,
+    dribbling INT DEFAULT 70,
+    rissa INT DEFAULT 50,
+    altezza INT DEFAULT 175,
+    peso INT DEFAULT 70,
+    piede VARCHAR(10) DEFAULT 'Destro',
+    origine_punteggi VARCHAR(50) DEFAULT 'default',
+    "Skill" TEXT,
+    "Score" INT DEFAULT 70,
+    figurina TEXT,
+    tuffo INT,
+    presa INT,
+    riflessi INT,
+    piazzamento INT,
+    uscite INT,
+    reattivita INT,
+    rinvio INT
+);
 
----
+-- Tabella Campi Sportivi
+CREATE TABLE IF NOT EXISTS campi (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    posizione_url TEXT
+);
 
-## 11. Feature: Copia Risultato
+-- Tabella Partite e Risultati
+CREATE TABLE IF NOT EXISTS partite (
+    id SERIAL PRIMARY KEY,
+    data DATE NOT NULL,
+    ora VARCHAR(10) NOT NULL,
+    team_a_name VARCHAR(100) NOT NULL,
+    team_b_name VARCHAR(100) NOT NULL,
+    team_a_players TEXT[] NOT NULL,
+    team_b_players TEXT[] NOT NULL,
+    risultato VARCHAR(20),
+    marcatori_a TEXT,
+    marcatori_b TEXT,
+    "Stadium" VARCHAR(255),
+    voti_giocatori JSONB,
+    mvps TEXT[],
+    maglia_chiara VARCHAR(5) DEFAULT 'A'
+);
 
-Click su "📋 Copia" genera e copia questo formato nel clipboard:
+-- Tabella Media YouTube
+CREATE TABLE IF NOT EXISTS media (
+    id SERIAL PRIMARY KEY,
+    partita_id INT REFERENCES partite(id) ON DELETE CASCADE,
+    giocatore VARCHAR(255),
+    co_giocatore VARCHAR(255),
+    tipologia VARCHAR(50) NOT NULL,
+    youtube_id VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-```
-⚽ RANDOM SIX FINGERS — Squadre del [data]
+-- Tabella Sessione Corrente (Bozza Formazioni)
+CREATE TABLE IF NOT EXISTS session (
+    id INT PRIMARY KEY DEFAULT 1,
+    selected_players TEXT[],
+    clusters JSONB,
+    team_a_name VARCHAR(100),
+    team_b_name VARCHAR(100),
+    team_a_players TEXT[],
+    team_b_players TEXT[],
+    maglia_chiara VARCHAR(5) DEFAULT 'A',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-🦅 FALCHI
-1. Sergio Marino
-2. Giorgio Palermo
-3. Andrea Longo
-4. Francesco Marino
-5. Roberto Di Naro
+-- Tabella Impostazioni Globali
+CREATE TABLE IF NOT EXISTS settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL
+);
 
-🦆 AQUILE
-1. Marco Bianchi
-2. Luigi Rossi
-3. Antonio Verde
-4. Davide Neri
-5. Emanuele Blu
-```
-
-Feedback visivo post-copia: il bottone diventa `✅ Copiato!` per 2 secondi.
-
----
-
-## 12. Configurazione Vercel
-
-**`vercel.json`** (opzionale, per security headers):
-
-```json
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    }
-  ]
-}
-```
-
-**Deploy automatico:** ogni `git push origin main` triggera un nuovo deploy su Vercel.
-
----
-
-## 13. Setup Repository GitHub
-
-```bash
-# 1. Crea cartella locale
-mkdir random-six-fingers && cd random-six-fingers
-
-# 2. Init git
-git init
-echo "# Random Six Fingers" > README.md
-git add .
-git commit -m "chore: initial commit"
-
-# 3. Crea repo su GitHub (via CLI o UI)
-gh repo create random-six-fingers --public --source=. --remote=origin --push
-# oppure manualmente:
-# git remote add origin https://github.com/TUO_USERNAME/random-six-fingers.git
-# git branch -M main
-# git push -u origin main
-
-# 4. Connetti Vercel
-# → vercel.com → New Project → Import from GitHub → random-six-fingers
-# → Framework Preset: Other
-# → Output Directory: ./ (root)
-# → Deploy
+-- Tabella Sfide Head-to-Head
+CREATE TABLE IF NOT EXISTS sfide (
+    id SERIAL PRIMARY KEY,
+    titolo VARCHAR(255) NOT NULL,
+    giocatori TEXT[] NOT NULL,
+    data_da DATE,
+    is_approved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
 
-## 14. Accessibilità (WCAG AA)
+## 7. Design System & Palette Colori
 
-- Tutti i `<input>` hanno `<label>` associata (anche visivamente nascosta con `.sr-only`)
-- Focus visibile su tutti gli elementi interattivi (`:focus-visible`)
-- Touch targets ≥ 44×44px
-- Contrasto testo/sfondo ≥ 4.5:1 (verificato in entrambi i temi)
-- Chip/toggle nei cluster hanno `role="checkbox"` + `aria-checked`
-- Risultato squadre annunciato con `aria-live="polite"` per screen reader
-- `alt=""` su tutti gli SVG decorativi, `aria-label` su quelli informativi
-
----
-
-## 15. Checklist di Completamento
-
-### Design System
-- [ ] Design tokens CSS definiti (colori, spacing, radius, tipografia)
-- [ ] Light mode + dark mode con toggle funzionante
-- [ ] Font Clash Display + Satoshi caricati via Fontshare CDN
-- [ ] SVG logo inline generato
-
-### Funzionalità Core
-- [ ] 10 input giocatori con validazione
-- [ ] Sistema cluster dinamico (aggiungi/rimuovi/rinomina)
-- [ ] Algoritmo generazione squadre con vincoli cluster
-- [ ] Nomi squadre editabili inline
-- [ ] Bottone Rimescola
-- [ ] Bottone Copia risultato negli appunti
-
-### UI/UX
-- [ ] Layout mobile-first verificato a 375px
-- [ ] Animazioni entrata risultato
-- [ ] Stato empty/error per ogni sezione
-- [ ] Avatar da iniziali per ogni giocatore
-- [ ] Feedback visivo su ogni interazione (hover, tap, focus)
-
-### Deploy
-- [ ] Repository GitHub creato e pushato
-- [ ] Progetto importato su Vercel come `random-six-fingers`
-- [ ] URL `random-six-fingers.vercel.app` raggiungibile
-- [ ] `vercel.json` con security headers (opzionale)
-- [ ] `README.md` con istruzioni di sviluppo locale
+- **Surface Scura Principale:** `#0a0e14` / `#0f172a`
+- **Card & Superfici Elevate:** `rgba(255, 255, 255, 0.04)` con bordi `rgba(255, 255, 255, 0.08)` e glassmorphism
+- **Accent Primario Calcetto:** `#00e676` (Verde smeraldo brillante)
+- **Squadra Falchi 🦅:** `#5de4ff` (Azzurro ciano brillante)
+- **Squadra Aquile 🦆:** `#ffaa00` (Arancione oro caldo)
+- **Campi da Gioco 2D:**
+  - Erba: texture a strisce alternate con shader verde campo `#1b5e20` / `#2e7d32`
+  - Linee di gioco: `#ffffff` con opacità regolamentare
+- **Tipografia:** Inter / Outfit / Clash Display con fluid scaling clamp responsive.
 
 ---
 
-*Documento generato per il progetto Random Six Fingers — Calcetto Amatoriale*
+## 8. Dual-Repository Synchronization Policy
+
+I repository **Galaticos** (`https://github.com/Salvo1993/Galaticos`) ed **ElFutbol** (`https://github.com/Salvo1993/ElFutbol`) condividono la medesima base di codice e sono mantenuti in **parità al 100%**:
+1. Qualsiasi componente, API o utility aggiunta in una repository viene sincronizzata istantaneamente nell'altra.
+2. Prima di ogni commit su `main`, viene verificata l'assenza di differenze strutturali (`diff -r`) e validata la compilazione senza errori (`npx tsc --noEmit`).
+3. I commit vengono pushati su entrambi i remote GitHub ad ogni rilascio significativo.
+
+---
+
+*Documento tecnico aggiornato con le implementazioni e il refactoring architetturale modulare.*

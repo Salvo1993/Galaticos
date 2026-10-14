@@ -8,6 +8,9 @@ import EditMediaModal from '@/components/EditMediaModal';
 import ModuloModal from '@/components/teams/ModuloModal';
 import PredictionSettingsModal from '@/components/stats/PredictionSettingsModal';
 import AlgoSettingsModal from '@/components/admin/AlgoSettingsModal';
+import ManagePlayersModal from '@/components/admin/ManagePlayersModal';
+import EditPlayerModal from '@/components/admin/EditPlayerModal';
+import AddPlayerModal from '@/components/admin/AddPlayerModal';
 
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -741,26 +744,15 @@ export default function Home() {
   const [matchLabel, setMatchLabel] = useState('Venerdì 19 giugno - Ore 21');
   const [headerImage, setHeaderImage] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [mergeTargetName, setMergeTargetName] = useState<string>('');
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingPlayerOldName, setEditingPlayerOldName] = useState('');
-  const [editingPlayerName, setEditingPlayerName] = useState('');
-  const [editingPlayerStats, setEditingPlayerStats] = useState<Partial<Player>>({});
-  const [editingPlayerImage, setEditingPlayerImage] = useState<File | null>(null);
-  const [newPlayerStats, setNewPlayerStats] = useState<Partial<Player>>({});
-  const [newPlayerImage, setNewPlayerImage] = useState<File | null>(null);
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [isEditSecRoleOpen, setIsEditSecRoleOpen] = useState(false);
-  const [isAddSecRoleOpen, setIsAddSecRoleOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isAddCampoModalOpen, setIsAddCampoModalOpen] = useState(false);
   const [campoModalMode, setCampoModalMode] = useState<'add'|'manage'>('add');
   const [selectedCampoIdToManage, setSelectedCampoIdToManage] = useState<number | null>(null);
   const [newCampoName, setNewCampoName] = useState('');
   const [newCampoUrl, setNewCampoUrl] = useState('');
   const [campoPassword, setCampoPassword] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedToDelete, setSelectedToDelete] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
@@ -903,16 +895,6 @@ export default function Home() {
     );
   };
 
-  useEffect(() => {
-    const handleGlobalClick = () => {
-      setIsEditSecRoleOpen(false);
-      setIsAddSecRoleOpen(false);
-    };
-    if (isEditSecRoleOpen || isAddSecRoleOpen) {
-      window.addEventListener('click', handleGlobalClick);
-      return () => window.removeEventListener('click', handleGlobalClick);
-    }
-  }, [isEditSecRoleOpen, isAddSecRoleOpen]);
 
   useEffect(() => {
     if (isUpdateModalOpen && updatingMatchId) {
@@ -1769,35 +1751,34 @@ export default function Home() {
     init();
   }, []);
 
-  const handleAddPlayer = async () => {
-    if (!newPlayerName.trim()) {
-        showToast("Nome obbligatorio", "error");
-        return;
-    }
-    if (!newPlayerStats.Ruolo?.trim()) {
-        showToast("Ruolo Preferito obbligatorio", "error");
-        return;
-    }
-
+  const handleAddPlayer = async (payload: {
+    name: string;
+    role: string;
+    roleSecondario: string | null;
+    stats: Partial<Player>;
+    mergeTarget: string;
+    imageFile: File | null;
+  }) => {
+    setIsSaving(true);
     try {
       const res = await fetch('/api/giocatori', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            Nome: newPlayerName.trim(),
-            Ruolo: newPlayerStats.Ruolo?.trim(),
-            RuoloSecondario: newPlayerStats.RuoloSecondario?.trim() || null,
-            stats: { ...newPlayerStats, Nome: newPlayerName.trim(), RuoloSecondario: newPlayerStats.RuoloSecondario?.trim() || null },
-            mergeTarget: mergeTargetName.trim()
+          Nome: payload.name,
+          Ruolo: payload.role,
+          RuoloSecondario: payload.roleSecondario,
+          stats: payload.stats,
+          mergeTarget: payload.mergeTarget
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      if (newPlayerImage) {
+      if (payload.imageFile) {
         const formData = new FormData();
-        formData.append('file', newPlayerImage);
-        formData.append('playerName', newPlayerName.trim());
+        formData.append('file', payload.imageFile);
+        formData.append('playerName', payload.name);
         const uploadRes = await fetch('/api/giocatori/upload-image', {
           method: 'POST',
           body: formData
@@ -1806,14 +1787,12 @@ export default function Home() {
       }
       
       showToast('Giocatore aggiunto!', 'success');
-      setNewPlayerName('');
-      setNewPlayerImage(null);
-      setNewPlayerStats({});
-      setMergeTargetName('');
       setIsAddModalOpen(false);
       await fetchPlayers();
     } catch (err: any) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1888,33 +1867,34 @@ export default function Home() {
     }
   };
 
-  const handleEditPlayerSubmit = async () => {
-    if (!editingPlayerName.trim()) {
-      showToast('Nome obbligatorio', 'error');
-      return;
-    }
-
-
+  const handleEditPlayerSubmit = async (payload: {
+    oldName: string;
+    newName: string;
+    newRole: string;
+    newRoleSecondario: string | null;
+    stats: Partial<Player>;
+    imageFile: File | null;
+  }) => {
     setIsSaving(true);
     try {
       const res = await fetch('/api/giocatori/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          oldName: editingPlayerOldName, 
-          newName: editingPlayerName.trim(), 
-          newRole: editingPlayerStats.Ruolo?.trim() || '',
-          newRoleSecondario: editingPlayerStats.RuoloSecondario?.trim() || null,
-          stats: { ...editingPlayerStats, Nome: editingPlayerName.trim(), RuoloSecondario: editingPlayerStats.RuoloSecondario?.trim() || null }
+          oldName: payload.oldName, 
+          newName: payload.newName, 
+          newRole: payload.newRole,
+          newRoleSecondario: payload.newRoleSecondario,
+          stats: payload.stats
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Errore durante la modifica');
 
-      if (editingPlayerImage) {
+      if (payload.imageFile) {
         const formData = new FormData();
-        formData.append('file', editingPlayerImage);
-        formData.append('playerName', editingPlayerName.trim());
+        formData.append('file', payload.imageFile);
+        formData.append('playerName', payload.newName);
         const uploadRes = await fetch('/api/giocatori/upload-image', {
           method: 'POST',
           body: formData
@@ -1924,14 +1904,14 @@ export default function Home() {
       }
       
       showToast('Giocatore aggiornato!', 'success');
-      setEditingPlayerImage(null);
       setIsEditModalOpen(false);
+      setEditingPlayer(null);
       
-      setSelectedPlayers(prev => prev.map(name => name === editingPlayerOldName ? editingPlayerName.trim() : name));
+      setSelectedPlayers(prev => prev.map(name => name === payload.oldName ? payload.newName : name));
       
       setClusters(prev => prev.map(c => ({
         ...c,
-        members: c.members.map(m => m === editingPlayerOldName ? editingPlayerName.trim() : m)
+        members: c.members.map(m => m === payload.oldName ? payload.newName : m)
       })));
       
       await fetchPlayers();
@@ -1942,30 +1922,27 @@ export default function Home() {
     }
   };
 
-  const handleDeletePlayers = async () => {
-    if (selectedToDelete.size === 0) return;
-    
+  const handleDeletePlayers = async (names: string[]) => {
+    if (names.length === 0) return;
 
     setIsSaving(true);
     try {
-        const res = await fetch('/api/giocatori/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ names: Array.from(selectedToDelete) })
-        });
-        if (!res.ok) throw new Error('Errore nella cancellazione');
-        
-        // Update UI
-        setSelectedPlayers(prev => prev.filter(name => !selectedToDelete.has(name)));
-        showToast('Giocatori eliminati!', 'success');
-        setSelectedToDelete(new Set());
-        setSearchQuery('');
-        setIsManageModalOpen(false);
-        await fetchPlayers();
+      const res = await fetch('/api/giocatori/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names })
+      });
+      if (!res.ok) throw new Error('Errore nella cancellazione');
+      
+      const namesSet = new Set(names);
+      setSelectedPlayers(prev => prev.filter(name => !namesSet.has(name)));
+      showToast('Giocatori eliminati!', 'success');
+      setIsManageModalOpen(false);
+      await fetchPlayers();
     } catch (err: any) {
-        showToast(err.message, 'error');
+      showToast(err.message, 'error');
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -3141,711 +3118,40 @@ const formatResultTime = (timeStr?: string) => {
       />
 
 
-      {isManageModalOpen && (
-          <div className="modal-overlay" onClick={() => setIsManageModalOpen(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-                      <h3 style={{margin:0}}>Gestisci Giocatori</h3>
-                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => setIsManageModalOpen(false)}><X size={20} /></button>
-                  </div>
-                  <input 
-                    type="text" 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cerca nome..."
-                    className="modal-input"
-                  />
-                  <div className="players-list-scroll" style={{maxHeight:'300px', overflowY:'auto', margin:'1rem 0', border:'1px solid var(--color-border)', borderRadius:'var(--radius-md)'}}>
-                    {dbPlayers
-                        .filter(p => p.Nome.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map(p => (
-                            <div 
-                                key={p.Nome} 
-                                className={`player-row-select ${selectedToDelete.has(p.Nome) ? 'selected' : ''}`}
-                                style={{
-                                    padding:'0.8rem', borderBottom:'1px solid var(--color-border)',
-                                    background: selectedToDelete.has(p.Nome) ? 'rgba(255, 68, 68, 0.15)' : 'transparent',
-                                    color: selectedToDelete.has(p.Nome) ? '#ff4444' : 'var(--color-text)',
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                }}
-                            >
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span>{p.Nome}</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      {p.Ruolo && <span style={{ fontSize: '0.75rem', color: '#6f9c81' }}>{p.Ruolo}</span>}
-                                      {p.RuoloSecondario && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>• {p.RuoloSecondario}</span>}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                                    <span 
-                                        role="button" 
-                                        aria-label="edit" 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingPlayerOldName(p.Nome);
-                                            setEditingPlayerName(p.Nome);
-                                            setEditingPlayerStats({ ...p });
-                                            setIsEditModalOpen(true);
-                                        }}
-                                        style={{ color: 'var(--color-text)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                                    >
-                                        <Pencil size={16} />
-                                    </span>
-                                    <span 
-                                        role="button" 
-                                        aria-label="remove" 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const next = new Set(selectedToDelete);
-                                            if (next.has(p.Nome)) next.delete(p.Nome);
-                                            else next.add(p.Nome);
-                                            setSelectedToDelete(next);
-                                        }}
-                                        style={{ 
-                                            color: selectedToDelete.has(p.Nome) ? '#ff4444' : 'var(--color-text)', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            cursor: 'pointer',
-                                            opacity: selectedToDelete.has(p.Nome) ? 1 : 0.6
-                                        }}
-                                    >
-                                        <X size={18} />
-                                    </span>
-                                </div>
-                            </div>
-                    ))}
-                  </div>
-                  <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
-                      <button className="secondary-btn" onClick={() => setIsManageModalOpen(false)}>Annulla</button>
-                      <button 
-                        className="create-teams-btn" 
-                        onClick={handleDeletePlayers}
-                        disabled={isSaving || selectedToDelete.size === 0}
-                      >
-                          {isSaving ? 'Salvataggio...' : 'Salva cambiamenti'}
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
+      <ManagePlayersModal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        dbPlayers={dbPlayers}
+        onOpenEditModal={(player) => {
+          setEditingPlayer(player);
+          setIsEditModalOpen(true);
+        }}
+        onDeletePlayers={handleDeletePlayers}
+        isSaving={isSaving}
+      />
 
-      {(() => null)()}
+      <EditPlayerModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingPlayer(null);
+        }}
+        player={editingPlayer}
+        dbPlayers={dbPlayers}
+        onSave={handleEditPlayerSubmit}
+        isSaving={isSaving}
+        showToast={showToast}
+      />
 
-      {isEditModalOpen && (() => {
-          const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
-          const uniqueRoles: string[] = Array.from(new Set([
-            ...baseRoles, 
-            ...dbPlayers.map(p => p.Ruolo).filter((r): r is string => Boolean(r)), 
-            ...dbPlayers.flatMap(p => (p.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean))
-          ]));
-          
-          const editSecRolesList = (editingPlayerStats.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean);
-          const availableEditSecRoles = uniqueRoles.filter(r => r !== editingPlayerStats.Ruolo);
-
-          const GK_STAT_FIELDS = [
-            { key: 'tuffo', label: 'Tuffo' },
-            { key: 'presa', label: 'Presa' },
-            { key: 'riflessi', label: 'Riflessi' },
-            { key: 'piazzamento', label: 'Piazzamento' },
-            { key: 'uscite', label: 'Uscite' },
-            { key: 'reattivita', label: 'Reattività' },
-            { key: 'resistenza', label: 'Resistenza' },
-            { key: 'rinvio', label: 'Rinvio' },
-            { key: 'rissa', label: 'Rissa' },
-            { key: 'altezza', label: 'Altezza' },
-            { key: 'peso', label: 'Peso' },
-            { key: 'Score', label: 'Score' }
-          ] as const;
-
-          const OUTFIELD_STAT_FIELDS = [
-            { key: 'velocita', label: 'Velocita' },
-            { key: 'accelerazione', label: 'Accelerazione' },
-            { key: 'tecnica', label: 'Tecnica' },
-            { key: 'contrasto', label: 'Contrasto' },
-            { key: 'passaggi', label: 'Passaggi' },
-            { key: 'finalizzazione', label: 'Finalizzazione' },
-            { key: 'resistenza', label: 'Resistenza' },
-            { key: 'dribbling', label: 'Dribbling' },
-            { key: 'rissa', label: 'Rissa' },
-            { key: 'altezza', label: 'Altezza' },
-            { key: 'peso', label: 'Peso' },
-            { key: 'Score', label: 'Score' }
-          ] as const;
-
-          const isGk = editingPlayerStats.Ruolo === 'Portiere';
-          const statFields = isGk ? GK_STAT_FIELDS : OUTFIELD_STAT_FIELDS;
-          const textFields = ['Skill', 'piede'] as const;
-
-          return (
-          <div className="modal-overlay" onClick={() => { setIsEditModalOpen(false); setIsEditSecRoleOpen(false); }}>
-              <div className="modal-content" style={{maxWidth: '650px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-                      <h3 style={{margin:0}}>Modifica Giocatore</h3>
-                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => { setIsEditModalOpen(false); setIsEditSecRoleOpen(false); }}><X size={20} /></button>
-                  </div>
-                  
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                        <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
-                        <input 
-                            autoFocus
-                            type="text" 
-                            className="modal-input"
-                            value={editingPlayerName} 
-                            onChange={(e) => setEditingPlayerName(e.target.value)}
-                            placeholder="Nuovo nome..."
-                        />
-                        </div>
-                        <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Preferito</label>
-                        <select 
-                            value={editingPlayerStats.Ruolo || ''} 
-                            onChange={(e) => {
-                              const newPrimary = e.target.value;
-                              setEditingPlayerStats(prev => {
-                                const currentSec = (prev.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean);
-                                const filteredSec = currentSec.filter(r => r !== newPrimary);
-                                return {
-                                  ...prev,
-                                  Ruolo: newPrimary,
-                                  RuoloSecondario: filteredSec.length > 0 ? filteredSec.join(', ') : null
-                                };
-                              });
-                            }}
-                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
-                        >
-                            <option value="">Nessuno</option>
-                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Ruoli Secondari <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Opzionale)</span></span>
-                          {editSecRolesList.length > 0 && (
-                            <span style={{ fontSize: '0.72rem', color: '#5de4ff', fontWeight: 600 }}>
-                              {editSecRolesList.length} selezionat{editSecRolesList.length === 1 ? 'o' : 'i'}
-                            </span>
-                          )}
-                        </label>
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsEditSecRoleOpen(prev => !prev);
-                          }}
-                          className="modal-input" 
-                          style={{ 
-                            width: '100%', 
-                            minHeight: '38px',
-                            height: 'auto',
-                            padding: '4px 8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                            border: isEditSecRoleOpen ? '1px solid #5de4ff' : '1px solid var(--color-border)',
-                            boxShadow: isEditSecRoleOpen ? '0 0 8px rgba(93, 228, 255, 0.25)' : 'none',
-                            userSelect: 'none'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: 1, alignItems: 'center', minWidth: 0 }}>
-                            {editSecRolesList.length === 0 ? (
-                              <span style={{ color: 'var(--color-text-muted, #777)', fontSize: '0.85rem' }}>
-                                Nessuno (Seleziona...)
-                              </span>
-                            ) : (
-                              editSecRolesList.map(r => (
-                                <span 
-                                  key={r}
-                                  style={{ 
-                                    background: 'rgba(93, 228, 255, 0.18)', 
-                                    color: '#5de4ff', 
-                                    border: '1px solid rgba(93, 228, 255, 0.4)', 
-                                    borderRadius: '4px', 
-                                    padding: '1px 6px', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 600,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                >
-                                  {r}
-                                  <span 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const next = editSecRolesList.filter(x => x !== r);
-                                      setEditingPlayerStats(prev => ({
-                                        ...prev,
-                                        RuoloSecondario: next.length > 0 ? next.join(', ') : null
-                                      }));
-                                    }}
-                                    style={{ cursor: 'pointer', marginLeft: '2px', opacity: 0.8, fontSize: '0.85rem' }}
-                                    title="Rimuovi ruolo"
-                                  >
-                                    ×
-                                  </span>
-                                </span>
-                              ))
-                            )}
-                          </div>
-                          <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px', flexShrink: 0 }}>
-                            {isEditSecRoleOpen ? '▲' : '▼'}
-                          </span>
-                        </div>
-
-                        {/* Dropdown with Checkboxes */}
-                        {isEditSecRoleOpen && (
-                          <div 
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              minWidth: '220px',
-                              marginTop: '4px',
-                              background: '#151c24',
-                              border: '1px solid rgba(93, 228, 255, 0.35)',
-                              borderRadius: '8px',
-                              boxShadow: '0 12px 30px rgba(0,0,0,0.85)',
-                              zIndex: 1000,
-                              maxHeight: '220px',
-                              overflowY: 'auto',
-                              padding: '6px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '0.72rem', color: '#888' }}>Scegli ruoli secondari:</span>
-                              {editSecRolesList.length > 0 && (
-                                <span 
-                                  onClick={() => setEditingPlayerStats(prev => ({ ...prev, RuoloSecondario: null }))}
-                                  style={{ fontSize: '0.72rem', color: '#ff7777', cursor: 'pointer', fontWeight: 600 }}
-                                >
-                                  Azzera tutti
-                                </span>
-                              )}
-                            </div>
-                            {availableEditSecRoles.map(r => {
-                              const isChecked = editSecRolesList.includes(r);
-                              return (
-                                <div
-                                  key={r}
-                                  onClick={() => {
-                                    const next = isChecked
-                                      ? editSecRolesList.filter(x => x !== r)
-                                      : [...editSecRolesList, r];
-                                    setEditingPlayerStats(prev => ({
-                                      ...prev,
-                                      RuoloSecondario: next.length > 0 ? next.join(', ') : null
-                                    }));
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '6px 8px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    background: isChecked ? 'rgba(93, 228, 255, 0.15)' : 'transparent',
-                                    color: isChecked ? '#5de4ff' : '#ddd',
-                                    fontSize: '0.82rem',
-                                    fontWeight: isChecked ? 700 : 400,
-                                    transition: 'background 0.15s ease'
-                                  }}
-                                >
-                                  <input 
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {}} 
-                                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
-                                  />
-                                  <span>{r}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        </div>
-                    </div>
-
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>
-                      {isGk ? 'Statistiche da Portiere e Fisiche' : 'Statistiche Fisiche e Tecniche'}
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
-                        {statFields.map(f => (
-                           <div key={f.key}>
-                             <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f.label}</label>
-                             <input 
-                               type="number" 
-                               className="modal-input"
-                               value={editingPlayerStats[f.key as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f.key]: e.target.value ? parseInt(e.target.value) : null}))}
-                               placeholder="-"
-                             />
-                           </div> 
-                        ))}
-                    </div>
-
-                    <div style={{ marginTop: '0.5rem' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina / Immagine Profilo</label>
-                        <input 
-                            type="file" 
-                            accept="image/png, image/jpeg, image/jpg"
-                            onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                    setEditingPlayerImage(e.target.files[0]);
-                                }
-                            }}
-                            className="modal-input"
-                        />
-                    </div>
-
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Altre Informazioni</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-                        {textFields.map(f => (
-                           <div key={f}>
-                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
-                             <input 
-                               type="text" 
-                               className="modal-input"
-                               value={editingPlayerStats[f as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setEditingPlayerStats(prev => ({...prev, [f]: e.target.value}))}
-                               placeholder="-"
-                             />
-                           </div> 
-                        ))}
-                    </div>
-
-                  </div>
-                  
-                  <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
-                      <button className="secondary-btn" onClick={() => setIsEditModalOpen(false)}>Annulla</button>
-                      <button className="create-teams-btn" onClick={handleEditPlayerSubmit} disabled={isSaving}>
-                        {isSaving ? 'Salvataggio...' : 'Salva'}
-                      </button>
-                  </div>
-              </div>
-          </div>
-          );
-      })()}
-
-      {isAddModalOpen && (() => {
-          const baseRoles = ['Portiere', 'Difensore', 'Terzino Sinistro', 'Terzino Destro', 'Centrocampista Centrale', 'Ala', 'Ala Sinistra', 'Ala Destra', 'Trequartista', 'Attaccante'];
-          const uniqueRoles: string[] = Array.from(new Set([
-            ...baseRoles, 
-            ...dbPlayers.map(p => p.Ruolo).filter((r): r is string => Boolean(r)), 
-            ...dbPlayers.flatMap(p => (p.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean))
-          ]));
-          
-          const newSecRolesList = (newPlayerStats.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean);
-          const availableAddSecRoles = uniqueRoles.filter(r => r !== newPlayerStats.Ruolo);
-
-          const GK_STAT_FIELDS = [
-            { key: 'tuffo', label: 'Tuffo' },
-            { key: 'presa', label: 'Presa' },
-            { key: 'riflessi', label: 'Riflessi' },
-            { key: 'piazzamento', label: 'Piazzamento' },
-            { key: 'uscite', label: 'Uscite' },
-            { key: 'reattivita', label: 'Reattività' },
-            { key: 'resistenza', label: 'Resistenza' },
-            { key: 'rinvio', label: 'Rinvio' },
-            { key: 'rissa', label: 'Rissa' },
-            { key: 'altezza', label: 'Altezza' },
-            { key: 'peso', label: 'Peso' },
-            { key: 'Score', label: 'Score' }
-          ] as const;
-
-          const OUTFIELD_STAT_FIELDS = [
-            { key: 'velocita', label: 'Velocita' },
-            { key: 'accelerazione', label: 'Accelerazione' },
-            { key: 'tecnica', label: 'Tecnica' },
-            { key: 'contrasto', label: 'Contrasto' },
-            { key: 'passaggi', label: 'Passaggi' },
-            { key: 'finalizzazione', label: 'Finalizzazione' },
-            { key: 'resistenza', label: 'Resistenza' },
-            { key: 'dribbling', label: 'Dribbling' },
-            { key: 'rissa', label: 'Rissa' },
-            { key: 'altezza', label: 'Altezza' },
-            { key: 'peso', label: 'Peso' },
-            { key: 'Score', label: 'Score' }
-          ] as const;
-
-          const isGk = newPlayerStats.Ruolo === 'Portiere';
-          const statFields = isGk ? GK_STAT_FIELDS : OUTFIELD_STAT_FIELDS;
-          const textFields = ['Skill', 'piede'] as const;
-
-          return (
-          <div className="modal-overlay" onClick={() => { setIsAddModalOpen(false); setIsAddSecRoleOpen(false); }}>
-              <div className="modal-content" style={{maxWidth: '650px', width: '95%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-                      <h3 style={{margin:0}}>Nuovo Giocatore</h3>
-                      <button className="secondary-btn" style={{padding:'0.2rem', display:'flex'}} onClick={() => { setIsAddModalOpen(false); setIsAddSecRoleOpen(false); }}><X size={20} /></button>
-                  </div>
-                  
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem'}}>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                        <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Nome</label>
-                        <input 
-                            autoFocus
-                            type="text" 
-                            className="modal-input"
-                            value={newPlayerName} 
-                            onChange={(e) => setNewPlayerName(e.target.value)}
-                            placeholder="Nome..."
-                        />
-                        </div>
-                        <div>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Ruolo Preferito <span style={{color: 'red'}}>*</span></label>
-                        <select 
-                            value={newPlayerStats.Ruolo || ''} 
-                            onChange={(e) => {
-                              const newPrimary = e.target.value;
-                              setNewPlayerStats(prev => {
-                                const currentSec = (prev.RuoloSecondario || '').split(',').map(s => s.trim()).filter(Boolean);
-                                const filteredSec = currentSec.filter(r => r !== newPrimary);
-                                return {
-                                  ...prev,
-                                  Ruolo: newPrimary,
-                                  RuoloSecondario: filteredSec.length > 0 ? filteredSec.join(', ') : null
-                                };
-                              });
-                            }}
-                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
-                        >
-                            <option value="">Nessuno (Obbligatorio)</option>
-                            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Ruoli Secondari <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Opzionale)</span></span>
-                          {newSecRolesList.length > 0 && (
-                            <span style={{ fontSize: '0.72rem', color: '#5de4ff', fontWeight: 600 }}>
-                              {newSecRolesList.length} selezionat{newSecRolesList.length === 1 ? 'o' : 'i'}
-                            </span>
-                          )}
-                        </label>
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsAddSecRoleOpen(prev => !prev);
-                          }}
-                          className="modal-input" 
-                          style={{ 
-                            width: '100%', 
-                            minHeight: '38px',
-                            height: 'auto',
-                            padding: '4px 8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                            border: isAddSecRoleOpen ? '1px solid #5de4ff' : '1px solid var(--color-border)',
-                            boxShadow: isAddSecRoleOpen ? '0 0 8px rgba(93, 228, 255, 0.25)' : 'none',
-                            userSelect: 'none'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: 1, alignItems: 'center', minWidth: 0 }}>
-                            {newSecRolesList.length === 0 ? (
-                              <span style={{ color: 'var(--color-text-muted, #777)', fontSize: '0.85rem' }}>
-                                Nessuno (Seleziona...)
-                              </span>
-                            ) : (
-                              newSecRolesList.map(r => (
-                                <span 
-                                  key={r}
-                                  style={{ 
-                                    background: 'rgba(93, 228, 255, 0.18)', 
-                                    color: '#5de4ff', 
-                                    border: '1px solid rgba(93, 228, 255, 0.4)', 
-                                    borderRadius: '4px', 
-                                    padding: '1px 6px', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 600,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                >
-                                  {r}
-                                  <span 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const next = newSecRolesList.filter(x => x !== r);
-                                      setNewPlayerStats(prev => ({
-                                        ...prev,
-                                        RuoloSecondario: next.length > 0 ? next.join(', ') : null
-                                      }));
-                                    }}
-                                    style={{ cursor: 'pointer', marginLeft: '2px', opacity: 0.8, fontSize: '0.85rem' }}
-                                    title="Rimuovi ruolo"
-                                  >
-                                    ×
-                                  </span>
-                                </span>
-                              ))
-                            )}
-                          </div>
-                          <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '6px', flexShrink: 0 }}>
-                            {isAddSecRoleOpen ? '▲' : '▼'}
-                          </span>
-                        </div>
-
-                        {/* Dropdown with Checkboxes */}
-                        {isAddSecRoleOpen && (
-                          <div 
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              minWidth: '220px',
-                              marginTop: '4px',
-                              background: '#151c24',
-                              border: '1px solid rgba(93, 228, 255, 0.35)',
-                              borderRadius: '8px',
-                              boxShadow: '0 12px 30px rgba(0,0,0,0.85)',
-                              zIndex: 1000,
-                              maxHeight: '220px',
-                              overflowY: 'auto',
-                              padding: '6px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '0.72rem', color: '#888' }}>Scegli ruoli secondari:</span>
-                              {newSecRolesList.length > 0 && (
-                                <span 
-                                  onClick={() => setNewPlayerStats(prev => ({ ...prev, RuoloSecondario: null }))}
-                                  style={{ fontSize: '0.72rem', color: '#ff7777', cursor: 'pointer', fontWeight: 600 }}
-                                >
-                                  Azzera tutti
-                                </span>
-                              )}
-                            </div>
-                            {availableAddSecRoles.map(r => {
-                              const isChecked = newSecRolesList.includes(r);
-                              return (
-                                <div
-                                  key={r}
-                                  onClick={() => {
-                                    const next = isChecked
-                                      ? newSecRolesList.filter(x => x !== r)
-                                      : [...newSecRolesList, r];
-                                    setNewPlayerStats(prev => ({
-                                      ...prev,
-                                      RuoloSecondario: next.length > 0 ? next.join(', ') : null
-                                    }));
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '6px 8px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    background: isChecked ? 'rgba(93, 228, 255, 0.15)' : 'transparent',
-                                    color: isChecked ? '#5de4ff' : '#ddd',
-                                    fontSize: '0.82rem',
-                                    fontWeight: isChecked ? 700 : 400,
-                                    transition: 'background 0.15s ease'
-                                  }}
-                                >
-                                  <input 
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {}} 
-                                    style={{ accentColor: '#5de4ff', cursor: 'pointer' }}
-                                  />
-                                  <span>{r}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: '0.5rem' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                           Fondi con storico (Merge) 
-                           <span title="Se questo giocatore aveva partecipato in passato come Ospite (es. 'Amico Riccardo'), seleziona qui il suo vecchio nome temporaneo. Tutte le partite e le statistiche associate a quel nome verranno trasferite a questo nuovo profilo." style={{ cursor: 'help', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>i</span>
-                        </label>
-                        <select 
-                            value={mergeTargetName} 
-                            onChange={(e) => setMergeTargetName(e.target.value)}
-                            className="modal-input" style={{ width: '100%', appearance: 'auto' }}
-                        >
-                            <option value="">Nessuno (Nuovo Giocatore)</option>
-                            {Array.from(new Set(matches.flatMap(m => [...(m.team_a_players || []), ...(m.team_b_players || [])])))
-                                 .filter(name => !dbPlayers.some(p => p.Nome === name) && name !== 'Ospite' && name !== '')
-                                 .sort()
-                                 .map(name => <option key={name} value={name}>{name}</option>)}
-                        </select>
-                    </div>
-
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>
-                      {isGk ? 'Statistiche da Portiere e Fisiche' : 'Statistiche Fisiche e Tecniche'}
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
-                        {statFields.map(f => (
-                           <div key={f.key}>
-                             <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f.label}</label>
-                             <input 
-                               type="number" 
-                               className="modal-input"
-                               value={newPlayerStats[f.key as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f.key]: e.target.value ? parseInt(e.target.value) : null}))}
-                               placeholder="-"
-                             />
-                           </div> 
-                        ))}
-                    </div>
-
-                    <div style={{ marginTop: '0.5rem' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#6f9c81', marginBottom: '0.4rem', display: 'block' }}>Figurina / Immagine Profilo</label>
-                        <input 
-                            type="file" 
-                            accept="image/png, image/jpeg, image/jpg"
-                            onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                    setNewPlayerImage(e.target.files[0]);
-                                }
-                            }}
-                            className="modal-input"
-                        />
-                    </div>
-
-                    <h4 style={{marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin:0}}>Altre Informazioni</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-                        {textFields.map(f => (
-                           <div key={f}>
-                             <label style={{textTransform:'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block'}}>{f}</label>
-                             <input 
-                               type="text" 
-                               className="modal-input"
-                               value={newPlayerStats[f as keyof Player]?.toString() || ''} 
-                               onChange={(e) => setNewPlayerStats(prev => ({...prev, [f]: e.target.value}))}
-                               placeholder="-"
-                             />
-                           </div> 
-                        ))}
-                    </div>
-
-                  </div>
-                  
-                  <div style={{display:'flex', gap:'var(--space-2)', marginTop:'var(--space-4)'}}>
-                      <button className="secondary-btn" onClick={() => setIsAddModalOpen(false)}>Annulla</button>
-                      <button className="create-teams-btn" onClick={handleAddPlayer}>Salva</button>
-                  </div>
-              </div>
-          </div>
-          );
-      })()}
+      <AddPlayerModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        dbPlayers={dbPlayers}
+        matches={matches}
+        onSave={handleAddPlayer}
+        isSaving={isSaving}
+        showToast={showToast}
+      />
 
       <section id="cluster">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

@@ -22,6 +22,7 @@ import {
   calculatePlayerRating,
   ensureGoalkeeperInGoal,
 } from '@/lib/algorithm/team-balancer';
+import { assignPlayersToFormation } from '@/lib/teams/formation-utils';
 import { calculateHistoricalPredictions } from '@/lib/stats/prediction-engine';
 import {
   saveAlgoSettingsApi,
@@ -418,6 +419,30 @@ export function useTeamBuilder({
       modulo8TeamB: next8B,
     };
 
+    if (results && (matchFormat === 7 || matchFormat === 8)) {
+      const modA = matchFormat === 7 ? next7A : next8A;
+      const modB = matchFormat === 7 ? next7B : next8B;
+      const newTeamA = assignPlayersToFormation(
+        results.teamA,
+        matchFormat,
+        modA,
+        dbPlayers,
+        leaderboard,
+        statsData
+      );
+      const newTeamB = assignPlayersToFormation(
+        results.teamB,
+        matchFormat,
+        modB,
+        dbPlayers,
+        leaderboard,
+        statsData
+      );
+      const newResults = { teamA: newTeamA, teamB: newTeamB };
+      setResults(newResults);
+      saveSession(newResults);
+    }
+
     try {
       await saveModuloSettingsApi(combined);
     } catch (e) {
@@ -528,6 +553,10 @@ export function useTeamBuilder({
         algoSettings,
         ovrModifiers,
         forceShuffle: true,
+        modulo7TeamA,
+        modulo7TeamB,
+        modulo8TeamA,
+        modulo8TeamB,
       });
       const ratingSumA = res.teamA.reduce((sum, p) => sum + getRating(p), 0);
       const ratingSumB = res.teamB.reduce((sum, p) => sum + getRating(p), 0);
@@ -546,6 +575,10 @@ export function useTeamBuilder({
     algoSettings,
     ovrModifiers,
     getRating,
+    modulo7TeamA,
+    modulo7TeamB,
+    modulo8TeamA,
+    modulo8TeamB,
   ]);
 
   const generateTeams = async (forceShuffle: boolean | any = false) => {
@@ -562,6 +595,10 @@ export function useTeamBuilder({
         ovrModifiers,
         forceShuffle: isShuffle,
         matches,
+        modulo7TeamA,
+        modulo7TeamB,
+        modulo8TeamA,
+        modulo8TeamB,
       });
 
       if (res.isVolante && res.flyingSubInfo) {

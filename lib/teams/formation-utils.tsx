@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player, MatchResult } from '@/types';
+import { Player, MatchResult, LeaderboardEntry } from '@/types';
 
 export const hashStringToHue = (str: string): number => {
   let hash = 0;
@@ -78,13 +78,27 @@ export const isRoleMatchingPrimary = (
   const p = primaryRole.trim().toLowerCase();
   const a = assignedRoleCode.trim().toUpperCase();
 
+  if (p.includes('jolly')) {
+    return a !== 'POR';
+  }
+
   switch (a) {
     case 'POR':
       return p.includes('portier') || p === 'gk' || p === 'por';
     case 'TS':
-      return p.includes('terzino sinistro') || p === 'lb' || p === 'ts';
+      return (
+        p.includes('terzino sinistro') ||
+        p === 'lb' ||
+        p === 'ts' ||
+        (p.includes('terzino') && !p.includes('destr'))
+      );
     case 'TD':
-      return p.includes('terzino destro') || p === 'rb' || p === 'td';
+      return (
+        p.includes('terzino destro') ||
+        p === 'rb' ||
+        p === 'td' ||
+        (p.includes('terzino') && !p.includes('sinistr'))
+      );
     case 'DC':
       return (
         p.includes('difensore centrale') ||
@@ -98,13 +112,15 @@ export const isRoleMatchingPrimary = (
       return (
         p.includes('mediano') ||
         p.includes('centrocampista') ||
+        p.includes('trequartista') ||
         p === 'dmf' ||
         p === 'med'
       );
     case 'CC':
       return (
         p.includes('centrocampista centrale') ||
-        p === 'centrocampista' ||
+        p.includes('centrocampista') ||
+        p.includes('trequartista') ||
         p === 'mezzala' ||
         p === 'cmf' ||
         p === 'cc'
@@ -115,6 +131,8 @@ export const isRoleMatchingPrimary = (
         p.includes('esterno sinistro') ||
         p.includes('ala sinistra') ||
         (p.includes('ala') && !p.includes('destra')) ||
+        (p.includes('esterno') && !p.includes('destro')) ||
+        p.includes('trequartista') ||
         p === 'lmf' ||
         p === 'lwf' ||
         p === 'es' ||
@@ -126,6 +144,8 @@ export const isRoleMatchingPrimary = (
         p.includes('esterno destro') ||
         p.includes('ala destra') ||
         (p.includes('ala') && !p.includes('sinistra')) ||
+        (p.includes('esterno') && !p.includes('sinistro')) ||
+        p.includes('trequartista') ||
         p === 'rmf' ||
         p === 'rwf' ||
         p === 'ed' ||
@@ -137,6 +157,9 @@ export const isRoleMatchingPrimary = (
       return (
         p.includes('attaccante') ||
         p.includes('punta') ||
+        p.includes('centravanti') ||
+        p.includes('seconda punta') ||
+        p.includes('trequartista') ||
         p === 'cf' ||
         p === 'ss' ||
         p === 'att'
@@ -144,6 +167,18 @@ export const isRoleMatchingPrimary = (
     default:
       return p === a.toLowerCase();
   }
+};
+
+/**
+ * Verifica se uno dei ruoli secondari del giocatore coincide con il ruolo assegnato in campo.
+ */
+export const isRoleMatchingSecondary = (
+  secondaryRolesStr: string | null | undefined,
+  assignedRoleCode: string | undefined
+): boolean => {
+  if (!secondaryRolesStr || !assignedRoleCode) return false;
+  const list = secondaryRolesStr.split(',').map(s => s.trim()).filter(Boolean);
+  return list.some(secRole => isRoleMatchingPrimary(secRole, assignedRoleCode));
 };
 
 export const getPitchPositionsForTeam = (
@@ -359,4 +394,282 @@ export const getPlayerMorale = (
   else { condition = 'terrible'; }
 
   return { condition, title: `Ultimo voto: ${vote}` };
+};
+
+/**
+ * Assegna i giocatori di una squadra ai ruoli effettivi della formazione sul campo 2D.
+ * Regole per 7vs7 e 8vs8:
+ * 1. Assegna prima i ruoli definiti preferiti (primari) dai giocatori
+ * 2. Assegna i giocatori che hanno ruoli secondari compatibili con i ruoli lasciati vuoti dal punto 1
+ * 3. In caso di concorrenza sul ruolo (es. 2 con ruolo preferito ATT o difensori):
+ *    - Seleziona in base alle statistiche storiche migliori: Media Voto, MVP.
+ *    - Per gli attaccanti prediligi chi ha più gol.
+ *    - Per i difensori/terzini prediligi chi ha meno gol subiti (media a partita).
+ * 4. In caso di Guest o giocatori senza ruoli compatibili, assegna nei ruoli rimasti vuoti.
+ * Nota: per 5vs5 e 6vs6 non cambia nulla (ordinamento standard macro-ruolo).
+ */
+export const assignPlayersToFormation = (
+  team: string[],
+  matchFormat: number,
+  modulo: string | undefined,
+  dbPlayers: Player[] = [],
+  leaderboard: LeaderboardEntry[] = [],
+  statsData: any[] = []
+): string[] => {
+  if (!team || team.length === 0) return team;
+
+  const checkIsGk = (name: string): boolean => {
+    if (!name) return false;
+    const n = name.trim().toLowerCase();
+    if (
+      n.startsWith('(p)') ||
+      n.startsWith('(por)') ||
+      n.includes('(portiere)') ||
+      n.includes('portiere') ||
+      n.endsWith('(p)') ||
+      n.endsWith('(por)')
+    ) {
+      return true;
+    }
+    const dbP = dbPlayers.find(
+      p => p.Nome?.toLowerCase().trim() === n || p.Nome === name
+    );
+    if (dbP) {
+      const r1 = (dbP.Ruolo || '').toLowerCase().trim();
+      const r2 = (dbP.RuoloSecondario || '').toLowerCase().trim();
+      if (r1.includes('portier') || r1 === 'gk' || r1 === 'por') return true;
+      if (r2.includes('portier') || r2 === 'gk' || r2 === 'por') return true;
+    }
+    return false;
+  };
+
+  // A livello di Campo a 5vs5 e 6vs6 non cambia NULLA
+  if (matchFormat <= 6 || team.length <= 6) {
+    const copy = [...team];
+    const gkIdx = copy.findIndex(p => checkIsGk(p));
+    let gk: string | null = null;
+    if (gkIdx !== -1) {
+      [gk] = copy.splice(gkIdx, 1);
+    }
+    const getMacro = (name: string): number => {
+      const dbP = dbPlayers.find(p => p.Nome === name);
+      const r = (dbP?.Ruolo || '').toLowerCase();
+      if (r.includes('difensor') || r.includes('terzino') || r.includes('portiere')) return 1;
+      if (r.includes('attaccant') || r.includes('punta') || r.includes('cf') || r.includes('ss')) return 3;
+      return 2;
+    };
+    copy.sort((a, b) => getMacro(a) - getMacro(b));
+    return gk ? [gk, ...copy] : copy;
+  }
+
+  const positions = getPitchPositionsForTeam(
+    team.length,
+    matchFormat === 7 ? modulo : undefined,
+    matchFormat === 8 ? modulo : undefined
+  );
+
+  const assigned: (string | null)[] = Array(positions.length).fill(null);
+  const unassigned = [...team];
+
+  const getPlayerInfo = (name: string) => {
+    const isGk = checkIsGk(name);
+    const dbP = dbPlayers.find(
+      p => p.Nome?.toLowerCase().trim() === name.toLowerCase().trim() || p.Nome === name
+    );
+    const primaryRole = dbP?.Ruolo || (isGk ? 'Portiere' : undefined);
+    const secondaryRolesStr = dbP?.RuoloSecondario || '';
+    const isGuest =
+      !dbP ||
+      name.toLowerCase().includes('ospite') ||
+      name.toLowerCase().includes('guest') ||
+      name.toLowerCase().startsWith('ospite');
+
+    const lb = leaderboard.find(
+      l => l.nome?.toLowerCase().trim() === name.toLowerCase().trim() || l.nome === name
+    );
+    const st = statsData.find(
+      s => s.name?.toLowerCase().trim() === name.toLowerCase().trim() || s.name === name
+    );
+
+    const mediaVoto = lb && lb.media_voto > 0 ? lb.media_voto : 6.0;
+    const mvpCount = lb?.mvp_count || 0;
+    const golFatti = lb?.gol_fatti ?? (st?.golFattiSquadra || 0);
+    const golSubitiAvg =
+      st && st.partiteGiocate > 0 ? st.golSubitiSquadra / st.partiteGiocate : 999;
+    const partiteGiocate = lb?.partite_giocate ?? (st?.partiteGiocate || 0);
+
+    return {
+      name,
+      isGk,
+      primaryRole,
+      secondaryRolesStr,
+      isGuest,
+      mediaVoto,
+      mvpCount,
+      golFatti,
+      golSubitiAvg,
+      partiteGiocate
+    };
+  };
+
+  // Regola 3: Comparazione statistica per il ruolo
+  const comparePlayersForRole = (nameA: string, nameB: string, roleCode: string): number => {
+    const a = getPlayerInfo(nameA);
+    const b = getPlayerInfo(nameB);
+
+    // 1. Media Voto (differenza significativa >= 0.05)
+    if (Math.abs(a.mediaVoto - b.mediaVoto) >= 0.05) {
+      return b.mediaVoto - a.mediaVoto; // voto più alto vince
+    }
+
+    // 2. MVP count
+    if (a.mvpCount !== b.mvpCount) {
+      return b.mvpCount - a.mvpCount; // più MVP vince
+    }
+
+    // 3. Statistica specifica di reparto
+    if (roleCode === 'ATT') {
+      // Per gli attaccanti prediligi quelli con più gol
+      if (a.golFatti !== b.golFatti) {
+        return b.golFatti - a.golFatti;
+      }
+    } else if (['TS', 'TD', 'DC', 'DIF'].includes(roleCode)) {
+      // Per i difensori/terzini quelli con meno gol subiti
+      if (Math.abs(a.golSubitiAvg - b.golSubitiAvg) >= 0.05) {
+        return a.golSubitiAvg - b.golSubitiAvg; // meno gol subiti vince
+      }
+    }
+
+    // 4. Media voto per scarti inferiori
+    if (a.mediaVoto !== b.mediaVoto) {
+      return b.mediaVoto - a.mediaVoto;
+    }
+
+    // 5. Partite giocate
+    if (a.partiteGiocate !== b.partiteGiocate) {
+      return b.partiteGiocate - a.partiteGiocate;
+    }
+
+    return nameA.localeCompare(nameB);
+  };
+
+  // Step 0: Portiere (Slot 0 è POR)
+  const gkCandidates = unassigned.filter(name => {
+    const info = getPlayerInfo(name);
+    return info.isGk || isRoleMatchingPrimary(info.primaryRole, 'POR');
+  });
+
+  if (gkCandidates.length > 0) {
+    gkCandidates.sort((a, b) => comparePlayersForRole(a, b, 'POR'));
+    const chosenGk = gkCandidates[0];
+    assigned[0] = chosenGk;
+    unassigned.splice(unassigned.indexOf(chosenGk), 1);
+  } else {
+    const secGkCandidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return isRoleMatchingSecondary(info.secondaryRolesStr, 'POR');
+    });
+    if (secGkCandidates.length > 0) {
+      secGkCandidates.sort((a, b) => comparePlayersForRole(a, b, 'POR'));
+      const chosenGk = secGkCandidates[0];
+      assigned[0] = chosenGk;
+      unassigned.splice(unassigned.indexOf(chosenGk), 1);
+    }
+  }
+
+  // Step 1: Ruoli Definiti Preferiti dai giocatori
+  const rolePriorityOrder = ['ATT', 'TS', 'TD', 'ES', 'ED', 'CLS', 'CLD', 'DC', 'MED', 'CC'];
+
+  for (const rCode of rolePriorityOrder) {
+    const targetSlotIndices = positions
+      .map((p, idx) => ({ idx, role: p.role }))
+      .filter(item => item.idx !== 0 && item.role === rCode && assigned[item.idx] === null)
+      .map(item => item.idx);
+
+    if (targetSlotIndices.length === 0) continue;
+
+    const candidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode);
+    });
+
+    if (candidates.length === 0) continue;
+
+    candidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
+
+    const numToAssign = Math.min(candidates.length, targetSlotIndices.length);
+    for (let i = 0; i < numToAssign; i++) {
+      const player = candidates[i];
+      const slotIdx = targetSlotIndices[i];
+      assigned[slotIdx] = player;
+      unassigned.splice(unassigned.indexOf(player), 1);
+    }
+  }
+
+  // Altri slot primari non catalogati sopra
+  for (let idx = 1; idx < positions.length; idx++) {
+    if (assigned[idx] !== null) continue;
+    const rCode = positions[idx].role;
+    const candidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return !info.isGuest && isRoleMatchingPrimary(info.primaryRole, rCode);
+    });
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
+      const player = candidates[0];
+      assigned[idx] = player;
+      unassigned.splice(unassigned.indexOf(player), 1);
+    }
+  }
+
+  // Step 2: Ruoli Secondari Compatibili con i ruoli lasciati vuoti dal Punto 1
+  for (const rCode of rolePriorityOrder) {
+    const targetSlotIndices = positions
+      .map((p, idx) => ({ idx, role: p.role }))
+      .filter(item => item.idx !== 0 && item.role === rCode && assigned[item.idx] === null)
+      .map(item => item.idx);
+
+    if (targetSlotIndices.length === 0) continue;
+
+    const secCandidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode);
+    });
+
+    if (secCandidates.length === 0) continue;
+
+    secCandidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
+
+    const numToAssign = Math.min(secCandidates.length, targetSlotIndices.length);
+    for (let i = 0; i < numToAssign; i++) {
+      const player = secCandidates[i];
+      const slotIdx = targetSlotIndices[i];
+      assigned[slotIdx] = player;
+      unassigned.splice(unassigned.indexOf(player), 1);
+    }
+  }
+
+  for (let idx = 1; idx < positions.length; idx++) {
+    if (assigned[idx] !== null) continue;
+    const rCode = positions[idx].role;
+    const secCandidates = unassigned.filter(name => {
+      const info = getPlayerInfo(name);
+      return isRoleMatchingSecondary(info.secondaryRolesStr, rCode);
+    });
+    if (secCandidates.length > 0) {
+      secCandidates.sort((a, b) => comparePlayersForRole(a, b, rCode));
+      const player = secCandidates[0];
+      assigned[idx] = player;
+      unassigned.splice(unassigned.indexOf(player), 1);
+    }
+  }
+
+  // Step 4: In caso di Guest o giocatori senza ruoli secondari, assegnali casualmente nei ruoli rimasti vuoti
+  for (let idx = 0; idx < positions.length; idx++) {
+    if (assigned[idx] === null && unassigned.length > 0) {
+      assigned[idx] = unassigned.shift()!;
+    }
+  }
+
+  return assigned.map((p, i) => p || unassigned[i] || team[i]);
 };

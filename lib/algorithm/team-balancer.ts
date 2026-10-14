@@ -1,4 +1,5 @@
 import { Player, Cluster, MatchResult, AlgoSettings, LeaderboardEntry } from '@/types';
+import { assignPlayersToFormation } from '@/lib/teams/formation-utils';
 
 /**
  * Riconosce se un giocatore è un portiere controllando il tag nel nome,
@@ -153,6 +154,10 @@ export interface BalanceTeamsParams {
   ovrModifiers?: Record<string, number>;
   forceShuffle?: boolean;
   matches?: MatchResult[];
+  modulo7TeamA?: string;
+  modulo7TeamB?: string;
+  modulo8TeamA?: string;
+  modulo8TeamB?: string;
 }
 
 export interface BalanceTeamsResult {
@@ -184,8 +189,15 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
     algoSettings,
     ovrModifiers = {},
     forceShuffle = false,
-    matches = []
+    matches = [],
+    modulo7TeamA,
+    modulo7TeamB,
+    modulo8TeamA,
+    modulo8TeamB
   } = params;
+
+  const modA = matchFormat === 7 ? (modulo7TeamA || '3-2-1') : (modulo8TeamA || '3-3-1');
+  const modB = matchFormat === 7 ? (modulo7TeamB || '3-2-1') : (modulo8TeamB || '3-3-1');
 
   const getRating = (name: string, withMod = true) =>
     calculatePlayerRating(name, leaderboard, statsData, algoSettings, ovrModifiers, withMod);
@@ -224,8 +236,14 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
           }
 
           return {
-            teamA: ensureGoalkeeperInGoal(teamA, dbPlayers),
-            teamB: ensureGoalkeeperInGoal(teamB, dbPlayers),
+            teamA:
+              matchFormat >= 7
+                ? assignPlayersToFormation(teamA, matchFormat, modA, dbPlayers, leaderboard, statsData)
+                : ensureGoalkeeperInGoal(teamA, dbPlayers),
+            teamB:
+              matchFormat >= 7
+                ? assignPlayersToFormation(teamB, matchFormat, modB, dbPlayers, leaderboard, statsData)
+                : ensureGoalkeeperInGoal(teamB, dbPlayers),
             isVolante: true,
             flyingSubInfo: { missingOld, subentrati }
           };
@@ -363,6 +381,14 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
 
   if (teamA.length !== matchFormat || teamB.length !== matchFormat) {
     throw new Error('Errore nella generazione delle squadre');
+  }
+
+  if (matchFormat >= 7) {
+    return {
+      teamA: assignPlayersToFormation(teamA, matchFormat, modA, dbPlayers, leaderboard, statsData),
+      teamB: assignPlayersToFormation(teamB, matchFormat, modB, dbPlayers, leaderboard, statsData),
+      isVolante: false
+    };
   }
 
   return {

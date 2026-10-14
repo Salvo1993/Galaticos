@@ -156,6 +156,16 @@ export async function assertAdmin(req?: Request) {
   - **Differenziazione Cromatica dei Ruoli:**
     - Se il ruolo assegnato in campo coincide con il ruolo primario del giocatore, viene mantenuto il colore standard del ruolo.
     - Se il ruolo assegnato in campo è diverso dal ruolo primario (adattato su ruolo secondario o fuori ruolo per esigenze di modulo), viene applicato un colore di evidenziazione differenziato (arancione ambrato `#f39c12`) per evidenziare immediatamente l'adattamento tattico.
+- **Algoritmo di Assegnazione Ruoli in Formazione (7vs7 e 8vs8):**
+  - **Priorità 1 (Ruolo Preferito):** colloca prioritariamente i giocatori nei ruoli compatibili con il loro ruolo primario definito a sistema.
+  - **Priorità 2 (Ruoli Secondari Compatibili):** colloca i giocatori che possiedono ruoli secondari compatibili nei ruoli lasciati vacanti dalla Priorità 1.
+  - **Priorità 3 (Tie-break Statistico & Concorrenza):** in caso di più giocatori in competizione per il medesimo slot (es. 2 con ruolo preferito ATT in modulo a 1 punta):
+    - Confronta le statistiche storiche individuali: Media Voto e numero di MVP.
+    - Per gli attaccanti: predilige il giocatore con più gol segnati in carriera.
+    - Per i difensori e terzini: predilige il giocatore con la media di gol subiti più bassa.
+    - Chi perde il tie-break concorre per gli slot secondari (Priorità 2) o per i ruoli residui.
+  - **Priorità 4 (Guest e Senza Ruoli Secondari):** assegna ospiti e giocatori senza ruoli specifici compatibili negli slot rimasti liberi.
+  - **Invarianza Formati 5vs5 e 6vs6:** le partite a 5 e 6 mantengono inalterato l'ordinamento standard classico (GK, DIF, CEN, ATT).
 - **Interazioni su Campo:**
   - Drag / Click per scambiare due giocatori tra squadre diverse.
   - Scambio ruoli all'interno della stessa squadra con un click.

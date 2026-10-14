@@ -5097,7 +5097,113 @@ const formatResultTime = (timeStr?: string) => {
               return true;
             });
 
-            // Statistiche e MVP ricavati esclusivamente dalle partite storiche idonee
+            // Statistiche complessive di carriera/stagione dei giocatori (su TUTTE le partite archiviate)
+            const allPlayerStats: Record<string, {
+              partiteGiocate: number;
+              golFattiSquadra: number;
+              golSubitiSquadra: number;
+              sommaVoti: number;
+              votiCount: number;
+              mvpCount: number;
+            }> = {};
+
+            const uniqueAllMatchesMap = new Set<string>();
+            matches.forEach(m => {
+              if (!m.risultato || m.risultato === '0-0') return;
+              const mDate = new Date(m.data);
+              const isInterrupted = mDate.getDate() === 8 && mDate.getMonth() === 6 && mDate.getFullYear() === 2026 && m.ora && m.ora.startsWith('21');
+              if (isInterrupted) return;
+
+              const mKey = m.id ? String(m.id) : `${m.data}_${m.ora}_${m.team_a_name}_${m.team_b_name}_${m.risultato}`;
+              if (uniqueAllMatchesMap.has(mKey)) return;
+              uniqueAllMatchesMap.add(mKey);
+
+              const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
+
+              let matchMaxVote = 0;
+              let matchMVPs: string[] = [];
+              const vt = typeof m.voti_giocatori === 'string' ? JSON.parse(m.voti_giocatori || '{}') : (m.voti_giocatori || {});
+              if (vt && typeof vt === 'object') {
+                Object.entries(vt).forEach(([p, voto]) => {
+                  const numVoto = typeof voto === 'number' ? voto : parseFloat(voto as string) || 0;
+                  if (numVoto > matchMaxVote) {
+                    matchMaxVote = numVoto;
+                  }
+                });
+              }
+              if (m.mvps && m.mvps.length > 0) {
+                matchMVPs = typeof m.mvps === 'string' ? JSON.parse(m.mvps) : (Array.isArray(m.mvps) ? m.mvps : []);
+              } else if (matchMaxVote > 0 && vt) {
+                matchMVPs = Object.keys(vt).filter(p => {
+                  const numVoto = typeof vt[p] === 'number' ? vt[p] : parseFloat(vt[p] as string) || 0;
+                  return numVoto === matchMaxVote;
+                });
+              }
+
+              const procP = (p: string, gF: number, gS: number) => {
+                if (!allPlayerStats[p]) {
+                  allPlayerStats[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0, mvpCount: 0 };
+                }
+                allPlayerStats[p].partiteGiocate++;
+                allPlayerStats[p].golFattiSquadra += gF;
+                allPlayerStats[p].golSubitiSquadra += gS;
+                if (vt && vt[p] !== undefined) {
+                  const v = typeof vt[p] === 'number' ? vt[p] : parseFloat(vt[p] as string);
+                  if (v && v > 0) {
+                    allPlayerStats[p].sommaVoti += v;
+                    allPlayerStats[p].votiCount++;
+                  }
+                }
+              };
+
+              m.team_a_players?.forEach(p => procP(p, scoreA, scoreB));
+              m.team_b_players?.forEach(p => procP(p, scoreB, scoreA));
+              matchMVPs.forEach(p => {
+                if (!allPlayerStats[p]) {
+                  allPlayerStats[p] = { partiteGiocate: 0, golFattiSquadra: 0, golSubitiSquadra: 0, sommaVoti: 0, votiCount: 0, mvpCount: 0 };
+                }
+                allPlayerStats[p].mvpCount++;
+              });
+            });
+
+            // Calcolo statistiche della squadra basato sullo storico reale complessivo dei singoli convocati
+            const getTeamStats = (teamPlayers: string[]) => {
+              let sumMediaVoto = 0;
+              let sumGolFattiAvg = 0;
+              let sumGolSubitiAvg = 0;
+              let totalMvp = 0;
+              let validVotoCount = 0;
+              let validGolCount = 0;
+
+              teamPlayers.forEach(pName => {
+                const s = allPlayerStats[pName];
+                if (s && s.partiteGiocate > 0) {
+                  if (s.votiCount > 0) {
+                    sumMediaVoto += (s.sommaVoti / s.votiCount);
+                    validVotoCount++;
+                  }
+                  sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
+                  sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
+                  validGolCount++;
+                }
+                const l = leaderboard.find(x => x.nome === pName);
+                const mvp = (l && typeof l.mvp_count === 'number') ? l.mvp_count : (s?.mvpCount || 0);
+                totalMvp += mvp;
+              });
+
+              return {
+                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : '-',
+                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : '-',
+                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : '-',
+                mvp: totalMvp,
+                hasMatches: validGolCount > 0
+              };
+            };
+
+            const statsA = getTeamStats(results.teamA);
+            const statsB = getTeamStats(results.teamB);
+
+            // Statistiche e MVP per l'algoritmo di PREVISIONE (quote e affidabilità sul formato selezionato)
             const trackPlayerStats: Record<string, {
               partiteGiocate: number;
               golFattiSquadra: number;
@@ -5147,40 +5253,6 @@ const formatResultTime = (timeStr?: string) => {
                 trackPlayerStats[p].mvpCount++;
               });
             });
-
-            const getTeamStats = (teamPlayers: string[]) => {
-              let sumMediaVoto = 0;
-              let sumGolFattiAvg = 0;
-              let sumGolSubitiAvg = 0;
-              let totalMvp = 0;
-              let validVotoCount = 0;
-              let validGolCount = 0;
-
-              teamPlayers.forEach(pName => {
-                const s = trackPlayerStats[pName];
-                if (s && s.partiteGiocate > 0) {
-                  if (s.votiCount > 0) {
-                    sumMediaVoto += (s.sommaVoti / s.votiCount);
-                    validVotoCount++;
-                  }
-                  sumGolFattiAvg += (s.golFattiSquadra / s.partiteGiocate);
-                  sumGolSubitiAvg += (s.golSubitiSquadra / s.partiteGiocate);
-                  validGolCount++;
-                  totalMvp += s.mvpCount;
-                }
-              });
-
-              return {
-                mediaVoto: validVotoCount > 0 ? (sumMediaVoto / validVotoCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '6.00' : '-'),
-                golFatti: validGolCount > 0 ? (sumGolFattiAvg / validGolCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '0.00' : '-'),
-                golSubiti: validGolCount > 0 ? (sumGolSubitiAvg / validGolCount).toFixed(2) : (validHistoricalMatches.length > 0 ? '0.00' : '-'),
-                mvp: totalMvp,
-                hasTrackMatches: validGolCount > 0
-              };
-            };
-
-            const statsA = getTeamStats(results.teamA);
-            const statsB = getTeamStats(results.teamB);
 
             const hasTrackHistory = validHistoricalMatches.length > 0;
 
@@ -5373,8 +5445,6 @@ const formatResultTime = (timeStr?: string) => {
               if (hasTrackHistory) {
                 text += `\n\n🔮 *Esito Stimato:* ${teamAName} ${Math.round(predGolA)} - ${Math.round(predGolB)} ${teamBName}\n` +
                   `Probabilità: 1 (${pctA}%) | X (${pctX}%) | 2 (${pctB}%)`;
-              } else {
-                text += `\n\nℹ️ *Previsione:* In attesa di partite archiviate idonee per il Calcio a ${matchFormat}.`;
               }
 
               navigator.clipboard.writeText(text);
@@ -5385,7 +5455,7 @@ const formatResultTime = (timeStr?: string) => {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-dimmed)', marginTop: '1.5rem', textAlign: 'center', flexWrap: 'wrap' }}>
                   <Info size={14} />
-                  <span>Statistiche calcolate su: <strong>{modeBadgeLabel}</strong> ({validHistoricalMatches.length} partite storiche idonee).</span>
+                  <span>Filtro Previsione: <strong>{modeBadgeLabel}</strong> ({validHistoricalMatches.length} partite storiche idonee).</span>
                   <button
                     type="button"
                     onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
@@ -5411,36 +5481,8 @@ const formatResultTime = (timeStr?: string) => {
                   </div>
                 </div>
 
-                {/* --- PREVISIONE MATCH --- */}
-                {!hasTrackHistory ? (
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(61, 165, 245, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
-                    borderRadius: '10px',
-                    padding: '1.2rem',
-                    marginTop: '1rem',
-                    border: '1px solid rgba(61, 165, 245, 0.25)',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#5de4ff', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
-                      <Info size={18} />
-                      <span>🔮 Nessuna partita storica idonea ({modeBadgeLabel})</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#aaa', lineHeight: 1.5, maxWidth: '620px', marginInline: 'auto' }}>
-                      Con la configurazione attuale non risultano partite archiviate idonee per il Calcio a {matchFormat}. 
-                      Puoi cliccare su <strong>"Gestisci Previsione"</strong> per abilitare lo storico unificato o includere le partite a 5, 6, 7 o 8.
-                    </p>
-                    <div style={{ marginTop: '0.8rem' }}>
-                      <button 
-                        type="button"
-                        className="secondary-btn" 
-                        onClick={() => { setTempPredictionSettings(predictionSettings); setIsPredictionModalOpen(true); }}
-                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <Sliders size={14} /> Gestisci Previsione
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+                {/* --- PREVISIONE MATCH (mostrata solo se c'è storico idoneo) --- */}
+                {hasTrackHistory && (
                   <div style={{ 
                     background: 'linear-gradient(135deg, rgba(93,228,255,0.08) 0%, rgba(255,204,0,0.08) 100%)', 
                     borderRadius: '10px', 

@@ -68,12 +68,12 @@ NON eseguire ricerche esplorative sull'intera codebase. Usa la mappa sottostante
 Quando modifichi una di queste funzionalità, controlla SEMPRE i file collegati nella stessa catena per evitare disallineamenti o dati non aggiornati:
 
 * **Flusso "Risultato e Voti Partita" (Cascata critica):**
-  1. **UI Input:** `components/matches/UpdateResultModal.tsx` e `components/matches/MatchArchive.tsx`
-  2. **Client API & Stato:** `lib/api/matches-api.ts` -> aggiorna lo stato globale in `hooks/useAppData.ts`
-  3. **Backend API:** `app/api/risultati/update/route.ts` e `app/api/risultati/voti/route.ts`
-  4. **Effetti Collaterali (Impatto su Statistiche, Classifica, Rating e Premi):**
-     - Calcolo classifica e punti: `lib/classifica-utils.ts` e `app/api/classifica/route.ts`
-     - Statistiche e trend: `lib/stats/match-utils.ts`, `components/stats/LeaderboardSection.tsx`, `StatsTrendsSection.tsx`, `WeeklyStatsSection.tsx`
+  1. **UI Input & Stato Modale:** `components/matches/UpdateResultModal.tsx` (gestisce `updateMVPs` con `handleToggleMVP` a riga ~177 e invia i dati con `handleSave` -> `onSave` a riga ~183).
+  2. **Mounting & Handler Client:** `UpdateResultModal` è montato in `app/page.tsx` (righe ~295-320), dove `onSave` invoca `handleUpdateResult` definito in `hooks/useAppData.ts` (righe ~265-285), che chiama `lib/api/matches-api.ts`.
+  3. **Backend API Salvataggio:** `app/api/risultati/update/route.ts` (funzione `POST`: riceve `mvps` e `voti`, aggiorna `public."Risultati"` includendo la colonna JSON `voti_giocatori`, e invoca subito alla riga ~65 `recalculateAndSaveClassifica(sql)`).
+  4. **Calcolo Classifica & Statistiche Reattive:**
+     - Server-side: `lib/classifica-utils.ts` -> funzione `recalculateAndSaveClassifica(sql)` (legge `voti_giocatori` da `Risultati`, calcola `somma_voti`, `media_voto`, `mvp_count` e salva in `public."classifica"`).
+     - Client-side: `lib/stats/match-utils.ts` -> funzione `calculateStatsData(matches, showGuests, dbPlayers)` (invocata via `useMemo` in `useAppData.ts` per generare `statsData` e `votiTrend`).
      - Evoluzione overall/card giocatore: `lib/players/pes-card-utils.ts` e `app/api/giocatori/route.ts`
      - Premi fine stagione / giornata: `app/api/awards/calculate/route.ts` e `app/awards/page.tsx`
 

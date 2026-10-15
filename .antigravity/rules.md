@@ -63,3 +63,28 @@ NON eseguire ricerche esplorative sull'intera codebase. Usa la mappa sottostante
 2. Non toccare o leggere mai i file `app/api/migrate*` o `app/api/setup` a meno che non venga esplicitamente richiesto.
 3. Attenzione a `app/api/risultati/`: contiene sia `route.ts` che `risultati-route.ts`. Agisci su `route.ts` salvo diversa indicazione.
 4. **Dual-Repo Sync (Galaticos & ElFutbol):** Qualsiasi modifica deve essere applicata con parità al 100% su entrambi i repository, verificata con `npx tsc --noEmit` e committata su `main`.
+
+## 6. Flussi Dati Critici e Dipendenze Incrociate (Cross-File)
+Quando modifichi una di queste funzionalità, controlla SEMPRE i file collegati nella stessa catena per evitare disallineamenti o dati non aggiornati:
+
+* **Flusso "Risultato e Voti Partita" (Cascata critica):**
+  1. **UI Input:** `components/matches/UpdateResultModal.tsx` e `components/matches/MatchArchive.tsx`
+  2. **Client API & Stato:** `lib/api/matches-api.ts` -> aggiorna lo stato globale in `hooks/useAppData.ts`
+  3. **Backend API:** `app/api/risultati/update/route.ts` e `app/api/risultati/voti/route.ts`
+  4. **Effetti Collaterali (Impatto su Statistiche, Classifica, Rating e Premi):**
+     - Calcolo classifica e punti: `lib/classifica-utils.ts` e `app/api/classifica/route.ts`
+     - Statistiche e trend: `lib/stats/match-utils.ts`, `components/stats/LeaderboardSection.tsx`, `StatsTrendsSection.tsx`, `WeeklyStatsSection.tsx`
+     - Evoluzione overall/card giocatore: `lib/players/pes-card-utils.ts` e `app/api/giocatori/route.ts`
+     - Premi fine stagione / giornata: `app/api/awards/calculate/route.ts` e `app/awards/page.tsx`
+
+* **Flusso "Generazione Squadre, Bilanciamento e Pronostici":**
+  1. **Stato & Hook:** `hooks/useTeamBuilder.ts`
+  2. **Algoritmo & Motore Pronostici:** `lib/algorithm/team-balancer.ts` e `lib/stats/prediction-engine.ts` (configurati tramite `components/admin/AlgoSettingsModal.tsx` e `components/stats/PredictionSettingsModal.tsx`)
+  3. **UI Campi & Risultato:** `components/teams/TeamBuilderPanel.tsx`, `TacticalPitches.tsx`, `FormationResultsSection.tsx`, `MatchPredictionBox.tsx`
+  4. **Salvataggio & Export:** `app/api/salva-formazione/route.ts` e `lib/export/whatsapp-share.ts`
+
+* **Flusso "Modifica Giocatore / Maglie / Ruoli":**
+  1. **Modello Dati:** `types/index.ts`
+  2. **UI Admin & Card:** `components/admin/EditPlayerModal.tsx`, `AddPlayerModal.tsx`, `components/players/PlayerCardModal.tsx`
+  3. **API:** `app/api/giocatori/update/route.ts`, `app/api/risultati/update-maglia/route.ts`, `app/api/session/update-maglia/route.ts`
+

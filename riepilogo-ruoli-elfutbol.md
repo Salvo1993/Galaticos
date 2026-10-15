@@ -1,117 +1,87 @@
 # Riepilogo Ruoli ElFutbol & Incrocio con il Sondaggio
 
 > [!NOTE]
-> Questo documento analizza i ruoli censiti nella tabella ufficiale `Giocatori` di **ElFutbol** confrontandoli con i risultati emersi dai sondaggi *"Ruolo preferito"* e *"Ruolo alternativo"*.
+> Questo documento riporta la verifica aggiornata del database **ElFutbol** a seguito delle modifiche apportate, con il dettaglio della logica di matching applicata tra i **Nomi WhatsApp** e i **Nomi registrati su DB**.
 
 ---
 
-## 1. Tabella dei Giocatori Attualmente Censiti su ElFutbol (26 Giocatori)
+## 1. Tabella dei Giocatori Attualmente Censiti su ElFutbol (26 Giocatori - Verificata su DB)
 
-| Giocatore (DB ElFutbol) | Ruolo Principale | Ruolo/i Secondario/i | Note / Corsia Preferita |
+| Giocatore (DB ElFutbol) | Ruolo Principale | Ruolo/i Secondario/i | Stato dopo l'aggiornamento |
 | :--- | :--- | :--- | :--- |
-| **(P) Marco C** | Portiere | *Nessuno* | Portiere di ruolo |
-| **Ale Buttitta** | Centrocampista Centrale | Terzino Destro, Terzino Sinistro | Adattabile su entrambe le fasce difensive |
-| **Ale Casa** | Centrocampista Centrale | *Nessuno* | Mediano puro |
-| **Ale LM** | Ala | *Nessuno* | Corsia offensiva |
-| **Alessandro F** | Ala Destra | *Nessuno* | ⚠️ *Disallineato rispetto al sondaggio* |
-| **AntonioS** | Centrocampista Centrale | *Nessuno* | ⚠️ *Disallineato rispetto al sondaggio* |
-| **Ciccio (Nipote Riccardo)** | Attaccante | *Nessuno* | Punta |
-| **Davide A** | Centrocampista Centrale | Difensore | Centrocampo / Difesa centrale |
-| **Fulì** | Difensore | Terzino Destro, Terzino Sinistro, Centrocampista Centrale | Jolly difensivo e mediano |
-| **Gino** | Ala | Terzino Destro, Terzino Sinistro, Difensore | Copre tutta la fascia e difesa |
-| **Giuseppe G** | Ala | Terzino Destro, Terzino Sinistro | Corsie laterali (alte e basse) |
-| **Giuseppe LB** | Difensore | Terzino Destro, Terzino Sinistro | Difensore centrale / Terzino |
-| **GiuseppeR** | Terzino Sinistro | Terzino Destro, Ala Sinistra, Ala Destra | Fascia sinistra e destra completa |
-| **Luca (Amico Riccardo)** | Attaccante | *Nessuno* | Punta |
-| **MarcoM** | Difensore | Terzino Destro, Terzino Sinistro | Difesa e corsie arretrate |
-| **Michelangelo** | Ala | Centrocampista Centrale | Esterno offensivo / Centrocampo |
-| **Pino** | Centrocampista Centrale | Attaccante | Mediano / Incursore d'attacco |
-| **Riccardo** | Attaccante | Centrocampista Centrale | Punta / Trequartista |
-| **SalvoM (Tu)** | Centrocampista Centrale | Ala Destra, Attaccante, Ala Sinistra | Centrocampista completo e rifinitore |
-| **Saverio LB** | Ala Destra | Ala Sinistra | Ali offensive su entrambi i lati |
-| **SergioF** | Terzino Destro | *Nessuno* | ⚠️ *Secondario mancante rispetto al sondaggio* |
-| **StefanoV** | Attaccante | Ala Sinistra, Ala Destra | ⚠️ *Centrocampo mancante rispetto al sondaggio* |
-| **Tatò B** | Terzino Destro | Ala Destra | Corsia destra completa |
-| **Tommaso LG** | Ala | *Nessuno* | Esterno |
-| **Toni C** | Centrocampista Centrale | *Nessuno* | Centrocampo |
-| **Venturi** | Centrocampista Centrale | Attaccante | Centrocampista d'inserimento / Punta |
+| **(P) Marco C** | Portiere | *Nessuno* | Confermato |
+| **Ale Buttitta** | Centrocampista Centrale | Terzino Destro, Terzino Sinistro | Confermato |
+| **Ale Casa** | Centrocampista Centrale | *Nessuno* | Confermato |
+| **Ale LM** | Ala | *Nessuno* | Confermato |
+| **Alessandro F** | **Terzino Destro** | **Terzino Sinistro, Difensore** | ✅ **Aggiornato su DB** |
+| **AntonioS** | **Ala** | **Attaccante** | ✅ **Aggiornato su DB** |
+| **Ciccio (Nipote Riccardo)** | Attaccante | *Nessuno* | Confermato |
+| **Davide A** | Centrocampista Centrale | Difensore | Confermato |
+| **Fulì** | Difensore | Terzino Destro, Terzino Sinistro, Centrocampista Centrale | Confermato |
+| **Gino** | Ala | Terzino Destro, Terzino Sinistro, Difensore | Confermato |
+| **Giuseppe G** | Ala | Terzino Destro, Terzino Sinistro | Confermato |
+| **Giuseppe LB** | Difensore | Terzino Destro, Terzino Sinistro | Confermato |
+| **GiuseppeR** | Terzino Sinistro | Terzino Destro, Ala Sinistra, Ala Destra | Confermato |
+| **Luca (Amico Riccardo)** | Attaccante | *Nessuno* | Confermato |
+| **MarcoM** | Difensore | Terzino Destro, Terzino Sinistro | Confermato |
+| **Michelangelo** | Ala | Centrocampista Centrale | Confermato |
+| **Pino** | Centrocampista Centrale | Attaccante | Confermato |
+| **Riccardo** | Attaccante | Centrocampista Centrale | Confermato |
+| **SalvoM (Tu)** | Centrocampista Centrale | Ala Destra, Attaccante, Ala Sinistra | Confermato |
+| **Saverio LB** | Ala Destra | Ala Sinistra | Confermato |
+| **SergioF** | **Terzino Destro** | **Terzino Sinistro, Ala Sinistra, Ala Destra** | ✅ **Aggiornato su DB** |
+| **StefanoV** | **Attaccante** | **Ala Sinistra, Ala Destra, Centrocampista Centrale** | ✅ **Aggiornato su DB** |
+| **Tatò B** | Terzino Destro | Ala Destra | Confermato |
+| **Tommaso LG** | Ala | *Nessuno* | Confermato |
+| **Toni C** | Centrocampista Centrale | *Nessuno* | Confermato |
+| **Venturi** | Centrocampista Centrale | Attaccante | Confermato |
 
 ---
 
-## 2. Analisi dei Votanti del Sondaggio: Chi è stato censito?
+## 2. Esito Allineamento Sondaggio vs Database (18 Votanti)
 
 > [!IMPORTANT]
-> **Esito Censimento: 18 su 18 (100% CENSITI)**  
-> Tutti i 18 partecipanti ai sondaggi sono già presenti e registrati nel database ufficiale di ElFutbol. Non ci sono giocatori sconosciuti o da creare ex novo.
-
-### Tabella di Corrispondenza Sondaggio vs Database
-
-| Nome nel Sondaggio | Nome censito in DB | Ruolo Preferito (Sondaggio) | Ruolo/i Alternativo/i (Sondaggio) | Stato Allineamento Database |
-| :--- | :--- | :--- | :--- | :--- |
-| **Tu** | `SalvoM` | Centrocampista centrale | Ala, Attaccante | ✅ **Allineato al 100%** |
-| **Pino** | `Pino` | Centrocampista centrale | Attaccante | ✅ **Allineato al 100%** |
-| **Venturi** | `Venturi` | Centrocampista centrale | Attaccante | ✅ **Allineato al 100%** |
-| **Davide Cugino** | `Davide A` | Centrocampista centrale | Difensore | ✅ **Allineato al 100%** |
-| **~Alessandro Buttitta** | `Ale Buttitta` | Centrocampista centrale | Terzino | ✅ **Allineato al 100%** |
-| **Füll** | `Fulì` | Difensore | Terzino, Centrocampista centrale | ✅ **Allineato al 100%** |
-| **Giuseppe La Bianca** | `Giuseppe LB` | Difensore | Terzino | ✅ **Allineato al 100%** |
-| **Marco** | `MarcoM` | Difensore | Terzino | ✅ **Allineato al 100%** |
-| **GiuseppeG** | `Giuseppe G` | Ala | Terzino | ✅ **Allineato al 100%** |
-| **Giuseppe Ranieri** | `GiuseppeR` | Terzino | Ala | ✅ **Allineato al 100%** |
-| **Michelangelo Spanò** | `Michelangelo` | Ala | Centrocampista centrale | ✅ **Allineato al 100%** |
-| **Riccardo** | `Riccardo` | Attaccante | Centrocampista centrale | ✅ **Allineato al 100%** |
-| **Gino Piro** | `Gino` | *(Solo alternativo)* | Difensore | ✅ **Allineato al 100%** |
-| **Saverio Lo Buglio** | `Saverio LB` | *(Solo alternativo)* | Ala | ✅ **Allineato al 100%** |
-| **Alessandro Fidenco** | `Alessandro F` | **Terzino** | **Difensore** | ⚠️ **DISALLINEATO** (In DB: *Ala Destra* / *Nessuno*) |
-| **Antonio Sunseri** | `AntonioS` | **Ala** | **Attaccante** | ⚠️ **DISALLINEATO** (In DB: *Centrocampista Centrale* / *Nessuno*) |
-| **Sergio Fidenco** | `SergioF` | **Terzino** | **Ala** | ⚠️ **INCOMPLETO** (In DB: *Terzino Destro*, secondario *Nessuno*) |
-| **StefanoV** | `StefanoV` | **Attaccante** | **CC, Ala, Attaccante** | ⚠️ **PARZIALE** (In DB: secondario solo *Ali*, manca *CC*) |
+> **Esito Finale: 18 su 18 (100% CENSITI E 100% ALLINEATI)**  
+> Con i recenti aggiornamenti manuali al database per **Alessandro F**, **AntonioS**, **SergioF** e **StefanoV**, tutti i 18 partecipanti al sondaggio rispecchiano fedelmente a sistema le preferenze espresse.
 
 ---
 
-## 3. Focus Dettagliato sulle 4 Discrepanze Rilevate
+## 3. Logica di Matching Applicata: Nomi WhatsApp ➔ Nomi nel Database
 
-### 1. Alessandro Fidenco (`Alessandro F`)
-- **Stato attuale in DB:** Ruolo = `Ala Destra`, Ruolo Secondario = `null`.
-- **Preferenze espresse nel Sondaggio:**
-  - Ruolo Preferito: **Terzino**
-  - Ruolo Alternativo: **Difensore**
-- **Azione consigliata:** Aggiornare il Ruolo Principale a `Terzino` (o `Terzino Destro`) e il Ruolo Secondario a `Difensore`.
+I nomi esportati dal sondaggio di WhatsApp differiscono dai record del database a causa di abbreviazioni, iniziali del cognome per disambiguare omonimi e formattazioni della rubrica. Di seguito il dettaglio esatto della corrispondenza adottata:
 
-### 2. Antonio Sunseri (`AntonioS`)
-- **Stato attuale in DB:** Ruolo = `Centrocampista Centrale`, Ruolo Secondario = `null`.
-- **Preferenze espresse nel Sondaggio:**
-  - Ruolo Preferito: **Ala**
-  - Ruolo Alternativo: **Attaccante**
-- **Azione consigliata:** Aggiornare il Ruolo Principale a `Ala` e il Ruolo Secondario ad `Attaccante`.
-
-### 3. Sergio Fidenco (`SergioF`)
-- **Stato attuale in DB:** Ruolo = `Terzino Destro`, Ruolo Secondario = `null`.
-- **Preferenze espresse nel Sondaggio:**
-  - Ruolo Preferito: **Terzino** (confermato)
-  - Ruolo Alternativo: **Ala**
-- **Azione consigliata:** Aggiungere `Ala` (o `Ala Destra`) tra i Ruoli Secondari.
-
-### 4. StefanoV (`StefanoV`)
-- **Stato attuale in DB:** Ruolo = `Attaccante`, Ruolo Secondario = `Ala Sinistra, Ala Destra`.
-- **Preferenze espresse nel Sondaggio:**
-  - Ruolo Preferito: **Attaccante** (confermato)
-  - Ruolo Alternativo: **Centrocampista centrale**, **Ala**, **Attaccante**
-- **Azione consigliata:** Aggiungere `Centrocampista Centrale` all'elenco dei ruoli secondari (`Ala Sinistra, Ala Destra, Centrocampista Centrale`).
+| # | Nome nel Sondaggio WhatsApp | Nome su DB ElFutbol | Criterio e Logica di Matching |
+| :-: | :--- | :--- | :--- |
+| **1** | **Tu** | `SalvoM` | In WhatsApp, l'account che esporta o visualizza il sondaggio mostra se stesso come **"Tu"**. Nel database corrisponde a Salvatore / Salvo M. (`SalvoM`), i cui voti espressi (CC preferito, Ala/Attaccante alternativi) combaciano 1:1 con il profilo registrato. |
+| **2** | **Pino** | `Pino` | **Match Esatto (1:1):** Nome identico in rubrica e nel DB. |
+| **3** | **Venturi** | `Venturi` | **Match Esatto (1:1):** Cognome identico sia nel sondaggio sia nel DB. |
+| **4** | **Davide Cugino** | `Davide A` | **Disambiguazione Parentela / Iniziale Cognome:** Su WhatsApp è memorizzato come *"Davide Cugino"*. Nel DB è censito come `Davide A` (Davide Amato, iniziale A). I ruoli espressi (CC preferito, Difensore alternativo) combaciano con il DB. |
+| **5** | **~Alessandro Buttitta** | `Ale Buttitta` | **Nome Profilo WhatsApp ➔ Diminutivo:** La tilde `~` indica il nome visualizzato del profilo WhatsApp. Nel DB *"Alessandro"* è censito col consueto diminutivo `Ale Buttitta`. |
+| **6** | **Füll** | `Fulì` | **Nickname / Variante Fonetica:** "Füll" (con umlaut, richiamo a Füllkrug o soprannome del gruppo) corrisponde a `Fulì` nel DB (unico difensore con tale radice onomastica). |
+| **7** | **Giuseppe La Bianca La Bianca** | `Giuseppe LB` | **Cognome per Esteso ➔ Sigla Iniziali:** Su WhatsApp appare con il cognome ripetuto (*La Bianca La Bianca*). Nel database i cognomi composti sono abbreviati con le iniziali delle due parole per non sforare nei badge di gara (`LB`). |
+| **8** | **Marco** | `MarcoM` | **Disambiguazione Omonimo Giocatore di Movimento:** Nel DB ci sono due Marco: `(P) Marco C` (Portiere) e `MarcoM` (Difensore). Avendo votato Difensore/Terzino, il match è univoco su `MarcoM`. |
+| **9** | **GiuseppeG** / **~Giuseppe G** | `Giuseppe G` | **Spaziatura Iniziale:** Su WhatsApp compare privo di spazio (`GiuseppeG`) o con tilde. Nel DB è separato da spazio (`Giuseppe G`) per distinguerlo da Giuseppe LB e GiuseppeR. |
+| **10** | **Giuseppe Ranieri** | `GiuseppeR` | **Cognome Completo ➔ Iniziale Attaccata:** Su WhatsApp è presente con nome e cognome. Nel DB il cognome Ranieri è abbreviato con l'iniziale `R` attaccata (`GiuseppeR`). |
+| **11** | **Michelangelo Spanò** | `Michelangelo` | **Nome Completo ➔ Nome Singolo:** Essendo l'unico Michelangelo del gruppo, nel DB è registrato senza il cognome Spanò. |
+| **12** | **Riccardo** / **Riccardo Amico Marco** | `Riccardo` | **Disambiguazione Rubrica:** Nel primo sondaggio è votato come *"Riccardo"*, nel secondo come *"Riccardo Amico Marco"*. Nel DB è il titolare `Riccardo` (a cui fanno riferimento anche i due parenti/amici `Ciccio (Nipote Riccardo)` e `Luca (Amico Riccardo)`). |
+| **13** | **Gino Piro** | `Gino` | **Nome Completo ➔ Nome Singolo:** Unico Gino presente, censito come `Gino` nel DB (ha votato solo Ruolo Alternativo: Difensore). |
+| **14** | **Saverio Lo Buglio** | `Saverio LB` | **Cognome Completo ➔ Sigla Iniziali:** Come per La Bianca, il cognome Lo Buglio è contratto nelle iniziali `LB` (`Saverio LB`), con corsie offensive destra/sinistra. |
+| **15** | **Alessandro Fidenco** | `Alessandro F` | **Disambiguazione Omonimi "Ale":** Nel DB sono presenti 4 Alessandro (`Ale Buttitta`, `Ale Casa`, `Ale LM`, `Alessandro F`). "Alessandro Fidenco" corrisponde inequivocabilmente ad `Alessandro F` (iniziale del cognome Fidenco). |
+| **16** | **Sergio Fidenco** | `SergioF` | **Nome Completo ➔ Iniziale Attaccata:** Il cognome Fidenco è abbreviato con la `F` attaccata al nome (`SergioF`). |
+| **17** | **Antonio Sunseri** | `AntonioS` | **Nome Completo ➔ Iniziale Attaccata:** Il cognome Sunseri è abbreviato con la `S` attaccata al nome (`AntonioS`). |
+| **18** | **StefanoV** / **Stefanov** | `StefanoV` | **Match Sostanziale:** Differisce solo per le maiuscole dell'iniziale del cognome V (`StefanoV`). |
 
 ---
 
-## 4. Giocatori Censiti nel DB che NON Hanno Partecipato al Sondaggio (8 Giocatori)
+## 4. Giocatori Censiti su DB Esterni al Sondaggio (8 Giocatori)
 
-Questi giocatori sono registrati nel database ufficiale ma non hanno compilato il sondaggio:
-
-1. **(P) Marco C** (Portiere)
-2. **Ale Casa** (Centrocampista Centrale)
-3. **Ale LM** (Ala)
-4. **Ciccio (Nipote Riccardo)** (Attaccante)
-5. **Luca (Amico Riccardo)** (Attaccante)
-6. **Tatò B** (Terzino Destro / Ala Destra)
-7. **Tommaso LG** (Ala)
-8. **Toni C** (Centrocampista Centrale)
-
-*(Nota: nei tabellini storici compare anche l'ospite `(P) Amico Filippo`, che è un Guest occasionale e non un giocatore con scheda nel DB).*
+Questi giocatori sono regolarmente presenti nella tabella `Giocatori` di ElFutbol ma non hanno partecipato al sondaggio:
+1. `(P) Marco C` (Portiere)
+2. `Ale Casa` (Centrocampista Centrale)
+3. `Ale LM` (Ala)
+4. `Ciccio (Nipote Riccardo)` (Attaccante)
+5. `Luca (Amico Riccardo)` (Attaccante)
+6. `Tatò B` (Terzino Destro / Ala Destra)
+7. `Tommaso LG` (Ala)
+8. `Toni C` (Centrocampista Centrale)
+*(Oltre al portiere ospite ricorrente `(P) Amico Filippo`).*

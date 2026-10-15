@@ -15,11 +15,14 @@ export const parseScorersString = (scorersInput: any): Record<string, number> =>
     if (!trimmed) return;
     const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
     if (match) {
-      const name = match[1].trim();
+      let name = match[1].trim();
       let count = 1;
       const content = match[2];
       if (content) {
-        if (content.includes("'")) {
+        if (content.trim().toUpperCase() === 'AG') {
+          name = `${name} (AG)`;
+          count = 1;
+        } else if (content.includes("'")) {
           count = content.split(/,|(?:' e )|(?:' )/).filter((k) => k.trim() !== '').length;
         } else {
           count = parseInt(content, 10) || 1;
@@ -31,11 +34,81 @@ export const parseScorersString = (scorersInput: any): Record<string, number> =>
   return map;
 };
 
-export const stringifyScorers = (map: Record<string, number>): string => {
+export const parseScorersWithMinutes = (scorersInput: any): Record<string, string[]> => {
+  if (!scorersInput) return {};
+  let scorersStr = '';
+  if (Array.isArray(scorersInput)) {
+    scorersStr = scorersInput.join(', ');
+  } else if (typeof scorersInput === 'string') {
+    scorersStr = scorersInput;
+  } else {
+    return {};
+  }
+
+  const map: Record<string, string[]> = {};
+  // Split only on commas outside parentheses
+  scorersStr.split(/,\s*(?![^()]*\))/).forEach((s: string) => {
+    const trimmed = s.trim();
+    if (!trimmed) return;
+    const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
+    if (match) {
+      let name = match[1].trim();
+      const content = match[2];
+
+      if (content && content.trim().toUpperCase() === 'AG') {
+        name = `${name} (AG)`;
+        if (!map[name]) map[name] = [];
+        map[name].push('');
+        return;
+      }
+
+      if (!map[name]) map[name] = [];
+
+      if (content) {
+        if (content.includes("'")) {
+          const minuteTokens = content
+            .split(/,\s*|\s+e\s+/)
+            .map((m) => m.trim())
+            .filter(Boolean);
+          map[name].push(...minuteTokens);
+        } else {
+          const count = parseInt(content, 10) || 1;
+          for (let i = 0; i < count; i++) {
+            map[name].push('');
+          }
+        }
+      } else {
+        map[name].push('');
+      }
+    }
+  });
+  return map;
+};
+
+export const stringifyScorers = (map: Record<string, number | string[]>): string => {
   return Object.entries(map)
-    .filter(([_, count]) => count > 0)
-    .map(([name, count]) => (count > 1 ? `${name} (${count})` : name))
+    .filter(([_, val]) => {
+      if (Array.isArray(val)) return val.length > 0;
+      return typeof val === 'number' && val > 0;
+    })
+    .map(([name, val]) => {
+      if (Array.isArray(val)) {
+        const hasRealMinutes = val.some((m) => m && m.includes("'"));
+        if (hasRealMinutes) {
+          const formattedTokens = val.map((m) =>
+            m && m.includes("'") ? m.trim() : 'gol'
+          );
+          return `${name} (${formattedTokens.join(', ')})`;
+        }
+        return val.length > 1 ? `${name} (${val.length})` : name;
+      }
+      return val > 1 ? `${name} (${val})` : name;
+    })
     .join(', ');
+};
+
+export const stringifyScorersWithMinutes = (map: Record<string, string[]>): string => {
+  return stringifyScorers(map);
 };
 
 export const getVoteColor = (v?: number | string): string => {

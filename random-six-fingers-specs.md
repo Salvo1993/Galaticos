@@ -187,9 +187,10 @@ export async function assertAdmin(req?: Request) {
 
 ### 5.5 Gestione Partite, Voti e Classifica Generale
 - **Archivio Partite:** lista cronologica delle partite con stadio, data, orario, formazioni e punteggio.
-- **Modale Aggiornamento Risultato:**
+- **Modale Aggiornamento Risultato & Conservazione Minutaggio Gol:**
   - Risultato numerico (es. `7-5`).
-  - Marcatori Squadra A e Squadra B con sintassi leggibile.
+  - **Preservazione Minuti Gol da Live Match:** quando una partita viene seguita e registrata dal Live Match (`/live`), i marcatori registrano con precisione il minuto esatto di ciascun gol (es. `Mattia (3', 42', 49'), Marco Bellavista (47')`). La modale di aggiornamento risultato (`UpdateResultModal`) preserva integralmente i minuti dei gol registrati quando vengono inseriti i voti delle pagelle o selezionati gli MVP dalla homepage. Il parser e stringifier dedicato (`parseScorersWithMinutes` e `stringifyScorersWithMinutes`) mantiene i minuti anche in caso di variazioni ai marcatori e impedisce la sovrascrittura con semplici conteggi numerici (es. `Mattia (3)`), proteggendo la fedeltà dello storico.
+  - Marcatori Squadra A e Squadra B con sintassi leggibile e supporto ad Autogol (`(AG)` / `Autogol Nome`).
   - Pagelle individuali: voto da 1 a 10 con decimali o `s.v.` (senza voto).
   - Elezione MVP della partita.
 - **Classifica Generale Automatica:**

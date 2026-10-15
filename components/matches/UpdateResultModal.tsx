@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { MatchResult } from '@/types';
-import { parseScorersString, stringifyScorers, getVoteColor } from '@/lib/stats/match-utils';
+import {
+  parseScorersWithMinutes,
+  stringifyScorersWithMinutes,
+  getVoteColor
+} from '@/lib/stats/match-utils';
 
 export interface UpdateResultModalProps {
   isOpen: boolean;
@@ -31,8 +35,10 @@ export default function UpdateResultModal({
 }: UpdateResultModalProps) {
   const [updateScoreA, setUpdateScoreA] = useState('');
   const [updateScoreB, setUpdateScoreB] = useState('');
-  const [updateScorersA, setUpdateScorersA] = useState<Record<string, number>>({});
-  const [updateScorersB, setUpdateScorersB] = useState<Record<string, number>>({});
+  const [updateScorersA, setUpdateScorersA] = useState<Record<string, string[]>>({});
+  const [updateScorersB, setUpdateScorersB] = useState<Record<string, string[]>>({});
+  const [scorersAModified, setScorersAModified] = useState(false);
+  const [scorersBModified, setScorersBModified] = useState(false);
   const [goalMode, setGoalMode] = useState<Record<string, 'G' | 'AG'>>({});
   const [updateVoti, setUpdateVoti] = useState<Record<string, number | 's.v.'>>({});
   const [updateMVPs, setUpdateMVPs] = useState<string[]>([]);
@@ -43,8 +49,10 @@ export default function UpdateResultModal({
       const [sA, sB] = (match.risultato || '0-0').split('-').map((s) => s.trim());
       setUpdateScoreA(sA || '0');
       setUpdateScoreB(sB || '0');
-      setUpdateScorersA(parseScorersString(match.marcatori_a));
-      setUpdateScorersB(parseScorersString(match.marcatori_b));
+      setUpdateScorersA(parseScorersWithMinutes(match.marcatori_a));
+      setUpdateScorersB(parseScorersWithMinutes(match.marcatori_b));
+      setScorersAModified(false);
+      setScorersBModified(false);
       setUpdateVoti(match.voti_giocatori || {});
       const rawMvps: any = match.mvps;
       const parsedMvps = Array.isArray(rawMvps)
@@ -108,21 +116,39 @@ export default function UpdateResultModal({
 
   if (!isOpen || !match) return null;
 
-  const handleUpdateGoal = (team: 'A' | 'B', player: string, delta: number) => {
+  const handleUpdateGoal = (team: 'A' | 'B', playerKey: string, delta: number) => {
     if (team === 'A') {
+      setScorersAModified(true);
       setUpdateScorersA((prev) => {
-        const val = Math.max(0, (prev[player] || 0) + delta);
         const next = { ...prev };
-        if (val === 0) delete next[player];
-        else next[player] = val;
+        const currentArr = next[playerKey] ? [...next[playerKey]] : [];
+        if (delta > 0) {
+          currentArr.push('');
+          next[playerKey] = currentArr;
+        } else if (delta < 0) {
+          if (currentArr.length > 0) {
+            currentArr.pop();
+            if (currentArr.length === 0) delete next[playerKey];
+            else next[playerKey] = currentArr;
+          }
+        }
         return next;
       });
     } else {
+      setScorersBModified(true);
       setUpdateScorersB((prev) => {
-        const val = Math.max(0, (prev[player] || 0) + delta);
         const next = { ...prev };
-        if (val === 0) delete next[player];
-        else next[player] = val;
+        const currentArr = next[playerKey] ? [...next[playerKey]] : [];
+        if (delta > 0) {
+          currentArr.push('');
+          next[playerKey] = currentArr;
+        } else if (delta < 0) {
+          if (currentArr.length > 0) {
+            currentArr.pop();
+            if (currentArr.length === 0) delete next[playerKey];
+            else next[playerKey] = currentArr;
+          }
+        }
         return next;
       });
     }
@@ -156,8 +182,24 @@ export default function UpdateResultModal({
 
   const handleSave = async () => {
     const risultato = `${updateScoreA.trim() || '0'}-${updateScoreB.trim() || '0'}`;
-    const strScorersA = stringifyScorers(updateScorersA);
-    const strScorersB = stringifyScorers(updateScorersB);
+
+    const originalA = Array.isArray(match.marcatori_a)
+      ? match.marcatori_a.join(', ')
+      : typeof match.marcatori_a === 'string'
+      ? match.marcatori_a
+      : '';
+    const originalB = Array.isArray(match.marcatori_b)
+      ? match.marcatori_b.join(', ')
+      : typeof match.marcatori_b === 'string'
+      ? match.marcatori_b
+      : '';
+
+    const strScorersA = scorersAModified
+      ? stringifyScorersWithMinutes(updateScorersA)
+      : originalA;
+    const strScorersB = scorersBModified
+      ? stringifyScorersWithMinutes(updateScorersB)
+      : originalB;
 
     await onSave({
       id: match.id,
@@ -256,9 +298,17 @@ export default function UpdateResultModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {match.team_a_players?.map((player) => {
               const mode = goalMode[player] || 'G';
-              const playerKey = mode === 'G' ? player : `${player} (AG)`;
               const targetTeam = mode === 'G' ? 'A' : 'B';
-              const count = (targetTeam === 'A' ? updateScorersA : updateScorersB)[playerKey] || 0;
+              const targetMap = targetTeam === 'A' ? updateScorersA : updateScorersB;
+              let playerKey = player;
+              if (mode === 'AG') {
+                if (targetMap[`Autogol ${player}`]) {
+                  playerKey = `Autogol ${player}`;
+                } else {
+                  playerKey = `${player} (AG)`;
+                }
+              }
+              const count = (targetMap[playerKey] || []).length;
               const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
               return (
                 <div
@@ -459,9 +509,17 @@ export default function UpdateResultModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {match.team_b_players?.map((player) => {
               const mode = goalMode[player] || 'G';
-              const playerKey = mode === 'G' ? player : `${player} (AG)`;
               const targetTeam = mode === 'G' ? 'B' : 'A';
-              const count = (targetTeam === 'B' ? updateScorersB : updateScorersA)[playerKey] || 0;
+              const targetMap = targetTeam === 'B' ? updateScorersB : updateScorersA;
+              let playerKey = player;
+              if (mode === 'AG') {
+                if (targetMap[`Autogol ${player}`]) {
+                  playerKey = `Autogol ${player}`;
+                } else {
+                  playerKey = `${player} (AG)`;
+                }
+              }
+              const count = (targetMap[playerKey] || []).length;
               const vote = updateVoti[player] !== undefined ? updateVoti[player] : 6;
               return (
                 <div

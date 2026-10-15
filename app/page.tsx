@@ -32,7 +32,12 @@ import {
   isMatchAllowedForPrediction,
 } from '@/lib/stats/prediction-engine';
 import { getPitchPositionsForTeam } from '@/lib/teams/formation-utils';
-import { parseScorersString } from '@/lib/stats/match-utils';
+import {
+  parseScorersString,
+  parseScorersWithMinutes,
+  stringifyScorers,
+  stringifyScorersWithMinutes
+} from '@/lib/stats/match-utils';
 
 export type { PredictionSettings, ModuloSettings };
 export {
@@ -42,6 +47,9 @@ export {
   isMatchAllowedForPrediction,
   getPitchPositionsForTeam,
   parseScorersString,
+  parseScorersWithMinutes,
+  stringifyScorers,
+  stringifyScorersWithMinutes,
 };
 
 export default function Home() {

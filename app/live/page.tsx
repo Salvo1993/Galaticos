@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
+import {
+  parseScorersWithMinutes as parseScorers,
+  stringifyScorersWithMinutes as stringifyScorers,
+} from '@/lib/stats/match-utils';
 
 interface LiveMatch {
   id: number;
@@ -202,49 +206,7 @@ export default function LiveMatchWear() {
 
   const score = parseScore(match.risultato);
 
-  const parseScorers = (scorersInput: any) => {
-    if (!scorersInput) return {};
-    let scorersStr = Array.isArray(scorersInput) ? scorersInput.join(', ') : (typeof scorersInput === 'string' ? scorersInput : '');
-    const map: Record<string, string[]> = {};
-    
-    // Divide solo sulle virgole esterne alle parentesi
-    scorersStr.split(/,\s*(?![^()]*\))/).forEach((s: string) => {
-      const trimmed = s.trim();
-      if (!trimmed) return;
-      const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
-      if (match) {
-         const name = match[1].trim();
-         const content = match[2];
-         if (!map[name]) map[name] = [];
-         
-         if (content) {
-             if (content.includes("'")) {
-                 map[name].push(...content.split(',').map(m => m.trim()));
-             } else {
-                 const count = parseInt(content, 10) || 1;
-                 for (let i = 0; i < count; i++) map[name].push(''); // Legacy counts become empty strings
-             }
-         } else {
-             map[name].push('');
-         }
-      }
-    });
-    return map;
-  };
 
-  const stringifyScorers = (map: Record<string, string[]>) => {
-    return Object.entries(map)
-      .filter(([_, minutes]) => minutes.length > 0)
-      .map(([name, minutes]) => {
-         const hasRealMinutes = minutes.some(m => m.includes("'"));
-         if (hasRealMinutes) {
-             return `${name} (${minutes.filter(m => m).join(', ')})`;
-         } else {
-             return minutes.length > 1 ? `${name} (${minutes.length})` : name;
-         }
-      })
-      .join(', ');
-  };
 
   const updateGoal = async (player: string, team: 'A' | 'B', action: 'add' | 'remove') => {
     const marcsA = parseScorers(match.marcatori_a);

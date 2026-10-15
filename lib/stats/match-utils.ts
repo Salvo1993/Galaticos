@@ -96,7 +96,7 @@ export const stringifyScorers = (map: Record<string, number | string[]>): string
         const hasRealMinutes = val.some((m) => m && m.includes("'"));
         if (hasRealMinutes) {
           const formattedTokens = val.map((m) =>
-            m && m.includes("'") ? m.trim() : 'gol'
+            m && m.includes("'") ? m.trim() : 's.m.'
           );
           return `${name} (${formattedTokens.join(', ')})`;
         }

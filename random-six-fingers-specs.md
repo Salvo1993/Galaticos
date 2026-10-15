@@ -153,9 +153,10 @@ export async function assertAdmin(req?: Request) {
 - **Visualizzazione Dinamica dei Ruoli:**
   - Per partite **5vs5** e **6vs6**: viene mostrato esclusivamente il ruolo primario del giocatore.
   - Per partite **7vs7** e **8vs8**: viene mostrato il ruolo tattico effettivo assegnato in campo in base al modulo selezionato.
-  - **Differenziazione Cromatica dei Ruoli:**
-    - Se il ruolo assegnato in campo coincide con il ruolo primario del giocatore, viene mantenuto il colore standard del ruolo.
-    - Se il ruolo assegnato in campo è diverso dal ruolo primario (adattato su ruolo secondario o fuori ruolo per esigenze di modulo), viene applicato un colore di evidenziazione differenziato (arancione ambrato `#f39c12`) per evidenziare immediatamente l'adattamento tattico.
+  - **Differenziazione Cromatica a 3 Livelli dei Ruoli:**
+    - **Oro (`#ffd700`):** Giocatore schierato nel suo **Ruolo Preferito (Primario)**. Badge dorato e nome ruolo in oro.
+    - **Blu Scuro / Slate (`#6f9c81`):** Giocatore schierato in un suo **Ruolo Secondario** censito. Badge e nome ruolo nel colore storico di adattamento compatibile.
+    - **Rosso (`#ff5252`):** Giocatore schierato **Fuori Ruolo** (né primario né secondario censito). Badge e nome ruolo evidenziati in rosso per segnalare l'emergenza/rotazione tattica.
 - **Algoritmo di Assegnazione Ruoli in Formazione (7vs7 e 8vs8):**
   - **Priorità 1 (Ruolo Preferito):** colloca prioritariamente i giocatori nei ruoli compatibili con il loro ruolo primario definito a sistema.
   - **Priorità 2 (Ruoli Secondari Compatibili):** colloca i giocatori che possiedono ruoli secondari compatibili nei ruoli lasciati vacanti dalla Priorità 1.

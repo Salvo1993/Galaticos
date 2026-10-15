@@ -7,6 +7,7 @@ import {
   getPitchPositionsForTeam,
   getAssignedRoleInfo,
   isRoleMatchingPrimary,
+  isRoleMatchingSecondary,
   PesMorale,
   getPlayerMorale
 } from '@/lib/teams/formation-utils';
@@ -119,20 +120,54 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
 
                 let displayRoleName = primaryRuolo;
                 let displayAbbr = primaryRuolo ? getRoleAbbreviation(primaryRuolo) : '';
-                let roleColor = '#6f9c81';
-                let isCoincident = true;
+                let roleColor = '#ffd700';
+                let roleStatus: 'primary' | 'secondary' | 'out_of_role' = 'primary';
 
                 if (!isSmallFormat && pos?.role) {
                   // In 7vs7 e 8vs8: mostra il ruolo assegnato in campo
                   displayRoleName = assignedRoleInfo.name;
                   displayAbbr = assignedRoleInfo.abbr;
-                  isCoincident = isRoleMatchingPrimary(primaryRuolo, pos.role, playerObj?.piede);
-                  roleColor = isCoincident ? '#6f9c81' : '#ffb74d';
+                  const isPrimary = isRoleMatchingPrimary(primaryRuolo, pos.role, playerObj?.piede);
+                  if (isPrimary) {
+                    roleStatus = 'primary';
+                    roleColor = '#ffd700'; // Oro (Ruolo preferito)
+                  } else if (isRoleMatchingSecondary(playerObj?.RuoloSecondario, pos.role, playerObj?.piede)) {
+                    roleStatus = 'secondary';
+                    roleColor = '#6f9c81'; // Blu scuro (colore precedentemente associato al ruolo preferito)
+                  } else {
+                    roleStatus = 'out_of_role';
+                    roleColor = '#ff5252'; // Rosso (Fuori ruolo)
+                  }
                 } else {
                   // In 5vs5 e 6vs6: mostra solo il ruolo primario
                   displayRoleName = primaryRuolo;
                   displayAbbr = primaryRuolo ? getRoleAbbreviation(primaryRuolo) : '';
-                  roleColor = '#6f9c81';
+                  roleStatus = 'primary';
+                  roleColor = '#ffd700';
+                }
+
+                // Configurazione stili badge e tooltip in base allo status ruolo
+                let badgeBg = 'linear-gradient(135deg, rgba(60,45,10,0.7) 0%, rgba(30,22,5,0.7) 100%)';
+                let badgeColor = '#ffd700';
+                let badgeBorder = '1px solid rgba(255, 215, 0, 0.55)';
+                let badgeShadow = '0 0 6px rgba(255, 215, 0, 0.25)';
+                let badgeTitle = primaryRuolo ? `Ruolo preferito: ${displayRoleName}` : undefined;
+                let roleTitle: string | undefined = undefined;
+
+                if (roleStatus === 'secondary') {
+                  badgeBg = 'linear-gradient(135deg, rgba(15,35,45,0.7) 0%, rgba(10,25,35,0.7) 100%)';
+                  badgeColor = '#6f9c81';
+                  badgeBorder = '1px solid rgba(111, 156, 129, 0.55)';
+                  badgeShadow = '0 0 6px rgba(111, 156, 129, 0.25)';
+                  badgeTitle = `Ruolo secondario: ${displayRoleName} (Ruolo preferito: ${primaryRuolo})`;
+                  roleTitle = `Ruolo secondario (Preferito: ${primaryRuolo})`;
+                } else if (roleStatus === 'out_of_role') {
+                  badgeBg = 'linear-gradient(135deg, rgba(60,15,15,0.7) 0%, rgba(30,8,8,0.7) 100%)';
+                  badgeColor = '#ff5252';
+                  badgeBorder = '1px solid rgba(255, 82, 82, 0.55)';
+                  badgeShadow = '0 0 6px rgba(255, 82, 82, 0.25)';
+                  badgeTitle = `Fuori ruolo: ${displayRoleName} (Ruolo preferito: ${primaryRuolo || 'Nessuno'})`;
+                  roleTitle = `Fuori ruolo (Preferito: ${primaryRuolo || 'Nessuno'})`;
                 }
 
                 return (
@@ -162,18 +197,16 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                           <span className="player-name">{name}</span>
                           {displayAbbr && (
                             <span 
-                              title={!isCoincident && primaryRuolo ? `Ruolo assegnato: ${displayRoleName} (Ruolo primario: ${primaryRuolo})` : undefined}
+                              title={badgeTitle}
                               style={{ 
-                                background: isCoincident 
-                                  ? 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(30,40,50,0.6) 100%)' 
-                                  : 'linear-gradient(135deg, rgba(60,35,10,0.7) 0%, rgba(30,20,10,0.7) 100%)', 
+                                background: badgeBg, 
                                 padding: '2px 5px', 
                                 borderRadius: '2px', 
                                 fontSize: '0.6rem', 
                                 fontWeight: 'bold', 
-                                color: isCoincident ? '#e0e0e0' : '#ffb74d',
-                                border: isCoincident ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255, 183, 77, 0.5)',
-                                boxShadow: isCoincident ? 'inset 0 0 5px rgba(0,0,0,0.5)' : '0 0 6px rgba(255, 183, 77, 0.25)'
+                                color: badgeColor,
+                                border: badgeBorder,
+                                boxShadow: badgeShadow
                               }}
                             >
                               {displayAbbr}
@@ -185,12 +218,12 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                         </div>
                         {displayRoleName && (
                           <span 
-                            title={!isCoincident && primaryRuolo ? `Ruolo primario: ${primaryRuolo}` : undefined}
+                            title={roleTitle}
                             style={{ 
                               fontSize: '0.75rem', 
                               color: roleColor, 
                               marginTop: '0.1rem',
-                              fontWeight: isCoincident ? 400 : 600
+                              fontWeight: roleStatus === 'out_of_role' ? 600 : 500
                             }}
                           >
                             {displayRoleName}

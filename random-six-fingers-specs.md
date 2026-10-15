@@ -211,6 +211,22 @@ export async function assertAdmin(req?: Request) {
 - **Tabellino WhatsApp:** copia formattata con emoji, data, orario, stadio (con link Google Maps), formazioni Falchi/Aquile con indicazione maglia chiara e scura.
 - **Download JPEG Formazione:** generazione client-side di un rendering ad alta definizione del campo tattico tramite `html2canvas` per invio istantaneo nei gruppi.
 
+### 5.8 Live Match Tracker (`/live`) & Interoperabilità Minutaggio Gol
+- **Live Match Tracker (`/live`):**
+  - **Cronometro di Gara:** gestione stato `playing`, `paused`, `stopped` sincronizzato con `localStorage` (`matchTimerStart`, `matchTimerElapsed`).
+  - **Attribuzione Automatica del Minuto:** ad ogni gol registrato durante la partita, il sistema associa automaticamente il minuto effettivo trascorso (es. `16'`, `20'`, `21'`).
+  - **Gestione Autogol in Tempo Reale:** selezione guidata per marcare autogol a favore dell'avversario con attribuzione `Autogol <Giocatore> (min')`.
+  - **Sincronizzazione Atomica:** aggiornamento in tempo reale del risultato e dei marcatori su DB tramite l'endpoint API `/api/live-match`.
+- **Interoperabilità e Preservazione Minuti con la Modale Risultato (`UpdateResultModal`):**
+  - **Grammatica Formato Marcatori:**
+    - Gol multipli con cronologia: `Nome (min1', min2', ...)` (es. `Mattia (3', 42', 49')`).
+    - Gol singolo con minuto: `Nome (min')` (es. `Marco Bellavista (47')`, mai retrocesso a solo `Nome`).
+    - Autogol: `Autogol Nome (min')` o `Nome (AG) (min')`.
+    - Formato legacy compatibile: `Nome (conteggio)` o solo `Nome`.
+  - **Struttura Dati a Minuti:** stato reattivo interno basato su `Record<string, string[]>` anziché su semplici scalari numerici.
+  - **Flag di Modifica Dedicati (`scorersAModified`, `scorersBModified`):** se l'amministratore apre la partita dalla home solo per inserire le pagelle (voti 1-10 o s.v.) ed eleggere l'MVP, le stringhe originali dei marcatori generate da `/live` vengono conservate intatte al 100% senza alterazioni o riformattazioni.
+  - **Parser & Serializzatore Condivisi (`lib/stats/match-utils.ts`):** `parseScorersWithMinutes` e `stringifyScorersWithMinutes` garantiscono la conservazione dei minuti anche in caso di modifiche incrementali o decrementali (`+` / `-`), preservando i minuti dei gol rimanenti ed evitando regressioni statistiche nei calcoli della classifica o delle sfide H2H.
+
 ---
 
 ## 6. Schema del Database Relazionale (PostgreSQL)

@@ -156,7 +156,6 @@ export const calculateStatsData = (
       teamGoalsScored: number,
       teamGoalsConceded: number
     ) => {
-      if (!showGuests && !dbPlayers.some(p => p.Nome === playerName)) return;
       if (!data[playerName]) {
         data[playerName] = {
           name: playerName,
@@ -202,7 +201,20 @@ export const calculateStatsData = (
     m.team_b_players?.forEach(p => processPlayer(p, scoreB, scoreA));
   });
 
-  return Object.values(data).sort(
+  const validMatchesCount = sortedMatches.filter(
+    m => m.risultato && m.risultato !== '0-0'
+  ).length;
+
+  let result = Object.values(data);
+  if (!showGuests) {
+    result = result.filter(p => {
+      const isDb = dbPlayers.some(dbp => dbp.Nome === p.name);
+      const pct = validMatchesCount > 0 ? p.partiteGiocate / validMatchesCount : 1;
+      return isDb && pct >= 0.20;
+    });
+  }
+
+  return result.sort(
     (a, b) => b.golFattiSquadra - a.golFattiSquadra
   );
 };

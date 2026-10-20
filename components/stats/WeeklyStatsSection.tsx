@@ -39,12 +39,18 @@ export const WeeklyStatsSection: React.FC<WeeklyStatsSectionProps> = ({
     let teamBPlayers = lastMatch.team_b_players || [];
 
     if (!showGuests) {
-      teamAPlayers = teamAPlayers.filter((p: string) =>
-        dbPlayers.some(dbp => dbp.Nome === p)
-      );
-      teamBPlayers = teamBPlayers.filter((p: string) =>
-        dbPlayers.some(dbp => dbp.Nome === p)
-      );
+      const validMatchesCount = validMatches.length;
+      const isGuest = (pName: string) => {
+        const isDb = dbPlayers.some(dbp => dbp.Nome === pName);
+        if (!isDb) return true;
+        const playedCount = validMatches.filter(
+          m => (m.team_a_players || []).includes(pName) || (m.team_b_players || []).includes(pName)
+        ).length;
+        return validMatchesCount > 0 ? (playedCount / validMatchesCount) < 0.20 : false;
+      };
+
+      teamAPlayers = teamAPlayers.filter((p: string) => !isGuest(p));
+      teamBPlayers = teamBPlayers.filter((p: string) => !isGuest(p));
     }
 
     const voti = lastMatch.voti_giocatori || {};

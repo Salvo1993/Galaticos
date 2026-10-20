@@ -58,7 +58,7 @@ Il collettore statistico oggettivo, senza alcun tasto di Esportazione diretto. S
 - **Classifica Generale**: La classifica completa basata sui record totali di tutti i tempi.
 - **Stato di Forma**: Una classifica filtrata utilissima che prende in esame esclusivo le ultimissime partite per isolare la condizione o la crisi atletica attuale dei partecipanti.
 - **Sfida**: Un pannello in cui si elaborano sottoclassifiche circoscritte. È possibile stabilire chi ha avuto il rendimento migliore partendo da una specifica data mettendoli faccia a faccia per sfidarsi.
-- **Toggle "+ Guest"**: Tasto filtro attivabile/disattivabile. Se abilitato, fa comparire nella classifica attuale i giocatori ospiti esterni, unendoli al gruppo master.
+- **Toggle "+ Guest"**: Tasto filtro attivabile/disattivabile. Di default nasconde dalla classifica tutti i profili che hanno disputato meno del 20% delle partite complessive archiviate (oltre a eventuali ospiti esterni non censiti a DB), mantenendo la graduatoria focalizzata sui partecipanti regolari. Cliccando su "+ Guest", la classifica include tutti i partecipanti, contrassegnando con il badge "Guest" chi non raggiunge la soglia del 20%.
 
 **Permessi in quest'area:**
 - **Visitatori**: Possono unicamente navigare e consultare i dati. I visitatori sono abilitati, se lo desiderano, a creare delle nuove richieste di "Sfide" testa a testa. Esse però, una volta inviate al sistema, finiranno prettamente in un limbo (In attesa di nullaosta).

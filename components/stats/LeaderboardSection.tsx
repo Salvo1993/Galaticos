@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Medal, RotateCcw } from 'lucide-react';
-import { Player, LeaderboardEntry } from '@/types';
+import { Player, LeaderboardEntry, MatchResult } from '@/types';
 
 export interface LeaderboardSectionProps {
   leaderboard: LeaderboardEntry[];
@@ -11,6 +11,7 @@ export interface LeaderboardSectionProps {
   showGuests: boolean;
   setShowGuests: (show: boolean) => void;
   dbPlayers: Player[];
+  matches?: MatchResult[];
   onOpenSfidaModal: () => void;
 }
 
@@ -21,6 +22,7 @@ export const LeaderboardSection: React.FC<LeaderboardSectionProps> = ({
   showGuests,
   setShowGuests,
   dbPlayers,
+  matches,
   onOpenSfidaModal,
 }) => {
   const [sortConfig, setSortConfig] = useState<{
@@ -66,12 +68,31 @@ export const LeaderboardSection: React.FC<LeaderboardSectionProps> = ({
     }
   };
 
+  const totalMatchesCount = useMemo(() => {
+    if (matches && matches.length > 0) {
+      const valid = matches.filter(
+        m => m.risultato && m.risultato !== '' && m.risultato !== '0-0' && !m.risultato.startsWith('0-0')
+      );
+      if (valid.length > 0) return valid.length;
+    }
+    return leaderboard.length > 0
+      ? Math.max(...leaderboard.map(e => e.partite_giocate || 0))
+      : 0;
+  }, [matches, leaderboard]);
+
+  const isGuestPlayer = (item: LeaderboardEntry) => {
+    const isDbPlayer = dbPlayers.some(p => p.Nome === item.nome);
+    if (!isDbPlayer) return true;
+    if (totalMatchesCount > 0) {
+      return (item.partite_giocate / totalMatchesCount) < 0.20;
+    }
+    return false;
+  };
+
   const sortedLeaderboard = useMemo(() => {
     let sortableItems = [...leaderboard];
     if (!showGuests) {
-      sortableItems = sortableItems.filter(item =>
-        dbPlayers.some(p => p.Nome === item.nome)
-      );
+      sortableItems = sortableItems.filter(item => !isGuestPlayer(item));
     }
 
     if (sortConfig !== null) {
@@ -96,7 +117,7 @@ export const LeaderboardSection: React.FC<LeaderboardSectionProps> = ({
       });
     }
     return sortableItems;
-  }, [leaderboard, sortConfig, showGuests, dbPlayers]);
+  }, [leaderboard, sortConfig, showGuests, dbPlayers, totalMatchesCount]);
 
   return (
     <>
@@ -206,6 +227,11 @@ export const LeaderboardSection: React.FC<LeaderboardSectionProps> = ({
           </button>
           <button
             onClick={() => setShowGuests(!showGuests)}
+            title={
+              showGuests
+                ? 'Nascondi giocatori con meno del 20% di presenze o esterni'
+                : 'Mostra tutti i giocatori inclusi i guest (< 20% presenze o esterni)'
+            }
             style={{
               padding: '0.3rem 0.8rem',
               borderRadius: '20px',
@@ -560,6 +586,24 @@ export const LeaderboardSection: React.FC<LeaderboardSectionProps> = ({
                         }}
                       >
                         {row.nome}
+                        {isGuestPlayer(row) && (
+                          <span
+                            style={{
+                              marginLeft: '0.5rem',
+                              fontSize: '0.65rem',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: 'rgba(111, 156, 129, 0.15)',
+                              color: '#6f9c81',
+                              border: '1px solid rgba(111, 156, 129, 0.3)',
+                              fontWeight: 500,
+                              verticalAlign: 'middle',
+                            }}
+                            title={`Guest: ${row.partite_giocate} presenze su ${totalMatchesCount} (${Math.round((row.partite_giocate / (totalMatchesCount || 1)) * 100)}%)`}
+                          >
+                            Guest
+                          </span>
+                        )}
                       </td>
                       <td
                         style={{

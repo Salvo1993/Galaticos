@@ -279,6 +279,7 @@ export default function Home() {
         showGuests={appData.showGuests}
         setShowGuests={appData.setShowGuests}
         dbPlayers={appData.dbPlayers}
+        matches={appData.matches}
         onOpenSfidaModal={() => appData.setIsSfidaModalOpen(true)}
       />
 

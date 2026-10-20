@@ -281,6 +281,7 @@ export const AddMediaModal: React.FC<AddMediaModalProps> = ({
           >
             <option value="">-- Seleziona --</option>
             <option value="Partita Completa">Partita Completa</option>
+            <option value="Sintesi">Sintesi</option>
             <option value="Giocata">Giocata</option>
             <option value="Epic Fail">Epic Fail</option>
             <option value="Golazo">Golazo</option>

@@ -40,6 +40,7 @@ export function parseClipTitle(title, url, defaultMatch = 'Hollywood - Bollywood
   else if (/fail/i.test(clean)) categoria = 'Epic Fail';
   else if (/giocata/i.test(clean)) categoria = 'Giocata';
   else if (/partita completa|2-20|2-17/i.test(clean)) categoria = 'Partita Completa';
+  else if (/sintesi|highlight/i.test(clean)) categoria = 'Sintesi';
   else if (/gol|eurogol/i.test(clean)) categoria = 'Golazo';
 
   // Autore from known players

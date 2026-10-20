@@ -29,7 +29,8 @@ export const copyMatchMediaToClipboard = (
   }
 
   const fullMatchItems = items.filter(i => i.tipologia === 'Partita Completa');
-  const playerItems = items.filter(i => i.tipologia !== 'Partita Completa');
+  const sintesiItems = items.filter(i => i.tipologia === 'Sintesi');
+  const playerItems = items.filter(i => i.tipologia !== 'Partita Completa' && i.tipologia !== 'Sintesi');
 
   const cleanUrl = (idOrUrl: string) => {
     if (!idOrUrl) return '';
@@ -102,8 +103,15 @@ export const copyMatchMediaToClipboard = (
     message += `\n`;
   });
 
-  if (fullMatchItems.length > 0) {
+  if (sintesiItems.length > 0) {
     message += `---\n`;
+    sintesiItems.forEach(s => {
+      message += `⚡ Sintesi Partita: ${cleanUrl(s.youtube_id)}\n`;
+    });
+  }
+
+  if (fullMatchItems.length > 0) {
+    if (sintesiItems.length === 0) message += `---\n`;
     fullMatchItems.forEach(f => {
       message += `🎥 Partita Completa: ${cleanUrl(f.youtube_id)}\n`;
     });
@@ -163,7 +171,7 @@ export const copyPlayerMediaToClipboard = (
       const inTeamB = match.team_b_players?.includes(targetPlayer);
       const playedInMatch = inTeamA || inTeamB;
 
-      if (m.tipologia === 'Partita Completa' && playedInMatch) return true;
+      if ((m.tipologia === 'Partita Completa' || m.tipologia === 'Sintesi') && playedInMatch) return true;
       if (m.giocatore === match.team_a_name && inTeamA) return true;
       if (m.giocatore === match.team_b_name && inTeamB) return true;
       if (m.co_giocatore === match.team_a_name && inTeamA) return true;
@@ -226,9 +234,10 @@ export const copyPlayerMediaToClipboard = (
     const giocate = items.filter(c => c.tipologia === 'Giocata');
     const parate = items.filter(c => c.tipologia === 'Paratona' || c.tipologia === 'Parata');
     const fails = items.filter(c => c.tipologia === 'Epic Fail');
+    const sintesi = items.filter(c => c.tipologia === 'Sintesi');
     const fullMatch = items.filter(c => c.tipologia === 'Partita Completa');
     const others = items.filter(
-      c => !['Golazo', 'Gol', 'Giocata', 'Paratona', 'Parata', 'Epic Fail', 'Partita Completa'].includes(c.tipologia)
+      c => !['Golazo', 'Gol', 'Giocata', 'Paratona', 'Parata', 'Epic Fail', 'Sintesi', 'Partita Completa'].includes(c.tipologia)
     );
 
     goals.forEach((g, idx) => {
@@ -253,6 +262,10 @@ export const copyPlayerMediaToClipboard = (
 
     others.forEach(o => {
       message += `🎬 ${o.tipologia}: ${cleanUrl(o.youtube_id)}\n`;
+    });
+
+    sintesi.forEach(s => {
+      message += `⚡ Sintesi: ${cleanUrl(s.youtube_id)}\n`;
     });
 
     fullMatch.forEach(f => {

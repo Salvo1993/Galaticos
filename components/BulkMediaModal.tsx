@@ -790,6 +790,7 @@ export default function BulkMediaModal({
                           <option value="Paratona">Paratona (Parata)</option>
                           <option value="Giocata">Giocata</option>
                           <option value="Partita Completa">Partita Completa</option>
+                          <option value="Sintesi">Sintesi</option>
                         </select>
                       </div>
 

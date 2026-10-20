@@ -200,6 +200,7 @@ export const MediaArchiveSection: React.FC<MediaArchiveSectionProps> = ({
                 placeholder="Tutte le Tipologie"
                 options={[
                   { value: 'Partita Completa', label: 'Partita Completa' },
+                  { value: 'Sintesi', label: 'Sintesi' },
                   { value: 'Giocata', label: 'Giocata' },
                   { value: 'Epic Fail', label: 'Epic Fail' },
                   { value: 'Golazo', label: 'Golazo' },
@@ -548,7 +549,8 @@ export const MediaArchiveSection: React.FC<MediaArchiveSectionProps> = ({
                         const playedInMatch = inTeamA || inTeamB;
 
                         if (
-                          m.tipologia === 'Partita Completa' &&
+                          (m.tipologia === 'Partita Completa' ||
+                            m.tipologia === 'Sintesi') &&
                           playedInMatch
                         ) {
                           playerMatches = true;
@@ -775,7 +777,7 @@ export const MediaArchiveSection: React.FC<MediaArchiveSectionProps> = ({
                   return acc;
                 }, {} as Record<string, MediaItem[]>);
 
-                const categoryOrder = ['Golazo', 'Epic Fail', 'Giocata'];
+                const categoryOrder = ['Sintesi', 'Golazo', 'Paratona', 'Parata', 'Epic Fail', 'Giocata'];
                 const sortedCategories = Object.keys(groupedMedia).sort(
                   (a, b) => {
                     const idxA = categoryOrder.indexOf(a);

@@ -38,6 +38,7 @@ function extractYoutubeId(input) {
 function normalizeCategory(cat) {
   const c = (cat || '').trim().toLowerCase();
   if (c.includes('partita') || c.includes('completa') || c.includes('full')) return 'Partita Completa';
+  if (c.includes('sintesi') || c.includes('highlights') || c.includes('highlight') || c.includes('recap')) return 'Sintesi';
   if (c.includes('gol') || c.includes('golazo') || c.includes('goal')) return 'Golazo';
   if (c.includes('fail') || c.includes('epic')) return 'Epic Fail';
   if (c.includes('parat')) return 'Paratona';

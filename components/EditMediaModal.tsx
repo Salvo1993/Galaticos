@@ -211,7 +211,7 @@ export default function EditMediaModal({
             <Tag size={14} /> Categoria Video *
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-            {['Golazo', 'Paratona', 'Epic Fail', 'Giocata', 'Partita Completa'].map(cat => (
+            {['Golazo', 'Paratona', 'Epic Fail', 'Giocata', 'Partita Completa', 'Sintesi'].map(cat => (
               <button
                 key={cat}
                 type="button"

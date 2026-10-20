@@ -51,6 +51,7 @@ export function extractYoutubeId(input: string): string {
 export function normalizeCategory(cat: string): string {
   const c = (cat || '').trim().toLowerCase();
   if (c.includes('partita') || c.includes('completa') || c.includes('full')) return 'Partita Completa';
+  if (c.includes('sintesi') || c.includes('highlights') || c.includes('highlight') || c.includes('recap')) return 'Sintesi';
   if (c.includes('gol') || c.includes('golazo') || c.includes('goal')) return 'Golazo';
   if (c.includes('fail') || c.includes('epic')) return 'Epic Fail';
   if (c.includes('parat')) return 'Paratona';
@@ -69,7 +70,9 @@ export function isMediaCategory(val: string): boolean {
     v.includes('parat') ||
     v.includes('giocat') ||
     v.includes('partita') ||
-    v.includes('completa')
+    v.includes('completa') ||
+    v.includes('sintesi') ||
+    v.includes('highlight')
   );
 }
 
@@ -432,6 +435,7 @@ export const YOUTUBE_STUDIO_SNIPPET = `(() => {
     else if (/fail|epic/i.test(v.title)) cat = 'Epic Fail';
     else if (/giocata/i.test(v.title)) cat = 'Giocata';
     else if (/partita completa|\\bfull\\b/i.test(v.title)) cat = 'Partita Completa';
+    else if (/sintesi|\\bhighlights?\\b|\\brecap\\b/i.test(v.title)) cat = 'Sintesi';
 
     let coAutore = '';
     const assistMatch = v.title.match(/assist\\s+([A-Za-z0-9\\s]+)/i);
@@ -442,7 +446,7 @@ export const YOUTUBE_STUDIO_SNIPPET = `(() => {
     let cleanTitle = v.title.replace(new RegExp(\`\\\\s*assist\\\\s+\${coAutore}\`, 'i'), '').trim();
 
     let autore = '';
-    if (cat === 'Partita Completa') {
+    if (cat === 'Partita Completa' || cat === 'Sintesi') {
       autore = '';
     } else {
       const parts = cleanTitle.split(/\\s*[-–]\\s*/);

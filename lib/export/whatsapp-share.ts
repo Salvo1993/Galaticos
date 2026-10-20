@@ -156,12 +156,12 @@ export const copyResultsToClipboard = ({
   const e_black = String.fromCodePoint(0x26ab);
 
   const latestMatch = matches.length > 0 ? matches[0] : null;
-  let matchHeader = `${e_soccer} *EL FUTBOL* ${e_dash} Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
+  let matchHeader = `${e_soccer} *GALATICOS* ${e_dash} Squadre del ${new Date().toLocaleDateString('it-IT')}\n\n`;
 
   if (latestMatch) {
     const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     const formattedDate = new Date(latestMatch.data).toLocaleDateString('it-IT', dateOptions);
-    matchHeader = `${e_soccer} *EL FUTBOL* ${e_dash} ${matches.length}${e_ord} Giornata\n${e_cal} *${formattedDate}* - ${e_clock} *${latestMatch.ora}*\n`;
+    matchHeader = `${e_soccer} *GALATICOS* ${e_dash} ${matches.length}${e_ord} Giornata\n${e_cal} *${formattedDate}* - ${e_clock} *${latestMatch.ora}*\n`;
     if (latestMatch.Stadium) {
       matchHeader += `${e_stadium} Stadio: *${latestMatch.Stadium}*\n`;
       const matchCampo = dbCampi.find(c => c.nome === latestMatch.Stadium);
@@ -188,7 +188,7 @@ export const copyResultsToClipboard = ({
     `\n\n*${teamBName.toUpperCase()}*\n` +
     `${getShirtInfo('B')}\n` +
     results.teamB.map((n, i) => `${i + 1}. ${n}`).join('\n') +
-    `\n\nMaggiori informazioni disponibili su https://el-futbol-ten.vercel.app/`;
+    `\n\nMaggiori informazioni disponibili su https://galaticos-eta.vercel.app/`;
 
   navigator.clipboard.writeText(text).then(() => showToast('Risultato copiato!', 'success'));
 };

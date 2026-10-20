@@ -7,6 +7,7 @@ import { AddMediaModal } from '@/components/media/AddMediaModal';
 import BulkMediaModal from '@/components/BulkMediaModal';
 import EditMediaModal from '@/components/EditMediaModal';
 import { getVoteColor } from '@/lib/stats/match-utils';
+import { copyPlayerMediaToClipboard } from '@/lib/export/whatsapp-share';
 import type { Player, MatchResult, MediaItem } from '@/types';
 
 export interface MediaArchiveSectionProps {
@@ -206,6 +207,69 @@ export const MediaArchiveSection: React.FC<MediaArchiveSectionProps> = ({
                 ]}
               />
             </div>
+
+            {mediaFilterGiocatore && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.08) 100%)',
+                  border: '1px solid rgba(37, 211, 102, 0.35)',
+                  borderRadius: '10px',
+                  padding: '0.7rem 1rem',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <Video size={18} style={{ color: '#25D366', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600 }}>
+                    Video di <span style={{ color: '#25D366' }}>{mediaFilterGiocatore}</span>
+                    {mediaFilterPartita && selectedMatch && (
+                      <span style={{ fontSize: '0.8rem', color: '#9fd9b6', marginLeft: '6px' }}>
+                        ({selectedMatch.team_a_name} vs {selectedMatch.team_b_name})
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyPlayerMediaToClipboard(
+                      mediaFilterGiocatore,
+                      mediaItems,
+                      matches,
+                      showToast,
+                      mediaFilterPartita,
+                      mediaFilterTipologia
+                    )
+                  }
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#25D366',
+                    border: 'none',
+                    color: '#071520',
+                    borderRadius: '7px',
+                    padding: '0.5rem 1.1rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title={`Copia tutti i link WhatsApp dei video di ${mediaFilterGiocatore}`}
+                >
+                  <Copy size={16} />
+                  <span>Copia Link Video di {mediaFilterGiocatore}</span>
+                </button>
+              </div>
+            )}
 
             {selectedMatch && (
               <div

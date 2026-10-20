@@ -124,6 +124,159 @@ export const copyMatchMediaToClipboard = (
   }
 };
 
+export const copyPlayerMediaToClipboard = (
+  playerName: string,
+  mediaItems: MediaItem[],
+  matches: MatchResult[],
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void,
+  filterPartitaId?: string,
+  filterTipologia?: string
+) => {
+  const cleanUrl = (idOrUrl: string) => {
+    if (!idOrUrl) return '';
+    const trimmed = idOrUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://www.youtube.com/watch?v=${trimmed}`;
+  };
+
+  const targetPlayer = playerName.trim();
+  const playerMedia = mediaItems.filter(m => {
+    if (filterPartitaId && String(m.partita_id) !== filterPartitaId) return false;
+    if (filterTipologia) {
+      const matchTip =
+        m.tipologia === filterTipologia ||
+        (filterTipologia === 'Paratona' && m.tipologia === 'Parata') ||
+        (filterTipologia === 'Parata' && m.tipologia === 'Paratona');
+      if (!matchTip) return false;
+    }
+
+    if (
+      m.giocatore?.includes(targetPlayer) ||
+      m.co_giocatore?.includes(targetPlayer)
+    ) {
+      return true;
+    }
+
+    const match = matches.find(x => x.id === m.partita_id);
+    if (match) {
+      const inTeamA = match.team_a_players?.includes(targetPlayer);
+      const inTeamB = match.team_b_players?.includes(targetPlayer);
+      const playedInMatch = inTeamA || inTeamB;
+
+      if (m.tipologia === 'Partita Completa' && playedInMatch) return true;
+      if (m.giocatore === match.team_a_name && inTeamA) return true;
+      if (m.giocatore === match.team_b_name && inTeamB) return true;
+      if (m.co_giocatore === match.team_a_name && inTeamA) return true;
+      if (m.co_giocatore === match.team_b_name && inTeamB) return true;
+    }
+
+    return false;
+  });
+
+  if (playerMedia.length === 0) {
+    showToast(`Nessun video trovato per ${targetPlayer}`, 'info');
+    return;
+  }
+
+  // Raggruppa i video del giocatore per partita
+  const matchMap: Record<string, { match: MatchResult | undefined; items: MediaItem[] }> = {};
+  playerMedia.forEach(item => {
+    const pId = item.partita_id ? String(item.partita_id) : 'other';
+    if (!matchMap[pId]) {
+      matchMap[pId] = {
+        match: matches.find(m => String(m.id) === pId),
+        items: []
+      };
+    }
+    matchMap[pId].items.push(item);
+  });
+
+  // Ordina le partite per data decrescente (la più recente prima)
+  const sortedMatchKeys = Object.keys(matchMap).sort((a, b) => {
+    const matchA = matchMap[a].match;
+    const matchB = matchMap[b].match;
+    if (matchA && matchB) {
+      return new Date(matchB.data).getTime() - new Date(matchA.data).getTime();
+    }
+    if (matchA) return -1;
+    if (matchB) return 1;
+    return 0;
+  });
+
+  let message = `⚽🎬 VIDEO & GIOCATE | ${targetPlayer.toUpperCase()} 🎬⚽\n\n`;
+  if (filterPartitaId && matchMap[filterPartitaId]?.match) {
+    const m = matchMap[filterPartitaId].match!;
+    const dateStr = new Date(m.data).toLocaleDateString('it-IT');
+    message += `Ecco tutti i video della partita del ${dateStr} (${m.team_a_name} vs ${m.team_b_name})! 👇\n\n`;
+  } else {
+    message += `Ecco tutti i video di ${targetPlayer} suddivisi per partita! 👇\n\n`;
+  }
+
+  sortedMatchKeys.forEach(pId => {
+    const { match, items } = matchMap[pId];
+    if (match) {
+      const dStr = new Date(match.data).toLocaleDateString('it-IT');
+      const resStr = match.risultato ? ` (${match.risultato})` : '';
+      message += `📅 *${dStr}* — *${match.team_a_name} vs ${match.team_b_name}*${resStr}\n`;
+    } else {
+      message += `🎬 *Altri Video*\n`;
+    }
+
+    const goals = items.filter(c => c.tipologia === 'Golazo' || c.tipologia === 'Gol');
+    const giocate = items.filter(c => c.tipologia === 'Giocata');
+    const parate = items.filter(c => c.tipologia === 'Paratona' || c.tipologia === 'Parata');
+    const fails = items.filter(c => c.tipologia === 'Epic Fail');
+    const fullMatch = items.filter(c => c.tipologia === 'Partita Completa');
+    const others = items.filter(
+      c => !['Golazo', 'Gol', 'Giocata', 'Paratona', 'Parata', 'Epic Fail', 'Partita Completa'].includes(c.tipologia)
+    );
+
+    goals.forEach((g, idx) => {
+      const label = goals.length > 1 ? `${idx + 1}° Gol` : 'Gol';
+      message += `⚽ ${label}: ${cleanUrl(g.youtube_id)}\n`;
+    });
+
+    giocate.forEach((g, idx) => {
+      const label = giocate.length > 1 ? `${idx + 1}ª Giocata` : 'Giocata';
+      message += `✨ ${label}: ${cleanUrl(g.youtube_id)}\n`;
+    });
+
+    parate.forEach((p, idx) => {
+      const label = parate.length > 1 ? `${idx + 1}ª Paratona` : 'Paratona';
+      message += `🧤 ${label}: ${cleanUrl(p.youtube_id)}\n`;
+    });
+
+    fails.forEach((f, idx) => {
+      const label = fails.length > 1 ? `${idx + 1}° Epic Fail` : 'Epic Fail';
+      message += `🤡 ${label}: ${cleanUrl(f.youtube_id)}\n`;
+    });
+
+    others.forEach(o => {
+      message += `🎬 ${o.tipologia}: ${cleanUrl(o.youtube_id)}\n`;
+    });
+
+    fullMatch.forEach(f => {
+      message += `🎥 Partita Completa: ${cleanUrl(f.youtube_id)}\n`;
+    });
+
+    message += `\n`;
+  });
+
+  const trimmedMsg = message.trim();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(trimmedMsg)
+      .then(() => {
+        showToast(`Link video di ${targetPlayer} copiati negli appunti! 📋`, 'success');
+      })
+      .catch(() => {
+        fallbackCopyText(trimmedMsg, showToast);
+      });
+  } else {
+    fallbackCopyText(trimmedMsg, showToast);
+  }
+};
+
 export interface CopyResultsParams {
   results: Results | null;
   matches: MatchResult[];

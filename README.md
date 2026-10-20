@@ -70,9 +70,10 @@ L'arena adibita a pura bacheca e Classifica Speciale per il riconoscimento "Man 
 
 ## 7. Sezione Media 
 Cartella destinata all'archivio visivo e ai ricordi (scatti o video) realizzati sui manti erbosi. 
-- **Visitatori**: Possono visualizzare liberamente tutti i video caricati esplorando la galleria suddivisa per categorie (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*). Possono inoltre sfruttare un sistema di filtri per ricercare materiale specifico di una singola partita o di certi giocatori.
+- **Visitatori**: Possono visualizzare liberamente tutti i video caricati esplorando la galleria suddivisa per categorie (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*, *Sintesi*). Possono inoltre sfruttare un sistema di filtri per ricercare materiale specifico di una singola partita o di certi giocatori.
+  - **Filtro per Giocatore & Copia Link WhatsApp**: Quando si filtra la galleria per un giocatore, compare un banner dedicato con il pulsante *"Copia Link Video di [Giocatore]"*. Con un solo click, genera e copia negli appunti un messaggio formattato per WhatsApp contenente tutti i link YouTube dei suoi gol, giocate, parate, fail, sintesi e partite intere, raggruppati cronologicamente per partita.
 - **Amministratori**: Oltre alla visualizzazione, dispongono dell'arsenale completo per l'arricchimento e la gestione della galleria:
-  - **Aggiunta Singolo Media**: Possono caricare un singolo video YouTube associandolo alla partita e selezionando autore e categoria.
+  - **Aggiunta Singolo Media**: Possono caricare un singolo video YouTube associandolo alla partita e selezionando autore e categoria (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*, *Sintesi*).
   - **Carica Media in Blocco (Massivo)**: Funzionalità per importare decine di video in un solo click tramite testo o file `.txt` / `.tsv`.
   - **Modifica Video (Icona Matita)**: Possono modificare in qualsiasi momento autore, co-autore (assist), categoria, partita associata e link YouTube con player di anteprima integrato.
   - **Elimina Video (Icona Cestino)**: Possono rimuovere definitivamente qualsiasi video dall'archivio.
@@ -119,7 +120,8 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
 
     // 1. Riconoscimento Categoria
     let cat = 'Golazo';
-    if (/parata|paratona/i.test(v.title)) cat = 'Parata';
+    if (/sintesi|highlight/i.test(v.title)) cat = 'Sintesi';
+    else if (/parata|paratona/i.test(v.title)) cat = 'Parata';
     else if (/fail|epic/i.test(v.title)) cat = 'Epic Fail';
     else if (/giocata/i.test(v.title)) cat = 'Giocata';
     else if (/partita completa|\d+-\d+/i.test(v.title)) cat = 'Partita Completa';
@@ -140,13 +142,13 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
     // Pulisce termini di categoria e contatori (es. "3 Gol", "Eurogol", "Giocata", ecc.)
     let autore = candidate
       .replace(/(\d+\s*)?(eurogol|gol|goals?)\b.*$/i, '')
-      .replace(/\b(giocata|parata|paratona|fail|epic fail)\b.*$/i, '')
+      .replace(/\b(giocata|parata|paratona|fail|epic fail|sintesi|highlights?)\b.*$/i, '')
       .replace(/\b\d+-\d+\b.*$/i, '')
       .replace(/^[-–:\s]+|[-–:\s]+$/g, '')
       .trim();
 
-    // Se è la Partita Completa o se l'autore è solo un numero (es. "17" da "2-17"), lascia vuoto
-    if (cat === 'Partita Completa' || /^\d+$/.test(autore)) {
+    // Se è la Partita Completa, Sintesi o se l'autore è solo un numero (es. "17" da "2-17"), lascia vuoto
+    if (cat === 'Partita Completa' || cat === 'Sintesi' || /^\d+$/.test(autore)) {
       autore = '';
     }
 
@@ -174,7 +176,7 @@ Questa procedura consente di estrarre in automatico tutti i video dell'ultima pa
 - **Riconoscimento Dinamico degli Autori**: Non si basa su una lista fissa, ma analizza la struttura del titolo (`Partita - Giocatore Azione/Gol`). Riconosce **qualsiasi giocatore** di El Futbol e di Galaticos, inclusi nuovi iscritti, ospiti o riserve!
 - **Isolamento dell'ultima partita**: Filtra automaticamente solo i clip dell'ultima partita caricata.
 - **Link Ufficiali**: Estrae il link video `https://youtu.be/...` pulito a 11 caratteri.
-- **Tag Categoria & Assist**: Rileva la categoria (*Golazo*, *Parata*, *Epic Fail*, *Giocata*, *Partita Completa*) e l'eventuale assistman.
+- **Tag Categoria & Assist**: Rileva la categoria (*Golazo*, *Parata*, *Epic Fail*, *Giocata*, *Partita Completa*, *Sintesi*) e l'eventuale assistman.
 - **Download & Appunti**: Scarica `media_pronti_per_db.txt` e copia simultaneamente il testo negli appunti per il `Ctrl + V`.
 
 ---
@@ -195,7 +197,7 @@ Ogni card video nell'Archivio Media offre due controlli rapidi per gli amministr
 - **Matita Dorata (Modifica)**: Consente di correggere al volo:
   - Autore (con chip rapidi dei giocatori scesi in campo).
   - Co-Autore / Assist.
-  - Categoria (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*).
+  - Categoria (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*, *Sintesi*).
   - Partita associata.
   - Link YouTube (con player di anteprima integrato per guardare il video mentre si modifica).
 - **Cestino Rosso (Elimina)**: Rimuove istantaneamente il video dal database.

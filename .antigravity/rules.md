@@ -35,6 +35,8 @@ NON eseguire ricerche esplorative sull'intera codebase. Usa la mappa sottostante
   - Campi e Algoritmo: `CampoModal.tsx`, `AlgoSettingsModal.tsx`
 - **Media (`components/media/` & root `components/`):**
   - `MediaArchiveSection.tsx`, `AddMediaModal.tsx`, `EditMediaModal.tsx`, `BulkMediaModal.tsx`
+  - Categorie supportate: `Golazo`, `Paratona`, `Epic Fail`, `Giocata`, `Partita Completa`, `Sintesi`
+  - Export WhatsApp: condivisione link video filtrati per giocatore (`copyPlayerMediaToClipboard` in `lib/export/whatsapp-share.ts`)
 - **Layout & UI atomica:** `components/layout/HeaderBanner.tsx`, `components/ui/Dropdowns.tsx`
 
 ## 4. Business Logic & Fetchers Client (`lib/`)
@@ -87,4 +89,11 @@ Quando modifichi una di queste funzionalità, controlla SEMPRE i file collegati 
   1. **Modello Dati:** `types/index.ts`
   2. **UI Admin & Card:** `components/admin/EditPlayerModal.tsx`, `AddPlayerModal.tsx`, `components/players/PlayerCardModal.tsx`
   3. **API:** `app/api/giocatori/update/route.ts`, `app/api/risultati/update-maglia/route.ts`, `app/api/session/update-maglia/route.ts`
+
+* **Flusso "Media & Video YouTube (Archivio, Importazione e Condivisione)":**
+  1. **Tipologie Supportate:** `Golazo`, `Paratona`, `Epic Fail`, `Giocata`, `Partita Completa`, `Sintesi`.
+  2. **UI & Modali:** `components/media/MediaArchiveSection.tsx` (filtri per partita e giocatore, player modale, banner export WhatsApp per giocatore), `AddMediaModal.tsx`, `components/EditMediaModal.tsx`, `BulkMediaModal.tsx`.
+  3. **Backend API:** `app/api/media/route.ts` (GET, POST, PUT, DELETE), `app/api/media/bulk/route.ts` (POST importazione massiva).
+  4. **Utility & Normalizzazione:** `lib/media-import-utils.ts` (`normalizeCategory`, `isMediaCategory`, `parseYouTubeStudioVideos`), script CLI `scripts/compila-media.mjs`, `scripts/import-media.mjs`.
+  5. **Export WhatsApp:** `lib/export/whatsapp-share.ts` (`copyPlayerMediaToClipboard` con intestazione brandizzata, emoji categoria dedicate es. `⚡ Sintesi:`, e link per ogni giocata).
 

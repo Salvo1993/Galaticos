@@ -204,9 +204,10 @@ export async function assertAdmin(req?: Request) {
 - **Modulo Sfida (H2H):** confronto statistico testa a testa tra due o più giocatori selezionati con storico vittorie/sconfitte e reti.
 
 ### 5.6 Archivio Multimediale & Highlights YouTube
-- Raccolta multimediale con player modale integrato.
-- Tagging dei video: partita di riferimento, marcatore/protagonista, assist-man/co-protagonista, tipologia (Gol, Parata, Giocata, Rissa).
-- Funzione di copia link rapido e condivisione per i social.
+- Raccolta multimediale con player modale integrato e filtri reattivi per partita e giocatore.
+- Tagging dei video: partita di riferimento, marcatore/protagonista, assist-man/co-protagonista, tipologia (*Golazo*, *Paratona*, *Epic Fail*, *Giocata*, *Partita Completa*, *Sintesi*).
+- Funzione di copia link rapido e condivisione WhatsApp per singolo giocatore: genera e copia un messaggio con tutti i video del giocatore suddivisi cronologicamente per partita.
+- Flusso di importazione massiva con script F12 da YouTube Studio: riconoscimento dinamico di autore, assist, partita e tipologia (inclusa la *Sintesi*).
 
 ### 5.7 Condivisione WhatsApp & Download Immagine
 - **Tabellino WhatsApp:** copia formattata con emoji, data, orario, stadio (con link Google Maps), formazioni Falchi/Aquile con indicazione maglia chiara e scura.

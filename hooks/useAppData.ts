@@ -136,8 +136,33 @@ export function useAppData(options?: UseAppDataOptions) {
     onInitLoadedRef.current = options?.onInitLoaded;
   });
 
-  // Initial load
+  // Initial load with Stale-While-Revalidate caching for instant rendering on refresh
   useEffect(() => {
+    let hadCache = false;
+    try {
+      const cached = localStorage.getItem('app_data_cache_v2');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed.dbPlayers) && parsed.dbPlayers.length > 0) {
+          setDbPlayers(parsed.dbPlayers);
+          if (Array.isArray(parsed.dbCampi)) setDbCampi(parsed.dbCampi);
+          if (Array.isArray(parsed.matches)) setMatches(parsed.matches);
+          if (Array.isArray(parsed.mediaItems)) setMediaItems(parsed.mediaItems);
+          if (Array.isArray(parsed.leaderboard)) setLeaderboard(parsed.leaderboard);
+          if (parsed.matchLabel) setMatchLabel(parsed.matchLabel);
+          if (parsed.headerImage) setHeaderImage(parsed.headerImage);
+
+          if (parsed.initPayload && onInitLoadedRef.current) {
+            onInitLoadedRef.current(parsed.initPayload);
+          }
+          setLoading(false);
+          hadCache = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Cache load error:', e);
+    }
+
     const init = async () => {
       try {
         const [
@@ -149,9 +174,9 @@ export function useAppData(options?: UseAppDataOptions) {
           campiRes,
           mediaRes,
         ] = await Promise.all([
-          fetch(`/api/giocatori?t=${Date.now()}`, { cache: 'no-store' }),
-          fetch(`/api/session?t=${Date.now()}`, { cache: 'no-store' }),
-          fetch(`/api/settings?t=${Date.now()}`, { cache: 'no-store' }),
+          fetch('/api/giocatori', { cache: 'no-store' }),
+          fetch('/api/session', { cache: 'no-store' }),
+          fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/risultati', { cache: 'no-store' }),
           fetch('/api/classifica', { cache: 'no-store' }),
           fetch('/api/campi', { cache: 'no-store' }),
@@ -167,12 +192,20 @@ export function useAppData(options?: UseAppDataOptions) {
         const mediaData = await mediaRes.json().catch(() => []);
 
         if (playersData.error) throw new Error(playersData.error);
-        setDbPlayers(playersData);
-        setDbCampi(Array.isArray(campiData) ? campiData : []);
-        setMatches(Array.isArray(matchesData) ? matchesData : []);
-        setMediaItems(Array.isArray(mediaData) ? mediaData : []);
-        if (leaderboardData.success && leaderboardData.leaderboard) {
-          setLeaderboard(leaderboardData.leaderboard);
+        const finalPlayers = Array.isArray(playersData) ? playersData : [];
+        const finalCampi = Array.isArray(campiData) ? campiData : [];
+        const finalMatches = Array.isArray(matchesData) ? matchesData : [];
+        const finalMedia = Array.isArray(mediaData) ? mediaData : [];
+        const finalLeaderboard = leaderboardData.success && Array.isArray(leaderboardData.leaderboard) 
+          ? leaderboardData.leaderboard 
+          : [];
+
+        setDbPlayers(finalPlayers);
+        setDbCampi(finalCampi);
+        setMatches(finalMatches);
+        setMediaItems(finalMedia);
+        if (finalLeaderboard.length > 0) {
+          setLeaderboard(finalLeaderboard);
         }
 
         if (settingsData?.match_label) {
@@ -182,20 +215,38 @@ export function useAppData(options?: UseAppDataOptions) {
           setHeaderImage(settingsData.header_image);
         }
 
-        const savedMatch =
-          Array.isArray(matchesData) && matchesData.length > 0 ? matchesData[0] : null;
+        const savedMatch = finalMatches.length > 0 ? finalMatches[0] : null;
+        const initPayload = {
+          sessionData,
+          settingsData,
+          savedMatch,
+          playersData: finalPlayers,
+        };
 
         if (onInitLoadedRef.current) {
-          onInitLoadedRef.current({
-            sessionData,
-            settingsData,
-            savedMatch,
-            playersData,
-          });
+          onInitLoadedRef.current(initPayload);
+        }
+
+        // Save fresh snapshot to cache for instant subsequent loads
+        try {
+          localStorage.setItem('app_data_cache_v2', JSON.stringify({
+            dbPlayers: finalPlayers,
+            dbCampi: finalCampi,
+            matches: finalMatches,
+            mediaItems: finalMedia,
+            leaderboard: finalLeaderboard,
+            matchLabel: settingsData?.match_label || '',
+            headerImage: settingsData?.header_image || '',
+            initPayload,
+          }));
+        } catch (cacheErr) {
+          console.warn('Failed to save to local cache:', cacheErr);
         }
       } catch (err) {
         console.error('Initialization Error:', err);
-        setError('Impossibile caricare i dati dal database');
+        if (!hadCache) {
+          setError('Impossibile caricare i dati dal database');
+        }
       } finally {
         setLoading(false);
       }

@@ -8,11 +8,29 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const players = await sql`
-      SELECT * 
+      SELECT 
+        "Nome", "Ruolo", "Score", "velocita", "accelerazione", "tecnica", "contrasto", 
+        "passaggi", "finalizzazione", "altezza", "peso", "piede", "origine_punteggi", 
+        "Skill", "resistenza", "dribbling", "rissa", "RuoloSecondario", 
+        tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio,
+        CASE WHEN figurina IS NOT NULL AND LENGTH(figurina) > 0 THEN 1 ELSE 0 END as has_figurina
       FROM public."Giocatori" 
       ORDER BY "Nome" ASC
     `;
-    return NextResponse.json(players);
+
+    const mapped = players.map((p: any) => {
+      const { has_figurina, ...rest } = p;
+      return {
+        ...rest,
+        figurina: has_figurina ? `/api/giocatori/avatar?name=${encodeURIComponent(p.Nome)}` : null,
+      };
+    });
+
+    return NextResponse.json(mapped, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Database Error:', error);
     return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 });

@@ -7,20 +7,24 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS public."Sfide" (
-        id SERIAL PRIMARY KEY,
-        titolo VARCHAR(255) NOT NULL,
-        giocatori JSONB NOT NULL,
-        data_da VARCHAR(20),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-    try { await sql`ALTER TABLE public."Sfide" ADD COLUMN is_approved BOOLEAN DEFAULT false`; } catch(e){}
-    try { await sql`UPDATE public."Sfide" SET is_approved = true WHERE is_approved IS NULL`; } catch(e){}
-
-    const sfide = await sql`SELECT * FROM public."Sfide" ORDER BY created_at DESC`;
-    return NextResponse.json({ success: true, sfide });
+    try {
+      const sfide = await sql`SELECT * FROM public."Sfide" ORDER BY created_at DESC`;
+      return NextResponse.json({ success: true, sfide });
+    } catch {
+      // Table doesn't exist yet, create it
+      await sql`
+        CREATE TABLE IF NOT EXISTS public."Sfide" (
+          id SERIAL PRIMARY KEY,
+          titolo VARCHAR(255) NOT NULL,
+          giocatori JSONB NOT NULL,
+          data_da VARCHAR(20),
+          is_approved BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+      const sfide = await sql`SELECT * FROM public."Sfide" ORDER BY created_at DESC`;
+      return NextResponse.json({ success: true, sfide });
+    }
   } catch (error: any) {
     console.error('Fetch Sfide Error:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });

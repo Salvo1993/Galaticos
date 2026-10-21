@@ -98,6 +98,19 @@ export async function POST(req: Request) {
 
     if (mergeTarget && mergeTarget.trim()) {
       const target = mergeTarget.trim();
+      const targetClean = target.replace(/^\(P\)\s*/i, '').trim();
+      const targetVariants = Array.from(new Set([target, targetClean, `(P) ${targetClean}`]));
+
+      const isTargetMatch = (name: string) => {
+        if (!name || typeof name !== 'string') return false;
+        return targetVariants.some(tv => tv.toLowerCase() === name.trim().toLowerCase());
+      };
+
+      const getReplacement = (oldName: string) => {
+        if (sanitizedNome.startsWith('(P) ')) return sanitizedNome;
+        if (oldName.startsWith('(P) ') && isGk) return `(P) ${sanitizedNome}`;
+        return sanitizedNome;
+      };
 
       const matches = await sql`SELECT id, team_a_players, team_b_players, marcatori_a, marcatori_b, voti_giocatori, mvps FROM public."Risultati"`;
 
@@ -110,37 +123,64 @@ export async function POST(req: Request) {
         let mb = match.marcatori_b;
         let vg = match.voti_giocatori;
 
-        if (Array.isArray(tap) && tap.includes(target)) {
-          tap = tap.map((p: string) => p === target ? sanitizedNome : p);
+        if (Array.isArray(tap) && tap.some((p: string) => isTargetMatch(p))) {
+          tap = tap.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
           updated = true;
         }
-        if (Array.isArray(tbp) && tbp.includes(target)) {
-          tbp = tbp.map((p: string) => p === target ? sanitizedNome : p);
+        if (Array.isArray(tbp) && tbp.some((p: string) => isTargetMatch(p))) {
+          tbp = tbp.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
           updated = true;
         }
-        if (ma && typeof ma === 'string' && ma.includes(target)) {
-          ma = ma.split(',').map((s: string) => {
-             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\(\\d+\\))?$`);
-             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNome) : s.trim();
+        if (ma && typeof ma === 'string') {
+          let maUpdated = false;
+          const newMa = ma.split(',').map((s: string) => {
+             const trimmed = s.trim();
+             for (const tv of targetVariants) {
+                const regex = new RegExp(`^${tv.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\([^)]*\\))?$`, 'i');
+                if (regex.test(trimmed)) {
+                   maUpdated = true;
+                   return trimmed.replace(new RegExp(`^${tv.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'i'), sanitizedNome);
+                }
+             }
+             return trimmed;
           }).join(', ');
-          updated = true;
+          if (maUpdated) {
+             ma = newMa;
+             updated = true;
+          }
         }
-        if (mb && typeof mb === 'string' && mb.includes(target)) {
-          mb = mb.split(',').map((s: string) => {
-             const regex = new RegExp(`^${target.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\(\\d+\\))?$`);
-             return regex.test(s.trim()) ? s.trim().replace(target, sanitizedNome) : s.trim();
+        if (mb && typeof mb === 'string') {
+          let mbUpdated = false;
+          const newMb = mb.split(',').map((s: string) => {
+             const trimmed = s.trim();
+             for (const tv of targetVariants) {
+                const regex = new RegExp(`^${tv.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(\\s*\\([^)]*\\))?$`, 'i');
+                if (regex.test(trimmed)) {
+                   mbUpdated = true;
+                   return trimmed.replace(new RegExp(`^${tv.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'i'), sanitizedNome);
+                }
+             }
+             return trimmed;
           }).join(', ');
-          updated = true;
+          if (mbUpdated) {
+             mb = newMb;
+             updated = true;
+          }
         }
-        if (vg && vg[target] !== undefined) {
-          vg[sanitizedNome] = vg[target];
-          delete vg[target];
-          updated = true;
+        if (vg && typeof vg === 'object') {
+          for (const key of Object.keys(vg)) {
+            if (isTargetMatch(key)) {
+              const rep = getReplacement(key);
+              vg[rep] = vg[key];
+              delete vg[key];
+              updated = true;
+            }
+          }
         }
 
         let matchMvps = match.mvps;
-        if (Array.isArray(matchMvps) && matchMvps.includes(target)) {
-          matchMvps = matchMvps.map((p: string) => p === target ? sanitizedNome : p);
+        if (Array.isArray(matchMvps) && matchMvps.some((p: string) => isTargetMatch(p))) {
+          matchMvps = matchMvps.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
           updated = true;
         }
 
@@ -158,25 +198,79 @@ export async function POST(req: Request) {
         }
       }
 
-      const mediaTarget = `%${target}%`;
-      const mediaList = await sql`SELECT id, giocatore, co_giocatore FROM public."Media" WHERE giocatore LIKE ${mediaTarget} OR co_giocatore LIKE ${mediaTarget}`;
-      
-      for (const m of mediaList) {
-          let g = m.giocatore;
-          let cg = m.co_giocatore;
-          let mediaUpdated = false;
+      // Aggiorna Media
+      for (const tv of targetVariants) {
+        const mediaTarget = `%${tv}%`;
+        const mediaList = await sql`SELECT id, giocatore, co_giocatore FROM public."Media" WHERE giocatore LIKE ${mediaTarget} OR co_giocatore LIKE ${mediaTarget}`;
+        
+        for (const m of mediaList) {
+            let g = m.giocatore;
+            let cg = m.co_giocatore;
+            let mediaUpdated = false;
 
-          if (g && typeof g === 'string' && g.includes(target)) {
-              g = g.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(', ');
-              mediaUpdated = true;
-          }
-          if (cg && typeof cg === 'string' && cg.includes(target)) {
-              cg = cg.split(',').map((s: string) => s.trim() === target ? sanitizedNome : s.trim()).join(', ');
-              mediaUpdated = true;
-          }
-          if (mediaUpdated) {
-              await sql`UPDATE public."Media" SET giocatore = ${g}, co_giocatore = ${cg} WHERE id = ${m.id}`;
-          }
+            if (g && typeof g === 'string' && g.toLowerCase().includes(tv.toLowerCase())) {
+                g = g.split(',').map((s: string) => isTargetMatch(s) ? sanitizedNome : s.trim()).join(', ');
+                mediaUpdated = true;
+            }
+            if (cg && typeof cg === 'string' && cg.toLowerCase().includes(tv.toLowerCase())) {
+                cg = cg.split(',').map((s: string) => isTargetMatch(s) ? sanitizedNome : s.trim()).join(', ');
+                mediaUpdated = true;
+            }
+            if (mediaUpdated) {
+                await sql`UPDATE public."Media" SET giocatore = ${g}, co_giocatore = ${cg} WHERE id = ${m.id}`;
+            }
+        }
+      }
+
+      // Aggiorna LatestSession
+      const sessions = await sql`SELECT * FROM public."LatestSession" WHERE id = 1 LIMIT 1`;
+      if (sessions.length > 0) {
+        const session = sessions[0];
+        let sessionUpdated = false;
+
+        let sp = session.selected_players;
+        let c = session.clusters;
+        let t_a = session.team_a_players;
+        let t_b = session.team_b_players;
+
+        if (Array.isArray(sp) && sp.some((p: string) => isTargetMatch(p))) {
+          sp = sp.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
+          sessionUpdated = true;
+        }
+
+        if (Array.isArray(c)) {
+          let cUpdated = false;
+          c = c.map((cluster: any) => {
+            if (Array.isArray(cluster.members) && cluster.members.some((m: string) => isTargetMatch(m))) {
+              cUpdated = true;
+              return { ...cluster, members: cluster.members.map((m: string) => isTargetMatch(m) ? getReplacement(m) : m) };
+            }
+            return cluster;
+          });
+          if (cUpdated) sessionUpdated = true;
+        }
+
+        if (Array.isArray(t_a) && t_a.some((p: string) => isTargetMatch(p))) {
+          t_a = t_a.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
+          sessionUpdated = true;
+        }
+
+        if (Array.isArray(t_b) && t_b.some((p: string) => isTargetMatch(p))) {
+          t_b = t_b.map((p: string) => isTargetMatch(p) ? getReplacement(p) : p);
+          sessionUpdated = true;
+        }
+
+        if (sessionUpdated) {
+          await sql`
+            UPDATE public."LatestSession"
+            SET selected_players = ${JSON.stringify(sp)}::jsonb,
+                clusters = ${JSON.stringify(c)}::jsonb,
+                team_a_players = ${JSON.stringify(t_a)}::jsonb,
+                team_b_players = ${JSON.stringify(t_b)}::jsonb,
+                updated_at = NOW()
+            WHERE id = 1
+          `;
+        }
       }
 
       // Ricalcola la classifica 

@@ -27,19 +27,46 @@ export default function LiveMatchWear() {
   const [timerState, setTimerState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   
-  const loadTimerState = () => {
+  const loadTimerState = (currentMatchId?: number | string) => {
+      const activeMatchId = currentMatchId ? String(currentMatchId) : (match ? String(match.id) : null);
+      const storedMatchId = localStorage.getItem('matchTimerMatchId');
+
+      // Se l'ID partita è diverso dal timer salvato in locale, azzeriamo il timer per la nuova partita
+      if (activeMatchId && storedMatchId && storedMatchId !== activeMatchId) {
+          localStorage.setItem('matchTimerMatchId', activeMatchId);
+          localStorage.setItem('matchTimerState', 'stopped');
+          localStorage.setItem('matchTimerElapsed', '0');
+          localStorage.removeItem('matchTimerStart');
+          setTimerState('stopped');
+          setElapsedSeconds(0);
+          return { tState: 'stopped' as const, tStart: null, tElapsed: 0 };
+      }
+
+      if (activeMatchId && !storedMatchId) {
+          localStorage.setItem('matchTimerMatchId', activeMatchId);
+      }
+
       const state = localStorage.getItem('matchTimerState');
       const start = localStorage.getItem('matchTimerStart');
       const elapsed = localStorage.getItem('matchTimerElapsed');
 
       const tState = (state as 'stopped' | 'playing' | 'paused') || 'stopped';
       const tStart = start ? parseInt(start, 10) : null;
-      const tElapsed = elapsed ? parseInt(elapsed, 10) : 0;
+      let tElapsed = elapsed ? parseInt(elapsed, 10) : 0;
+      if (isNaN(tElapsed) || tElapsed < 0) tElapsed = 0;
+
+      // Se lo stato è 'stopped', i millisecondi trascorsi DEVONO essere 0
+      if (tState === 'stopped') {
+          tElapsed = 0;
+          if (elapsed !== '0') {
+              localStorage.setItem('matchTimerElapsed', '0');
+          }
+      }
       
       setTimerState(tState);
       
       if (tState === 'playing' && tStart) {
-          const currentTotalMs = tElapsed + (Date.now() - tStart);
+          const currentTotalMs = Math.max(0, tElapsed + (Date.now() - tStart));
           setElapsedSeconds(Math.floor(currentTotalMs / 1000));
       } else {
           setElapsedSeconds(Math.floor(tElapsed / 1000));
@@ -49,10 +76,15 @@ export default function LiveMatchWear() {
 
   const playTimer = () => {
      const { tState, tElapsed } = loadTimerState();
+     const activeMatchId = match ? String(match.id) : '';
+     if (activeMatchId) {
+         localStorage.setItem('matchTimerMatchId', activeMatchId);
+     }
+
      if (tState === 'playing') {
-         // Pause it
+         // Pausa: congela il tempo trascorso finora
          const tStart = parseInt(localStorage.getItem('matchTimerStart') || '0', 10);
-         const currentTotalMs = tElapsed + (Date.now() - tStart);
+         const currentTotalMs = Math.max(0, tElapsed + (Date.now() - tStart));
          
          localStorage.setItem('matchTimerState', 'paused');
          localStorage.setItem('matchTimerElapsed', currentTotalMs.toString());
@@ -60,12 +92,20 @@ export default function LiveMatchWear() {
          
          setTimerState('paused');
          setElapsedSeconds(Math.floor(currentTotalMs / 1000));
-     } else {
-         // Play
+     } else if (tState === 'paused') {
+         // Riprendi dalla pausa mantenendo tElapsed
          const now = Date.now();
          localStorage.setItem('matchTimerState', 'playing');
          localStorage.setItem('matchTimerStart', now.toString());
          setTimerState('playing');
+     } else {
+         // Avvio da 'stopped': azzera SEMPRE i millisecondi trascorsi!
+         const now = Date.now();
+         localStorage.setItem('matchTimerState', 'playing');
+         localStorage.setItem('matchTimerStart', now.toString());
+         localStorage.setItem('matchTimerElapsed', '0');
+         setTimerState('playing');
+         setElapsedSeconds(0);
      }
   };
 
@@ -74,6 +114,9 @@ export default function LiveMatchWear() {
          localStorage.setItem('matchTimerState', 'stopped');
          localStorage.setItem('matchTimerElapsed', '0');
          localStorage.removeItem('matchTimerStart');
+         if (match) {
+             localStorage.setItem('matchTimerMatchId', String(match.id));
+         }
          
          setTimerState('stopped');
          setElapsedSeconds(0);
@@ -98,6 +141,9 @@ export default function LiveMatchWear() {
       if (res.ok) {
         const data = await res.json();
         setMatch(data);
+        if (data?.id) {
+            loadTimerState(data.id);
+        }
         
         // If we just loaded and have a pending update in localStorage, sync it!
         const pending = localStorage.getItem('pendingLiveMatch');
@@ -219,17 +265,18 @@ export default function LiveMatchWear() {
     if (action === 'remove' && currentGoals <= 0) return;
 
     if (action === 'add') {
-        let elapsed = null;
+        let elapsed: number | null = null;
         const state = localStorage.getItem('matchTimerState') || 'stopped';
         if (state !== 'stopped') {
             const start = localStorage.getItem('matchTimerStart');
             const storedElapsed = parseInt(localStorage.getItem('matchTimerElapsed') || '0', 10);
             
+            let totalMs = isNaN(storedElapsed) ? 0 : storedElapsed;
             if (state === 'playing' && start) {
-                const totalMs = storedElapsed + (Date.now() - parseInt(start, 10));
+                totalMs += (Date.now() - parseInt(start, 10));
+            }
+            if (totalMs >= 0) {
                 elapsed = Math.floor(totalMs / 60000);
-            } else if (state === 'paused') {
-                elapsed = Math.floor(storedElapsed / 60000);
             }
         }
         

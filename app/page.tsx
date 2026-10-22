@@ -180,6 +180,7 @@ export default function Home() {
         onAddCluster={builder.addCluster}
         onRemoveCluster={builder.removeCluster}
         onToggleMemberInCluster={builder.toggleMemberInCluster}
+        onSaveConvocati={builder.saveCurrentConvocati}
       />
 
       <ModuloModal

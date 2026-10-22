@@ -268,8 +268,11 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
     groupB.forEach(p => assignments.set(p, 'teamB'));
   }
 
+  // Considera solo i giocatori effettivi inseriti (non vuoti)
+  const realPlayers = selectedPlayers.filter(p => p && p.trim() !== '');
+
   // Bilanciamento Portieri: se ci sono portieri selezionati, distribuiamoli tra le due squadre
-  const selectedGKs = selectedPlayers.filter(p => isGoalkeeper(p, dbPlayers));
+  const selectedGKs = realPlayers.filter(p => isGoalkeeper(p, dbPlayers));
   if (selectedGKs.length >= 2) {
     const unassignedGKs = selectedGKs.filter(p => !assignments.has(p));
     const gkA = selectedGKs.find(p => assignments.get(p) === 'teamA');
@@ -292,7 +295,7 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
   }
 
   // Assegnazione finale (Bilanciamento tramite storico Media Voto)
-  const unassignedPlayers = selectedPlayers.filter(p => !assignments.has(p));
+  const unassignedPlayers = realPlayers.filter(p => !assignments.has(p));
   let sortedUnassigned = [...unassignedPlayers];
 
   if (algoSettings.balanceRoles) {
@@ -348,8 +351,8 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
   let ratingSumA = 0;
   let ratingSumB = 0;
 
-  // Inserimento dei pre-assegnati
-  for (const player of selectedPlayers) {
+  // Inserimento dei pre-assegnati reali
+  for (const player of realPlayers) {
     const assignedTeam = assignments.get(player);
     if (assignedTeam) {
       const rating = getRating(player);
@@ -365,22 +368,26 @@ export const balanceTeams = (params: BalanceTeamsParams): BalanceTeamsResult => 
     }
   }
 
-  // Distribuzione greedy dei restanti
+  // Distribuzione greedy dei restanti giocatori reali
   for (const player of sortedUnassigned) {
     const rating = getRating(player);
-    if (teamA.length < matchFormat && (teamB.length === matchFormat || ratingSumA <= ratingSumB)) {
+    if (teamA.length < matchFormat && (teamB.length === matchFormat || teamA.length < teamB.length || (teamA.length === teamB.length && ratingSumA <= ratingSumB))) {
       teamA.push(player);
       ratingSumA += rating;
     } else if (teamB.length < matchFormat) {
       teamB.push(player);
       ratingSumB += rating;
     } else {
-      throw new Error('Impossibile completare le squadre');
+      teamA.push(player);
     }
   }
 
-  if (teamA.length !== matchFormat || teamB.length !== matchFormat) {
-    throw new Error('Errore nella generazione delle squadre');
+  // Completa gli slot liberi rimanenti fino a matchFormat per entrambe le squadre
+  while (teamA.length < matchFormat) {
+    teamA.push('');
+  }
+  while (teamB.length < matchFormat) {
+    teamB.push('');
   }
 
   if (matchFormat >= 7) {

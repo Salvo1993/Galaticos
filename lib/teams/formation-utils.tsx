@@ -767,5 +767,5 @@ export const assignPlayersToFormation = (
     }
   }
 
-  return assigned.map((p, i) => p || unassigned[i] || team[i]);
+  return assigned.map((p, i) => (p !== null && p !== undefined ? p : (unassigned[i] ?? team[i] ?? '')));
 };

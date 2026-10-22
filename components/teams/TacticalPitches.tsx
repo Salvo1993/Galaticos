@@ -170,9 +170,38 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                   roleTitle = `Fuori ruolo (Preferito: ${primaryRuolo || 'Nessuno'})`;
                 }
 
+                const isEmpty = !name || !name.trim();
+                const itemKey = isEmpty ? `empty-list-${t.team}-${idx}` : `${name}-${idx}`;
+
+                if (isEmpty) {
+                  return (
+                    <li 
+                      key={itemKey}
+                      className="player-row"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0.6rem', borderRadius: '6px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px dashed rgba(255,255,255,0.15)',
+                        opacity: 0.7,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div className="avatar" style={{ background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)' }}>?</div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className="player-name" style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>
+                            (Slot libero / Da definire)
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                }
+
                 return (
                   <li 
-                    key={name} 
+                    key={itemKey} 
                     className={`player-row ${isSwapSource ? 'active-source' : ''} ${isSwapTarget ? 'selectable-target' : ''}`}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -275,9 +304,12 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                 const isRoleSwapTeammate = !!selectedRolePlayer && selectedRolePlayer.team === currentTeamKey && selectedRolePlayer.index !== idx;
                 const pos = positions[idx] || { top: '50%', left: '50%', role: '' };
 
+                const isEmptySlot = !name || !name.trim();
+                const slotKey = isEmptySlot ? `empty-slot-${currentTeamKey}-${idx}` : `${name}-${idx}`;
+
                 return (
                   <div 
-                    key={name}
+                    key={slotKey}
                     className={`pes-player ${isSwapSource ? 'active-source' : ''} ${isSwapTarget ? 'selectable-target' : ''} ${isRoleSwapSelected ? 'role-swap-active' : ''} ${isRoleSwapTeammate ? 'role-swap-target' : ''}`}
                     style={{
                       top: pos.top, 
@@ -296,7 +328,7 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                           : isRoleSwapTeammate 
                             ? 'drop-shadow(0 0 6px rgba(52, 152, 219, 0.6))'
                             : 'none',
-                      opacity: isSwapSource ? 0.6 : 1,
+                      opacity: isSwapSource ? 0.6 : (isEmptySlot ? 0.75 : 1),
                       zIndex: isRoleSwapSelected ? 30 : isRoleSwapTeammate ? 20 : 10
                     }}
                     onClick={(e) => {
@@ -346,43 +378,68 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                       if (isAdmin) {
                         setSelectedRolePlayer(null);
                         setActiveSwapSource({ name, team: currentTeamKey });
-                      } else {
+                      } else if (!isEmptySlot) {
                         onSelectPlayerForCard(name);
                       }
                     }}
                     title={
                       isRoleSwapTeammate 
-                        ? `Clicca per scambiare ruolo tra ${selectedRolePlayer?.name} e ${name}` 
+                        ? `Clicca per scambiare ruolo tra ${selectedRolePlayer?.name} e ${name || 'Slot Libero'}` 
                         : isRoleSwapSelected 
                           ? 'Clicca per annullare spostamento ruolo' 
-                          : `Clicca per spostare il ruolo di ${name}`
+                          : `Clicca per spostare il ruolo di ${name || 'Slot Libero'}`
                     }
                   >
-                    <img 
-                      src={dbPlayers.find(p => p.Nome === name)?.figurina || `/players/${name}.jpg`}
-                      alt={name}
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: isRoleSwapSelected 
-                          ? '3px solid #ffcc00' 
-                          : t.team === currentLightTeam ? '3px solid #3498db' : '3px solid #e67e22',
-                        boxShadow: isRoleSwapSelected ? '0 0 16px rgba(255,204,0,0.9)' : '0 2px 6px rgba(0,0,0,0.8)',
-                        marginBottom: '4px',
-                        background: '#1a2a3a',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src.endsWith('.jpg')) {
-                          target.src = `/players/${name}.png`;
-                        } else {
-                          target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '#3498db' : '#e67e22'}" stroke="white" stroke-width="2"/></svg>`)}`;
-                        }
-                      }}
-                    />
+                    {isEmptySlot ? (
+                      <div
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '50%',
+                          border: isRoleSwapSelected 
+                            ? '3px solid #ffcc00' 
+                            : '2px dashed rgba(255,255,255,0.4)',
+                          background: 'rgba(15, 25, 35, 0.75)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'rgba(255,255,255,0.6)',
+                          fontSize: '1.3rem',
+                          fontWeight: 700,
+                          marginBottom: '4px',
+                          boxShadow: isRoleSwapSelected ? '0 0 16px rgba(255,204,0,0.9)' : '0 2px 6px rgba(0,0,0,0.6)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        ?
+                      </div>
+                    ) : (
+                      <img 
+                        src={dbPlayers.find(p => p.Nome === name)?.figurina || `/players/${name}.jpg`}
+                        alt={name}
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: isRoleSwapSelected 
+                            ? '3px solid #ffcc00' 
+                            : t.team === currentLightTeam ? '3px solid #3498db' : '3px solid #e67e22',
+                          boxShadow: isRoleSwapSelected ? '0 0 16px rgba(255,204,0,0.9)' : '0 2px 6px rgba(0,0,0,0.8)',
+                          marginBottom: '4px',
+                          background: '#1a2a3a',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.endsWith('.jpg')) {
+                            target.src = `/players/${name}.png`;
+                          } else {
+                            target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${t.team === currentLightTeam ? '#3498db' : '#e67e22'}" stroke="white" stroke-width="2"/></svg>`)}`;
+                          }
+                        }}
+                      />
+                    )}
                     <div className="pes-player-name" style={{ fontSize: '0.8rem', padding: '2px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       {pos.role && (
                         <span style={{ 
@@ -395,7 +452,9 @@ export const TacticalPitches = forwardRef<HTMLDivElement, TacticalPitchesProps>(
                           {pos.role}
                         </span>
                       )}
-                      <span>{name}</span>
+                      <span style={{ fontStyle: isEmptySlot ? 'italic' : 'normal', color: isEmptySlot ? 'rgba(255,255,255,0.6)' : 'inherit' }}>
+                        {isEmptySlot ? 'Slot Libero' : name}
+                      </span>
                       {isRoleSwapSelected && <span style={{ fontSize: '0.7rem', color: '#ffcc00', marginLeft: '2px' }}>🔄</span>}
                     </div>
                   </div>

@@ -92,6 +92,7 @@ export interface TeamBuilderPanelProps {
   onAddCluster: () => void;
   onRemoveCluster: (id: number) => void;
   onToggleMemberInCluster: (clusterId: number, playerName: string) => void;
+  onSaveConvocati?: () => void;
 }
 
 export const TeamBuilderPanel: React.FC<TeamBuilderPanelProps> = ({
@@ -150,6 +151,7 @@ export const TeamBuilderPanel: React.FC<TeamBuilderPanelProps> = ({
   onAddCluster,
   onRemoveCluster,
   onToggleMemberInCluster,
+  onSaveConvocati,
 }) => {
   if (!isAdmin) return null;
 
@@ -163,6 +165,8 @@ export const TeamBuilderPanel: React.FC<TeamBuilderPanelProps> = ({
         onOpenAlgoModal={() => setAlgoModalOpen(true)}
         onOpenManageModal={() => setIsManageModalOpen(true)}
         onOpenAddModal={() => setIsAddModalOpen(true)}
+        onSaveConvocati={onSaveConvocati}
+        isSavingConvocati={isSaving}
       />
 
       <AlgoSettingsModal

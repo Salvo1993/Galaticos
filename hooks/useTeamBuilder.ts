@@ -64,6 +64,7 @@ export function useTeamBuilder({
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [isClustersExpanded, setIsClustersExpanded] = useState(false);
   const [selectedStadium, setSelectedStadium] = useState('Seidita');
+  const saveDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Algo settings state
   const [algoModalOpen, setAlgoModalOpen] = useState(false);
@@ -261,38 +262,64 @@ export function useTeamBuilder({
       }
 
       if (sessionData) {
-        const sessionLen = Array.isArray(sessionData.selected_players)
+        let sessionLen = Array.isArray(sessionData.selected_players)
           ? sessionData.selected_players.length
-          : 10;
-        const format = sessionLen / 2;
-        const isValidSession =
-          Array.isArray(sessionData.selected_players) &&
-          [10, 12, 14, 16].includes(sessionData.selected_players.length) &&
-          sessionData.selected_players.every((p: string) => p !== '') &&
-          Array.isArray(sessionData.team_a_players) &&
-          sessionData.team_a_players.length === format &&
-          Array.isArray(sessionData.team_b_players) &&
-          sessionData.team_b_players.length === format;
+          : 0;
 
-        if (isValidSession) {
+        // Se selected_players è vuoto, proviamo a ricavare il formato da savedMatch
+        if (sessionLen === 0 && savedMatch && (savedMatch.team_a_players?.length || savedMatch.team_b_players?.length)) {
+          const matchLen = (savedMatch.team_a_players?.length || 0) + (savedMatch.team_b_players?.length || 0);
+          if ([10, 12, 14, 16].includes(matchLen)) {
+            sessionLen = matchLen;
+          }
+        }
+
+        const format = [10, 12, 14, 16].includes(sessionLen) ? sessionLen / 2 : 5;
+        const targetCount = format * 2;
+
+        let restoredPlayers: string[] = Array(targetCount).fill('');
+        if (Array.isArray(sessionData.selected_players) && sessionData.selected_players.length > 0) {
+          restoredPlayers = [...sessionData.selected_players];
+          while (restoredPlayers.length < targetCount) restoredPlayers.push('');
+          restoredPlayers = restoredPlayers.slice(0, targetCount);
+        } else if (savedMatch && (savedMatch.team_a_players || savedMatch.team_b_players)) {
+          const combined = [...(savedMatch.team_a_players || []), ...(savedMatch.team_b_players || [])];
+          restoredPlayers = [...combined];
+          while (restoredPlayers.length < targetCount) restoredPlayers.push('');
+          restoredPlayers = restoredPlayers.slice(0, targetCount);
+        }
+
+        const hasAnyPlayer = restoredPlayers.some((p: string) => p && p.trim() !== '');
+        const hasValidTeams = (Array.isArray(sessionData.team_a_players) && sessionData.team_a_players.length > 0) ||
+                              (savedMatch && ((savedMatch.team_a_players?.length || 0) > 0 || (savedMatch.team_b_players?.length || 0) > 0));
+
+        if (hasAnyPlayer || hasValidTeams || [7, 8].includes(format)) {
           setMatchFormat(format);
           if (sessionData.maglia_chiara) setUserOverrideMaglia(sessionData.maglia_chiara);
-          setSelectedPlayers(sessionData.selected_players);
+          setSelectedPlayers(restoredPlayers);
           setClusters(sessionData.clusters || []);
 
-          if (savedMatch) {
+          if (savedMatch && (savedMatch.team_a_players || savedMatch.team_b_players)) {
             setTeamAName(savedMatch.team_a_name || sessionData.team_a_name || 'Falchi 🦅');
             setTeamBName(savedMatch.team_b_name || sessionData.team_b_name || 'Aquile 🦆');
+            const teamA = [...(savedMatch.team_a_players || [])];
+            const teamB = [...(savedMatch.team_b_players || [])];
+            while (teamA.length < format) teamA.push('');
+            while (teamB.length < format) teamB.push('');
             setResults({
-              teamA: ensureGoalkeeperInGoal(savedMatch.team_a_players || [], playersData),
-              teamB: ensureGoalkeeperInGoal(savedMatch.team_b_players || [], playersData),
+              teamA: ensureGoalkeeperInGoal(teamA.slice(0, format), playersData),
+              teamB: ensureGoalkeeperInGoal(teamB.slice(0, format), playersData),
             });
-          } else {
+          } else if (sessionData.team_a_players && sessionData.team_b_players && (sessionData.team_a_players.length > 0 || sessionData.team_b_players.length > 0)) {
             setTeamAName(sessionData.team_a_name || 'Falchi 🦅');
             setTeamBName(sessionData.team_b_name || 'Aquile 🦆');
+            const teamA = [...sessionData.team_a_players];
+            const teamB = [...sessionData.team_b_players];
+            while (teamA.length < format) teamA.push('');
+            while (teamB.length < format) teamB.push('');
             setResults({
-              teamA: ensureGoalkeeperInGoal(sessionData.team_a_players, playersData),
-              teamB: ensureGoalkeeperInGoal(sessionData.team_b_players, playersData),
+              teamA: ensureGoalkeeperInGoal(teamA.slice(0, format), playersData),
+              teamB: ensureGoalkeeperInGoal(teamB.slice(0, format), playersData),
             });
           }
         }
@@ -322,10 +349,20 @@ export function useTeamBuilder({
     newSelected[index] = name;
     setSelectedPlayers(newSelected);
 
+    let nextClusters = clusters;
     const oldName = selectedPlayers[index];
     if (oldName && oldName !== name) {
+      nextClusters = [];
       setClusters([]);
     }
+
+    // Auto-salvataggio automatico sessione dopo selezione giocatore
+    if (saveDebounceTimerRef.current) {
+      clearTimeout(saveDebounceTimerRef.current);
+    }
+    saveDebounceTimerRef.current = setTimeout(() => {
+      saveSession(results, newSelected, nextClusters);
+    }, 800);
   };
 
   const addCluster = () => {
@@ -450,18 +487,42 @@ export function useTeamBuilder({
     }
   };
 
-  const saveSession = async (currentResults: Results) => {
+  const saveSession = async (
+    currentResults?: Results | null,
+    customSelectedPlayers?: string[],
+    customClusters?: Cluster[]
+  ) => {
     try {
+      const playersToSave = customSelectedPlayers || selectedPlayers;
+      const clustersToSave = customClusters || clusters;
+      const res = currentResults !== undefined ? currentResults : results;
+      const tA = res ? res.teamA : [];
+      const tB = res ? res.teamB : [];
+
       await saveSessionApi({
-        selected_players: selectedPlayers,
-        clusters,
+        selected_players: playersToSave,
+        clusters: clustersToSave,
         team_a_name: teamAName,
         team_b_name: teamBName,
-        team_a_players: currentResults.teamA,
-        team_b_players: currentResults.teamB,
+        team_a_players: tA,
+        team_b_players: tB,
+        maglia_chiara: userOverrideMaglia || undefined,
       });
     } catch (err) {
       console.error('Error saving session:', err);
+    }
+  };
+
+  const saveCurrentConvocati = async () => {
+    setIsSaving(true);
+    try {
+      await saveSession(results, selectedPlayers, clusters);
+      const filledCount = selectedPlayers.filter(p => p && p.trim() !== '').length;
+      showToast(`Convocati salvati con successo! (${filledCount}/${selectedPlayers.length})`, 'success');
+    } catch {
+      showToast('Errore durante il salvataggio dei convocati', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -654,6 +715,8 @@ export function useTeamBuilder({
         stadium: selectedStadium,
         matchLabel,
         maglia_chiara: currentLightTeam as 'A' | 'B',
+        selected_players: selectedPlayers,
+        clusters: clusters,
       });
       showToast('Formazione salvata!', 'success');
       setIsSaveFormationModalOpen(false);
@@ -744,5 +807,6 @@ export function useTeamBuilder({
     copyResults,
     downloadFormationImage,
     saveFormation,
+    saveCurrentConvocati,
   };
 }

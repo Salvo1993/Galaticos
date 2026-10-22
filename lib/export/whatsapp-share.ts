@@ -350,10 +350,10 @@ export const copyResultsToClipboard = ({
     `${matchHeader}` +
     `*${teamAName.toUpperCase()}*\n` +
     `${getShirtInfo('A')}\n` +
-    results.teamA.map((n, i) => `${i + 1}. ${n}`).join('\n') +
+    results.teamA.map((n, i) => `${i + 1}. ${n && n.trim() ? n : '(Slot Libero)'}`).join('\n') +
     `\n\n*${teamBName.toUpperCase()}*\n` +
     `${getShirtInfo('B')}\n` +
-    results.teamB.map((n, i) => `${i + 1}. ${n}`).join('\n') +
+    results.teamB.map((n, i) => `${i + 1}. ${n && n.trim() ? n : '(Slot Libero)'}`).join('\n') +
     `\n\nMaggiori informazioni disponibili su https://galaticos-eta.vercel.app/`;
 
   navigator.clipboard.writeText(text).then(() => showToast('Risultato copiato!', 'success'));

@@ -14,7 +14,17 @@ export async function POST(req: Request) {
 
   try {
     // Parse match_label per ottenere la chiave univoca (data + ora)
-    const { team_a_name, team_b_name, teamAPlayers, teamBPlayers, stadium, matchLabel: inputMatchLabel, maglia_chiara } = await req.json();
+    const { 
+      team_a_name, 
+      team_b_name, 
+      teamAPlayers, 
+      teamBPlayers, 
+      stadium, 
+      matchLabel: inputMatchLabel, 
+      maglia_chiara,
+      selected_players,
+      clusters
+    } = await req.json();
 
     if (!team_a_name || !team_b_name || !Array.isArray(teamAPlayers) || !Array.isArray(teamBPlayers)) {
       return NextResponse.json({ error: 'Dati squadra mancanti o invalidi' }, { status: 400 });
@@ -52,8 +62,8 @@ export async function POST(req: Request) {
           )
           VALUES (
             1,
-            '[]'::jsonb, 
-            '[]'::jsonb, 
+            ${JSON.stringify(selected_players || [])}::jsonb, 
+            ${JSON.stringify(clusters || [])}::jsonb, 
             ${team_a_name}, 
             ${team_b_name}, 
             ${JSON.stringify(teamAPlayers)}::jsonb, 
@@ -61,6 +71,14 @@ export async function POST(req: Request) {
             NOW()
           )
           ON CONFLICT (id) DO UPDATE SET
+            selected_players = CASE 
+              WHEN jsonb_array_length(EXCLUDED.selected_players) > 0 THEN EXCLUDED.selected_players 
+              ELSE public."LatestSession".selected_players 
+            END,
+            clusters = CASE 
+              WHEN jsonb_array_length(EXCLUDED.clusters) > 0 THEN EXCLUDED.clusters 
+              ELSE public."LatestSession".clusters 
+            END,
             team_a_name = EXCLUDED.team_a_name,
             team_b_name = EXCLUDED.team_b_name,
             team_a_players = EXCLUDED.team_a_players,

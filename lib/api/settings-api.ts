@@ -68,6 +68,8 @@ export interface SaveFormationPayload {
   stadium: string;
   matchLabel: string;
   maglia_chiara: 'A' | 'B';
+  selected_players?: string[];
+  clusters?: any[];
 }
 
 export const saveFormationApi = async (payload: SaveFormationPayload): Promise<void> => {

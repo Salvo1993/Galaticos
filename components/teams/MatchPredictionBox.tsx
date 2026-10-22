@@ -170,6 +170,7 @@ export const MatchPredictionBox: React.FC<MatchPredictionBoxProps> = ({
     let validGolCount = 0;
 
     teamPlayers.forEach(pName => {
+      if (!pName || !pName.trim()) return;
       const s = allPlayerStats[pName];
       if (s && s.partiteGiocate > 0) {
         if (s.votiCount > 0) {
@@ -269,13 +270,13 @@ export const MatchPredictionBox: React.FC<MatchPredictionBoxProps> = ({
       const teamBPlayers = m.team_b_players || [];
       const [scoreA, scoreB] = (m.risultato || '0-0').split('-').map(s => parseInt(s.trim(), 10) || 0);
 
-      const overlapA = teamPlayers.filter(p => teamAPlayers.includes(p)).length;
-      const overlapB = teamPlayers.filter(p => teamBPlayers.includes(p)).length;
+      const overlapA = teamPlayers.filter(p => p && p.trim() !== '' && teamAPlayers.includes(p)).length;
+      const overlapB = teamPlayers.filter(p => p && p.trim() !== '' && teamBPlayers.includes(p)).length;
 
       if (overlapA >= 2 || overlapB >= 2) {
         const bestOverlap = overlapA >= overlapB ? overlapA : overlapB;
         const isOnSideA = overlapA >= overlapB;
-        const commonPlayers = teamPlayers.filter(p => (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
+        const commonPlayers = teamPlayers.filter(p => p && p.trim() !== '' && (isOnSideA ? teamAPlayers : teamBPlayers).includes(p));
         
         // Peso: normalizzato sulla sovrapposizione massima possibile tra la partita passata e il match corrente
         const pastMatchSize = Math.max(teamAPlayers.length, teamBPlayers.length) || 5;

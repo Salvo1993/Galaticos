@@ -34,7 +34,11 @@ const OUTFIELD_STAT_FIELDS = [
   { key: 'Score', label: 'Score' }
 ] as const;
 
-const TEXT_FIELDS = ['Skill', 'piede'] as const;
+const TEXT_FIELDS = [
+  { key: 'Skill', label: 'Skill' },
+  { key: 'piede', label: 'Piede' },
+  { key: 'Infortunio', label: 'Infortunio' },
+] as const;
 
 export interface EditPlayerModalProps {
   isOpen: boolean;
@@ -357,14 +361,14 @@ export default function EditPlayerModal({
           <h4 style={{ marginTop: '1rem', color: '#6f9c81', borderBottom: '1px solid #23342b', paddingBottom: '0.5rem', margin: 0 }}>Altre Informazioni</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
             {TEXT_FIELDS.map((f) => (
-              <div key={f}>
-                <label style={{ textTransform: 'capitalize', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block' }}>{f}</label>
+              <div key={f.key}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', display: 'block' }}>{f.label}</label>
                 <input 
                   type="text" 
                   className="modal-input"
-                  value={editingPlayerStats[f as keyof Player]?.toString() || ''} 
-                  onChange={(e) => setEditingPlayerStats((prev) => ({ ...prev, [f]: e.target.value }))}
-                  placeholder="-"
+                  value={editingPlayerStats[f.key]?.toString() || ''}
+                  onChange={(e) => setEditingPlayerStats((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.key === 'Infortunio' ? 'Nessuno / tipo e tempi di recupero' : '-'}
                 />
               </div> 
             ))}

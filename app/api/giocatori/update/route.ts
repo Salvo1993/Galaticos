@@ -20,6 +20,7 @@ export async function POST(req: Request) {
 
     try {
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "Infortunio" TEXT;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS tuffo integer;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS presa integer;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS riflessi integer;`;
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
     // Process stats
     const { 
-      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score,
+      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Infortunio, Score,
       tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
     } = stats || {};
 
@@ -78,7 +79,8 @@ export async function POST(req: Request) {
         altezza = ${altezza ? parseInt(altezza) : null},
         peso = ${peso ? parseInt(peso) : null},
         piede = ${piede || null},
-        "Skill" = ${Skill || null},
+        "Skill" = ${Skill?.trim() || null},
+        "Infortunio" = ${Infortunio?.trim() || null},
         "Score" = ${Score ? parseInt(Score) : null},
         tuffo = ${tuffo ? parseInt(tuffo) : null},
         presa = ${presa ? parseInt(presa) : null},

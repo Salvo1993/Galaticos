@@ -21,6 +21,7 @@ export const PlayerCardModal: React.FC<PlayerCardModalProps> = ({
   const playerObj = dbPlayers.find(p => p.Nome === playerName);
   const stats = getPlayerStats(playerObj, playerName);
   const role = playerObj?.Ruolo || 'Giocatore';
+  const injury = playerObj?.Infortunio?.trim() || 'Nessuno';
 
   return (
     <div className="pes-modal-overlay" onClick={onClose}>
@@ -324,6 +325,21 @@ export const PlayerCardModal: React.FC<PlayerCardModalProps> = ({
                 style={{ color: 'white', textShadow: 'none' }}
               >
                 {stats.piede}
+              </span>
+            </div>
+            <div className="pes-stat-row">
+              <span>Infortunio</span>
+              <span
+                className="pes-stat-val"
+                style={{
+                  color: injury === 'Nessuno' ? '#9fd9b6' : '#ff6b6b',
+                  textShadow: 'none',
+                  textAlign: 'right',
+                  maxWidth: '55%',
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {injury}
               </span>
             </div>
           </div>

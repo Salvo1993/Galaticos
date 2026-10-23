@@ -7,6 +7,18 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
+    const injuryColumn = await sql`
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'Giocatori'
+        AND column_name = 'Infortunio'
+      LIMIT 1
+    `;
+    if (injuryColumn.length === 0) {
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "Infortunio" TEXT;`;
+    }
+
     const players = await sql`
       SELECT * 
       FROM public."Giocatori" 
@@ -48,6 +60,7 @@ export async function POST(req: Request) {
 
     try {
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "RuoloSecondario" TEXT;`;
+      await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS "Infortunio" TEXT;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS tuffo integer;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS presa integer;`;
       await sql`ALTER TABLE public."Giocatori" ADD COLUMN IF NOT EXISTS riflessi integer;`;
@@ -69,7 +82,7 @@ export async function POST(req: Request) {
 
     // Process stats
     const { 
-      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Score,
+      velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione, resistenza, dribbling, rissa, altezza, peso, piede, Skill, Infortunio, Score,
       tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
     } = stats || {};
 
@@ -90,7 +103,7 @@ export async function POST(req: Request) {
     await sql`
       INSERT INTO public."Giocatori" (
         "Nome", "Ruolo", "RuoloSecondario", velocita, accelerazione, tecnica, contrasto, passaggi, finalizzazione,
-        resistenza, dribbling, rissa, altezza, peso, piede, "Skill", "Score", origine_punteggi,
+        resistenza, dribbling, rissa, altezza, peso, piede, "Skill", "Infortunio", "Score", origine_punteggi,
         tuffo, presa, riflessi, piazzamento, uscite, reattivita, rinvio
       ) VALUES (
         ${sanitizedNome}, ${sanitizedRuolo}, ${sanitizedRuoloSecondario},
@@ -100,7 +113,7 @@ export async function POST(req: Request) {
         ${resistenza ? parseInt(resistenza) : null}, ${dribbling ? parseInt(dribbling) : null},
         ${rissa ? parseInt(rissa) : null}, ${altezza ? parseInt(altezza) : null},
         ${peso ? parseInt(peso) : null}, ${piede || null},
-        ${Skill || null}, ${Score ? parseInt(Score) : null},
+        ${Skill?.trim() || null}, ${Infortunio?.trim() || null}, ${Score ? parseInt(Score) : null},
         ${origine},
         ${tuffo ? parseInt(tuffo) : null}, ${presa ? parseInt(presa) : null},
         ${riflessi ? parseInt(riflessi) : null}, ${piazzamento ? parseInt(piazzamento) : null},

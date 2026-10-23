@@ -16,6 +16,7 @@ export interface Player {
   altezza?: number;
   peso?: number;
   piede?: string;
+  Infortunio?: string | null;
   origine_punteggi?: string;
   Skill?: string;
   Score?: number;

@@ -30,6 +30,7 @@ Pannello per interagire con l'elenco generale di tutti i tesserati.
     - **Pesi Percentuali**: Si modificano le percentuali d'influenza dei parametri passati quali MVP Ratio, Win Rate Storia o Media Voto per decidere chi sia attualmente in forma e generare calcoli logici.
     - **Bilanciatore OVR Nascosto (-5/+5)**: Elenco con nomi associati a funzioni di +/-. Serve all'Admin a malusare/boostare fittizziamente un utente per rendere le squadre bilanciate alla vista della community, ma nascondendo lo stat check sfavorevole allo spiato affinché non si creino offese.
   - **Foto del Profilo Giocatori**: Aprendo le schede dei giocatori c'è un'icona fotocamera con cui gli admin possono applicare un volto ritratto all'account sostituendovi la figurina non brandizzata.
+  - **Infortunio**: Nella scheda di ogni giocatore è sempre visibile lo stato dell'infortunio. Gli amministratori possono indicare liberamente il tipo di problema e gli eventuali tempi di recupero durante l'aggiunta o la modifica del profilo; se il campo è vuoto, la scheda mostra **“Nessuno”**.
 
 ## 3. Sezione Prossima Partita, Formazioni & Info
 In quest'area viene generato l'equilibrio della gara e definita la partita del giorno.

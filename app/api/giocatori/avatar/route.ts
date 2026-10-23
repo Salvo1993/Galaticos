@@ -43,7 +43,7 @@ export async function GET(req: Request) {
           headers: {
             'Content-Type': mimeType,
             'Content-Length': buffer.length.toString(),
-            'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+            'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
           },
         });
       }

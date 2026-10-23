@@ -25,11 +25,14 @@ export async function GET() {
       ORDER BY "Nome" ASC
     `;
 
+    const avatarVersion = Date.now();
     const mapped = players.map((p: any) => {
       const hasFigurina = p.figurina && p.figurina.length > 0;
       return {
         ...p,
-        figurina: hasFigurina ? `/api/giocatori/avatar?name=${encodeURIComponent(p.Nome)}` : null,
+        figurina: hasFigurina
+          ? `/api/giocatori/avatar?name=${encodeURIComponent(p.Nome)}&v=${avatarVersion}`
+          : null,
       };
     });
 
